@@ -3,6 +3,7 @@
 from __future__ import division
 import sys
 import os
+import inspect
 import shutil
 import datetime
 from datetime import timedelta
@@ -14,10 +15,8 @@ import math
 from random import random
 from ftplib import FTP
 
-if sys.platform == 'win32':
-    lib_dir = "C:\\DYCAST\\application\\libs"
-else:
-    lib_dir = "/Users/alan/github/DYCAST/application/libs"
+APPLICATION_ROOT = os.path.dirname(os.path.abspath(inspect.getfile(inspect.currentframe())))
+lib_dir = os.path.join(APPLICATION_ROOT, 'libs')
 
 sys.path.append(lib_dir)            # the hard-coded library above
 sys.path.append("libs")             # a library relative to current folder
