@@ -235,7 +235,7 @@ def load_bird(line):
     # in the execute statement.  That's why they're included in this line.
     #TODO: the hardcoded SRIDs should be changed, and instead read from the config file.
     #TODO: similarly, they should not be hardcoded in postgres_init.sql
-    querystring = "INSERT INTO " + dead_birds_table_projected + " VALUES (%s, %s, %s, ST_Transform(GeometryFromText('POINT(" + lon + " " + lat + ")',4269),54003))"
+    querystring = "INSERT INTO " + dead_birds_table_projected + " VALUES (%s, %s, %s, ST_Transform(ST_GeomFromText('POINT(" + lon + " " + lat + ")',4269),54003))"
     #querystring = "INSERT INTO " + dead_birds_table_unprojected + " VALUES (%s, %s, %s, GeometryFromText('POINT(" + lon + " " + lat + ")',4269))"
     try:
         cur.execute(querystring, (bird_id, report_date_string, species))
@@ -263,7 +263,7 @@ def load_human_case(line):
     # in the execute statement.  That's why they're included in this line.
     #TODO: the hardcoded SRIDs should be changed, and instead read from the config file.
     #TODO: similarly, they should not be hardcoded in postgres_init.sql
-    querystring = "INSERT INTO " + human_cases_table_projected + " VALUES (%s, %s, %s, %s, ST_Transform(GeometryFromText('POINT(" + lon + " " + lat + ")',4269),54003))"
+    querystring = "INSERT INTO " + human_cases_table_projected + " VALUES (%s, %s, %s, %s, ST_Transform(ST_GeomFromText('POINT(" + lon + " " + lat + ")',4269),54003))"
     #querystring = "INSERT INTO " + human_cases_table_unprojected + " VALUES (%s, %s, %s, GeometryFromText('POINT(" + lon + " " + lat + ")',4269))"
 
     # if human_case_id is not an integer, what do we do?A
@@ -1036,7 +1036,7 @@ def create_dist_margs(close_space_param, close_time_param, spatial_domain_param,
         #bird_list.add((a_point, a_time)
         #insert_simulated_bird(a_point, a_time)
 
-        querystring = "INSERT INTO \"" + temp_table_bird_selection + "\" VALUES (%s, %s, %s, GeometryFromText('POINT(" + str(point_y) + " " + str(point_x) + ")',54003))"
+        querystring = "INSERT INTO \"" + temp_table_bird_selection + "\" VALUES (%s, %s, %s, ST_GeomFromText('POINT(" + str(point_y) + " " + str(point_x) + ")',54003))"
         try:
             cur.execute(querystring, (a_random_bird, a_time, species))
         except Exception, inst:
