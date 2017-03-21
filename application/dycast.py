@@ -3,6 +3,7 @@
 
 import sys
 import os
+import inspect
 import shutil
 import datetime
 import time
@@ -11,10 +12,8 @@ import ConfigParser
 import logging
 from ftplib import FTP
 
-if sys.platform == 'win32':
-    lib_dir = "C:\\DYCAST\\application\\libs"
-else:
-    lib_dir = "/Users/alan/Documents/DYCAST/py_bin/libs"
+APPLICATION_ROOT = os.path.dirname(os.path.abspath(inspect.getfile(inspect.currentframe())))
+lib_dir = os.path.join(APPLICATION_ROOT, 'libs')
 
 sys.path.append(lib_dir)            # the hard-coded library above
 sys.path.append("libs")             # a library relative to current folder
