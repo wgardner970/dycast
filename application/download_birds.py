@@ -1,12 +1,12 @@
 #! /usr/bin/env python
-#$Id: download_birds.py,v 1.3 2008/02/01 23:04:45 alan Exp alan $
 #
-# Downlaod a dead bird .tsv file from an FTP site
+# Download a dead bird .tsv file from an FTP site
 #
 # Meant to be run daily as a scheduled task
 #
-# On Fridays, this script will create a backup of the current file before 
-# overwriting it with the newly downloaded file
+# On Fridays, this script should create a backup of the current file before 
+# overwriting it with the newly downloaded file. But I don't think that has 
+# been added yet.
 #
 # The connection parameters for the FTP site are given in a config file
 #

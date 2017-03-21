@@ -1,5 +1,4 @@
 #! /usr/bin/env python
-#$Id: load_birds.py,v 1.6 2008/03/31 18:40:01 alan Exp alan $
 #
 # Read a file containing dead birds and load them into the database
 #
