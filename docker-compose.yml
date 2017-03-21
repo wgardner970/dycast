@@ -1,0 +1,46 @@
+version: '2'
+services:
+
+    zikast:
+      container_name: zikast
+      restart: always
+      image: cvast/cvast-zikast:dev
+      build: 
+        context: .
+        dockerfile: ./Dockerfile
+      command: bash -c  "sleep 10 && /docker/entrypoint.sh"
+      environment:
+        - FORCE_DB_INIT=False
+        - PGPASSWORD=postgres
+        - PGDBNAME=zikast
+        - PGHOST=db
+        - PGPORT=5432
+        - TZ=EST
+      volumes:
+        - ./application:/zikast/application
+        - ./docker:/docker
+        - ./zikast_log.txt:/zikast/zikast_log.txt
+        - ./inbox:/zikast/inbox
+        - ./outbox:/zikast/outbox
+      ports:
+        - '81:8000'
+      depends_on:
+        - db
+        
+    db:
+      container_name: db
+      restart: always
+      image: jthibault/postgis:latest
+      volumes:
+          - zikast-postgres-data:/var/lib/postgresql/data
+          - zikast-postgres-log:/var/log/postgresql
+      ports:
+        - '5432:5432'
+      environment:
+        - POSTGRES_PASSWORD=postgres
+        - TZ=EST
+    
+        
+volumes:
+    zikast-postgres-data:
+    zikast-postgres-log:
