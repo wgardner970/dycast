@@ -13,7 +13,7 @@ services:
         - FORCE_DB_INIT=False
         - PGPASSWORD=postgres
         - PGDBNAME=zikast
-        - PGHOST=db
+        - PGHOST=zikast-db
         - PGPORT=5432
         - TZ=EST
       volumes:
@@ -25,10 +25,10 @@ services:
       ports:
         - '81:8000'
       depends_on:
-        - db
+        - zikast-db
         
-    db:
-      container_name: db
+    zikast-db:
+      container_name: zikast-db
       restart: always
       image: jthibault/postgis:latest
       volumes:
