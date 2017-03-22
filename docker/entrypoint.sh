@@ -76,7 +76,7 @@ listen_for_input() {
 				echo "Generating risk..."
 				python ${ZIKAST_APP_PATH}/daily_risk.py --date 2008-03-27
 				echo "Exporting risk..."
-				python ${ZIKAST_APP_PATH}/export_risk.py --date 2008-03-27
+				python ${ZIKAST_APP_PATH}/export_risk.py 2008-03-27
 			fi
 		done
 		
