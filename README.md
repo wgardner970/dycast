@@ -1,3 +1,12 @@
+# Zikast
+
+*Under construction* 
+
+This is fork from https://github.com/almccon/DYCAST, which is a tool to create risk maps for West Nile Virus.
+The aim of this fork is to create risk maps for Zika virus. 
+
+# Original Readme
+
 The Dynamic Continuous-Area Space-Time (DYCAST) system is a biologically based spatiotemporal model that uses public reports of dead birds to identify areas at high risk for West Nile virus (WNV) transmission to humans.
 
 The original version was written by Constandinos Theophilides at the [Center for Analysis and Research of Spatial Information (CARSI)](http://www.geography.hunter.cuny.edu/~carsi/) at Hunter College, the City University of New York. That version was written in the Magik programming language for GE SmallWorld GIS. 
