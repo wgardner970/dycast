@@ -18,18 +18,13 @@
 # lat (decimal degrees)
 # species
 
-import optparse
-import os
-import inspect
 import dycast
+import optparse
 
 usage = "usage: %prog [options] datafile.tsv"
-current_dir = os.path.dirname(os.path.abspath(inspect.getfile(inspect.currentframe())))
-default_config = os.path.join(current_dir, 'dycast.config')
-
 p = optparse.OptionParser(usage)
 p.add_option('--config', '-c', 
-            default=default_config, 
+            default="./dycast.config", 
             help="load config file FILE", 
             metavar="FILE")
 options, arguments = p.parse_args()
