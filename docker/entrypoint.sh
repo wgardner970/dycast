@@ -76,10 +76,10 @@ listen_for_input() {
 				mv ${file} ${ZIKAST_INBOX_COMPLETED}/$(basename $file)_completed
 				
 				echo "Generating risk..."
-				python ${ZIKAST_APP_PATH}/daily_risk.py --date 2008-03-27
+				python ${ZIKAST_APP_PATH}/daily_risk.py --date 1998-01-04
 				
 				echo "Exporting risk..."
-				python ${ZIKAST_APP_PATH}/export_risk.py 2008-03-27
+				python ${ZIKAST_APP_PATH}/export_risk.py 1998-01-04
 			fi
 		done
 		

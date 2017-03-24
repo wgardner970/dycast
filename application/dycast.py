@@ -196,8 +196,8 @@ def load_bird(line):
     # We need to force this query to take lon and lat as the strings 
     # that they are, not quoted as would happen if I tried to list them 
     # in the execute statement.  That's why they're included in this line.
-    querystring = "INSERT INTO " + dead_birds_table_projected + " VALUES (%s, %s, %s, ST_Transform(GeometryFromText('POINT(" + lon + " " + lat + ")',4269),54003))"
-    #querystring = "INSERT INTO " + dead_birds_table_unprojected + " VALUES (%s, %s, %s, GeometryFromText('POINT(" + lon + " " + lat + ")',4269))"
+    querystring = "INSERT INTO " + dead_birds_table_projected + " VALUES (%s, %s, %s, ST_Transform(ST_GeomFromText('POINT(" + lon + " " + lat + ")',29193),29193))"
+    #querystring = "INSERT INTO " + dead_birds_table_unprojected + " VALUES (%s, %s, %s, ST_GeomFromText('POINT(" + lon + " " + lat + ")',29193))"
     try:
         cur.execute(querystring, (bird_id, report_date_string, species))
     except Exception, inst:
@@ -489,7 +489,8 @@ def get_county_id(tile_id):
         logging.warning("warning: can't select county for effects poly %s", tile_id)
         logging.warning(inst)
         return 0
-    return cur.fetchone()[0]
+    # return cur.fetchone()[0]
+    return 1
 
 
 def check_bird_count(bird_tab, tile_id):

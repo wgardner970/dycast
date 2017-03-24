@@ -1,6 +1,6 @@
 -- $Id: postgres_init.sql,v 1.7 2008/03/31 18:40:01 alan Exp alan $
 
-INSERT INTO spatial_ref_sys (srid, proj4text) VALUES (54003, '+proj=mill +lat_0=0 +lon_0=0 +x_0=0 +y_0=0 +R_A +ellps=WGS84 +datum=WGS84 +units=m no_defs');
+INSERT INTO spatial_ref_sys (srid, proj4text) VALUES (29193, '+proj=mill +lat_0=0 +lon_0=0 +x_0=0 +y_0=0 +R_A +ellps=WGS84 +datum=WGS84 +units=m no_defs');
 
 
 CREATE TABLE dead_birds (
@@ -19,9 +19,9 @@ ALTER TABLE dead_birds_unprojected ADD CONSTRAINT dead_birds_unprojected_pkey PR
 
 ALTER TABLE dead_birds_projected ADD CONSTRAINT dead_birds_projected_pkey PRIMARY KEY (bird_id);
 
-SELECT AddGeometryColumn('public', 'dead_birds_unprojected', 'location', 4269, 'POINT', 2);
+SELECT AddGeometryColumn('public', 'dead_birds_unprojected', 'location', 29193, 'POINT', 2);
 
-SELECT AddGeometryColumn('public', 'dead_birds_projected', 'location', 54003, 'POINT', 2);
+SELECT AddGeometryColumn('public', 'dead_birds_projected', 'location', 29193, 'POINT', 2);
 
 CREATE INDEX dead_birds_unprojected_locationsidx ON dead_birds_unprojected USING GIST ( location );
 
@@ -47,9 +47,9 @@ ALTER TABLE effects_polys_unprojected ADD CONSTRAINT effects_polys_unprojected_p
 
 ALTER TABLE effects_polys_projected ADD CONSTRAINT effects_polys_projected_pkey PRIMARY KEY (tile_id);
 
-SELECT AddGeometryColumn('public', 'effects_polys_unprojected', 'the_geom', 4269, 'MULTIPOLYGON', 2);
+SELECT AddGeometryColumn('public', 'effects_polys_unprojected', 'the_geom', 29193, 'MULTIPOLYGON', 2);
 
-SELECT AddGeometryColumn('public', 'effects_polys_projected', 'the_geom', 54003, 'MULTIPOLYGON', 2);
+SELECT AddGeometryColumn('public', 'effects_polys_projected', 'the_geom', 29193, 'MULTIPOLYGON', 2);
 
 CREATE TABLE county_codes (
     county_id smallint PRIMARY KEY, 
@@ -70,9 +70,9 @@ ALTER TABLE effects_poly_centers_unprojected ADD CONSTRAINT effects_polys_center
 
 ALTER TABLE effects_poly_centers_projected ADD CONSTRAINT effects_polys_centers_projected_pkey PRIMARY KEY (tile_id);
 
-SELECT AddGeometryColumn('public', 'effects_poly_centers_unprojected', 'the_geom', 4269, 'POINT', 2);
+SELECT AddGeometryColumn('public', 'effects_poly_centers_unprojected', 'the_geom', 29193, 'POINT', 2);
 
-SELECT AddGeometryColumn('public', 'effects_poly_centers_projected', 'the_geom', 54003, 'POINT', 2);
+SELECT AddGeometryColumn('public', 'effects_poly_centers_projected', 'the_geom', 29193, 'POINT', 2);
 
 CREATE TABLE risk_table_list (
     table_id integer PRIMARY KEY,
