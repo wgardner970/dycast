@@ -12,6 +12,10 @@ RUN echo "deb http://apt.postgresql.org/pub/repos/apt/ trusty-pgdg main" >> /etc
 	
 RUN pip install psycopg2
 
+RUN apt-get update -y &&\
+    apt-get install -y postgis
+
+
 ENV ZIKAST_PATH=/zikast
 ENV ZIKAST_APP_PATH=$ZIKAST_PATH/application
 ENV ZIKAST_INIT_PATH=$ZIKAST_PATH/init

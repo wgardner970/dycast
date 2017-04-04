@@ -6,6 +6,7 @@ PGUSER=${PGUSER:-postgres}
 ZIKAST_INBOX=${ZIKAST_INBOX:-$ZIKAST_PATH/inbox}
 ZIKAST_INBOX_COMPLETED=${ZIKAST_INBOX}/completed
 ZIKAST_OUTBOX=${ZIKAST_OUTBOX:-$ZIKAST_PATH/outbox}
+ZIKAST_INIT_PATH={ZIKAST_APP_PATH}/init
 
 PG_SHARE_PATH_2_0=/usr/local/pgsql/share/contrib/postgis-2.0/
 
@@ -43,10 +44,9 @@ init_db() {
 	
 	psql -h ${PGHOST} -U ${PGUSER} -d ${PGDBNAME} -f ${ZIKAST_APP_PATH}/postgres_init.sql
 
-	psql -h ${PGHOST} -U ${PGUSER} -d ${PGDBNAME} -f ${ZIKAST_APP_PATH}/dumped_dist_margs.sql
-	# psql -h ${PGHOST} -U ${PGUSER} -d ${PGDBNAME} -f ${ZIKAST_APP_PATH}/dumped_county_codes.sql
-	# psql -h ${PGHOST} -U ${PGUSER} -d ${PGDBNAME} -f ${ZIKAST_APP_PATH}/dumped_effects_polys.sql
-	# psql -h ${PGHOST} -U ${PGUSER} -d ${PGDBNAME} -f ${ZIKAST_APP_PATH}/dumped_effects_poly_centers.sql
+	shp2pgsql -s 29193 ${ZIKAST_APP_PATH}/init/effects_poly_centers_projected/dycast_rp_cells_n_71824.shp  public.effects_poly_centers_projected | psql -h ${PGHOST} -d ${PGDBNAME} -U ${PGUSER}
+
+	psql -h ${PGHOST} -U ${PGUSER} -d ${PGDBNAME} -f ${ZIKAST_APP_PATH}/init/dumped_dist_margs.sql
 }
 
 
