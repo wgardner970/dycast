@@ -72,14 +72,19 @@ listen_for_input() {
 			if [[ -f ${file} ]]; then
 			
 				echo "Loading input file: ${file}..."
-				python ${ZIKAST_APP_PATH}/load_birds.py ${file}
-				mv ${file} ${ZIKAST_INBOX_COMPLETED}/$(basename $file)_completed
+				python ${ZIKAST_APP_PATH}/load_birds.py "${file}"
+				
+				echo "Completed loading input file, moving it to ${ZIKAST_INBOX_COMPLETED}"
+				filename=$(basename "$file")
+				mv "${file}" "${ZIKAST_INBOX_COMPLETED}/${filename}_completed"
 				
 				echo "Generating risk..."
 				python ${ZIKAST_APP_PATH}/daily_risk.py --date 1998-01-04
 				
 				echo "Exporting risk..."
 				python ${ZIKAST_APP_PATH}/export_risk.py 1998-01-04
+
+				echo "Done."
 			fi
 		done
 		
