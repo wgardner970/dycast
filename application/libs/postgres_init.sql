@@ -63,16 +63,16 @@ CREATE TABLE effects_poly_centers (
 CREATE TABLE effects_poly_centers_unprojected (
 ) INHERITS (effects_poly_centers);
 
-CREATE TABLE effects_poly_centers_projected (
-) INHERITS (effects_poly_centers);
+-- CREATE TABLE effects_poly_centers_projected (
+-- ) INHERITS (effects_poly_centers);
 
 ALTER TABLE effects_poly_centers_unprojected ADD CONSTRAINT effects_polys_centers_unprojected_pkey PRIMARY KEY (tile_id);
 
-ALTER TABLE effects_poly_centers_projected ADD CONSTRAINT effects_polys_centers_projected_pkey PRIMARY KEY (tile_id);
+-- ALTER TABLE effects_poly_centers_projected ADD CONSTRAINT effects_polys_centers_projected_pkey PRIMARY KEY (tile_id);
 
 SELECT AddGeometryColumn('public', 'effects_poly_centers_unprojected', 'the_geom', 29193, 'POINT', 2);
 
-SELECT AddGeometryColumn('public', 'effects_poly_centers_projected', 'the_geom', 29193, 'POINT', 2);
+-- SELECT AddGeometryColumn('public', 'effects_poly_centers_projected', 'the_geom', 29193, 'POINT', 2);
 
 CREATE TABLE risk_table_list (
     table_id integer PRIMARY KEY,

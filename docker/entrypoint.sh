@@ -41,12 +41,12 @@ init_db() {
     psql -h ${PGHOST} -U ${PGUSER} -d ${PGDBNAME} -c "CREATE EXTENSION postgis;" 
     ### And we need legacy functions (currently)
     psql -h ${PGHOST} -U ${PGUSER} -d ${PGDBNAME} -f ${PG_SHARE_PATH_2_0}/legacy.sql
-	
-	psql -h ${PGHOST} -U ${PGUSER} -d ${PGDBNAME} -f ${ZIKAST_APP_PATH}/postgres_init.sql
 
-	shp2pgsql -s 29193 ${ZIKAST_APP_PATH}/init/effects_poly_centers_projected/dycast_rp_cells_n_71824.shp  public.effects_poly_centers_projected | psql -h ${PGHOST} -d ${PGDBNAME} -U ${PGUSER}
+	psql -h ${PGHOST} -U ${PGUSER} -d ${PGDBNAME} -f ${ZIKAST_INIT_PATH}/postgres_init.sql
 
-	psql -h ${PGHOST} -U ${PGUSER} -d ${PGDBNAME} -f ${ZIKAST_APP_PATH}/init/dumped_dist_margs.sql
+	shp2pgsql -s 29193 ${ZIKAST_INIT_PATH}/effects_poly_centers_projected/dycast_rp_cells_n_71824.shp  public.effects_poly_centers_projected | psql -h ${PGHOST} -d ${PGDBNAME} -U ${PGUSER}
+
+	psql -h ${PGHOST} -U ${PGUSER} -d ${PGDBNAME} -f ${ZIKAST_INIT_PATH}/dumped_dist_margs.sql
 }
 
 
