@@ -1,6 +1,6 @@
 -- Initialization queries run at setup time to create the necessary tables. 
 
-INSERT INTO spatial_ref_sys (srid, proj4text) VALUES (29193, '+proj=mill +lat_0=0 +lon_0=0 +x_0=0 +y_0=0 +R_A +ellps=WGS84 +datum=WGS84 +units=m no_defs');
+INSERT INTO spatial_ref_sys (srid, proj4text) VALUES (54003, '+proj=mill +lat_0=0 +lon_0=0 +x_0=0 +y_0=0 +R_A +ellps=WGS84 +datum=WGS84 +units=m no_defs');
 
 
 CREATE TABLE dead_birds (
@@ -88,12 +88,12 @@ CREATE TABLE effects_poly_centers (
 CREATE TABLE effects_poly_centers_unprojected (
 ) INHERITS (effects_poly_centers);
 
-CREATE TABLE effects_poly_centers_projected (
-) INHERITS (effects_poly_centers);
+-- CREATE TABLE effects_poly_centers_projected (
+-- ) INHERITS (effects_poly_centers);
 
 ALTER TABLE effects_poly_centers_unprojected ADD CONSTRAINT effects_polys_centers_unprojected_pkey PRIMARY KEY (tile_id);
 
-ALTER TABLE effects_poly_centers_projected ADD CONSTRAINT effects_polys_centers_projected_pkey PRIMARY KEY (tile_id);
+-- ALTER TABLE effects_poly_centers_projected ADD CONSTRAINT effects_polys_centers_projected_pkey PRIMARY KEY (tile_id);
 
 SELECT AddGeometryColumn('public', 'effects_poly_centers_unprojected', 'the_geom', 29193, 'POINT', 2);
 
