@@ -6,8 +6,9 @@ PGUSER=${PGUSER:-postgres}
 ZIKAST_INBOX=${ZIKAST_INBOX:-$ZIKAST_PATH/inbox}
 ZIKAST_INBOX_COMPLETED=${ZIKAST_INBOX}/completed
 ZIKAST_OUTBOX=${ZIKAST_OUTBOX:-$ZIKAST_PATH/outbox}
+ZIKAST_INIT_PATH=${ZIKAST_APP_PATH}/init
 
-PG_SHARE_PATH_2_0=/usr/local/pgsql/share/contrib/postgis-2.0/
+PG_SHARE_PATH_2_0=/usr/share/postgresql/9.6/contrib/postgis-2.3
 
 init_zikast() {
 	if [[ "${FORCE_DB_INIT}" == "True" ]]; then
@@ -33,20 +34,36 @@ db_exists() {
 
 init_db() {
 	echo "Initializing database..."
+
+	echo "Dropping existing database ${PGDBNAME}"
 	dropdb -h ${PGHOST} -U ${PGUSER} ${PGDBNAME} # if necessary
+	echo "" 
+
+	echo "Creating database ${PGDBNAME}"
 	createdb -h ${PGHOST} -U ${PGUSER} --encoding=UTF8 ${PGDBNAME} --template template0
+	echo "" 
 	
 	### Using the new 9.1+ extension method:
+	echo "Creating extension 'postgis'"
     psql -h ${PGHOST} -U ${PGUSER} -d ${PGDBNAME} -c "CREATE EXTENSION postgis;" 
-    ### And we need legacy functions (currently)
-    psql -h ${PGHOST} -U ${PGUSER} -d ${PGDBNAME} -f ${PG_SHARE_PATH_2_0}/legacy.sql
-	
-	psql -h ${PGHOST} -U ${PGUSER} -d ${PGDBNAME} -f ${ZIKAST_APP_PATH}/postgres_init.sql
+	echo "" 
 
-	psql -h ${PGHOST} -U ${PGUSER} -d ${PGDBNAME} -f ${ZIKAST_APP_PATH}/dumped_dist_margs.sql
-	psql -h ${PGHOST} -U ${PGUSER} -d ${PGDBNAME} -f ${ZIKAST_APP_PATH}/dumped_county_codes.sql
-	psql -h ${PGHOST} -U ${PGUSER} -d ${PGDBNAME} -f ${ZIKAST_APP_PATH}/dumped_effects_polys.sql
-	psql -h ${PGHOST} -U ${PGUSER} -d ${PGDBNAME} -f ${ZIKAST_APP_PATH}/dumped_effects_poly_centers.sql
+    ### And we need legacy functions (currently)
+    # psql -h ${PGHOST} -U ${PGUSER} -d ${PGDBNAME} -f ${PG_SHARE_PATH_2_0}/legacy.sql
+    # psql -h ${PGHOST} -U ${PGUSER} -d ${PGDBNAME} -f ${PG_SHARE_PATH_2_0}/postgis.sql
+    # psql -h ${PGHOST} -U ${PGUSER} -d ${PGDBNAME} -f ${PG_SHARE_PATH_2_0}/spatial_ref_sys.sql
+
+	echo "Running ${ZIKAST_INIT_PATH}/postgres_init.sql"
+	psql -h ${PGHOST} -U ${PGUSER} -d ${PGDBNAME} -f ${ZIKAST_INIT_PATH}/postgres_init.sql
+	echo "" 
+
+	echo "Running ${ZIKAST_INIT_PATH}/dengue_brazil/effects_poly_centers_projected_71824_brazil.sql"
+	psql -h ${PGHOST} -U ${PGUSER} -d ${PGDBNAME} -f ${ZIKAST_INIT_PATH}/dengue_brazil/effects_poly_centers_projected_71824_brazil.sql
+	echo "" 
+
+	echo "Running ${ZIKAST_INIT_PATH}/dumped_dist_margs.sql"
+	psql -h ${PGHOST} -U ${PGUSER} -d ${PGDBNAME} -f ${ZIKAST_INIT_PATH}/dumped_dist_margs.sql
+	echo "" 
 }
 
 
@@ -70,13 +87,21 @@ listen_for_input() {
 		# python ${ZIKAST_APP_PATH}/daily_tasks.py
 		for file in ${ZIKAST_INBOX}/*.tsv; do
 			if [[ -f ${file} ]]; then
+			
 				echo "Loading input file: ${file}..."
-				python ${ZIKAST_APP_PATH}/load_birds.py ${file}
-				mv ${file} ${ZIKAST_INBOX_COMPLETED}/$(basename $file)_completed
+				python ${ZIKAST_APP_PATH}/load_birds.py "${file}"
+				
+				echo "Completed loading input file, moving it to ${ZIKAST_INBOX_COMPLETED}"
+				filename=$(basename "$file")
+				mv "${file}" "${ZIKAST_INBOX_COMPLETED}/${filename}_completed"
+				
 				echo "Generating risk..."
-				python ${ZIKAST_APP_PATH}/daily_risk.py --date 2008-03-27
+				python ${ZIKAST_APP_PATH}/daily_risk.py --date 1998-01-04
+				
 				echo "Exporting risk..."
-				python ${ZIKAST_APP_PATH}/export_risk.py 2008-03-27
+				python ${ZIKAST_APP_PATH}/export_risk.py 1998-01-04
+
+				echo "Done."
 			fi
 		done
 		

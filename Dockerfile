@@ -9,12 +9,15 @@ RUN echo "deb http://apt.postgresql.org/pub/repos/apt/ trusty-pgdg main" >> /etc
 	wget --quiet -O - https://www.postgresql.org/media/keys/ACCC4CF8.asc | apt-key add - &&\
 	apt-get update -y &&\
 	apt-get install -y postgresql-client-9.1
-	
-RUN pip install psycopg2
+
+RUN apt-get update -y &&\
+    apt-get install -y postgis
+
+# ptvsd = for debugging with Visual Studio Code
+RUN pip install psycopg2 ptvsd
 
 ENV ZIKAST_PATH=/zikast
-ENV ZIKAST_APP_PATH=$ZIKAST_PATH/application
-ENV ZIKAST_INIT_PATH=$ZIKAST_PATH/init
+ENV ZIKAST_APP_PATH=${ZIKAST_PATH}/application
 ENV PG_SHARE_PATH=/usr/local/pgsql/share
 ENV DOCKER_DIR=/docker
 

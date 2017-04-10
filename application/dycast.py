@@ -11,9 +11,8 @@ import time
 import fileinput
 import ConfigParser
 import logging
-import math
-from random import random
 from ftplib import FTP
+import inspect
 
 APPLICATION_ROOT = os.path.dirname(os.path.abspath(inspect.getfile(inspect.currentframe())))
 lib_dir = os.path.join(APPLICATION_ROOT, 'libs')
@@ -39,8 +38,6 @@ except ImportError:
     print "couldn't import psycopg2 library in path:", sys.path
     sys.exit()
 
-loglevel = logging.DEBUG        # For debugging
-#loglevel = logging.INFO         # appropriate for normal use
 #loglevel = logging.WARNING      # appropriate for almost silent use
 
 conn = 0
@@ -235,8 +232,8 @@ def load_bird(line):
     # in the execute statement.  That's why they're included in this line.
     #TODO: the hardcoded SRIDs should be changed, and instead read from the config file.
     #TODO: similarly, they should not be hardcoded in postgres_init.sql
-    querystring = "INSERT INTO " + dead_birds_table_projected + " VALUES (%s, %s, %s, ST_Transform(ST_GeomFromText('POINT(" + lon + " " + lat + ")',4269),54003))"
-    #querystring = "INSERT INTO " + dead_birds_table_unprojected + " VALUES (%s, %s, %s, GeometryFromText('POINT(" + lon + " " + lat + ")',4269))"
+    querystring = "INSERT INTO " + dead_birds_table_projected + " VALUES (%s, %s, %s, ST_Transform(ST_GeomFromText('POINT(" + lon + " " + lat + ")',29193),29193))"
+    #querystring = "INSERT INTO " + dead_birds_table_unprojected + " VALUES (%s, %s, %s, ST_GeomFromText('POINT(" + lon + " " + lat + ")',29193))"
     try:
         cur.execute(querystring, (bird_id, report_date_string, species))
     except Exception, inst:
@@ -263,8 +260,8 @@ def load_human_case(line):
     # in the execute statement.  That's why they're included in this line.
     #TODO: the hardcoded SRIDs should be changed, and instead read from the config file.
     #TODO: similarly, they should not be hardcoded in postgres_init.sql
-    querystring = "INSERT INTO " + human_cases_table_projected + " VALUES (%s, %s, %s, %s, ST_Transform(ST_GeomFromText('POINT(" + lon + " " + lat + ")',4269),54003))"
-    #querystring = "INSERT INTO " + human_cases_table_unprojected + " VALUES (%s, %s, %s, GeometryFromText('POINT(" + lon + " " + lat + ")',4269))"
+    querystring = "INSERT INTO " + human_cases_table_projected + " VALUES (%s, %s, %s, %s, ST_Transform(GeometryFromText('POINT(" + lon + " " + lat + ")',29193),29193))"
+    #querystring = "INSERT INTO " + human_cases_table_unprojected + " VALUES (%s, %s, %s, GeometryFromText('POINT(" + lon + " " + lat + ")',29193))"
 
     # if human_case_id is not an integer, what do we do?A
     if not str(human_case_id).isdigit():
@@ -673,7 +670,8 @@ def get_county_id(tile_id):
         logging.warning(inst)
         return 0
     #TODO: should raise a warning if the county is not found (that is, the select might not fail, but the result could still be empty)
-    return cur.fetchone()[0]
+    #return cur.fetchone()[0]
+    return 1
 
 def get_county_id_from_county_name(county_name):
     """Given the name of a county, return its id."""
@@ -1036,7 +1034,7 @@ def create_dist_margs(close_space_param, close_time_param, spatial_domain_param,
         #bird_list.add((a_point, a_time)
         #insert_simulated_bird(a_point, a_time)
 
-        querystring = "INSERT INTO \"" + temp_table_bird_selection + "\" VALUES (%s, %s, %s, ST_GeomFromText('POINT(" + str(point_y) + " " + str(point_x) + ")',54003))"
+        querystring = "INSERT INTO \"" + temp_table_bird_selection + "\" VALUES (%s, %s, %s, GeometryFromText('POINT(" + str(point_y) + " " + str(point_x) + ")',29193))"
         try:
             cur.execute(querystring, (a_random_bird, a_time, species))
         except Exception, inst:

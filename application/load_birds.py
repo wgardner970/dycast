@@ -42,3 +42,4 @@ dycast.init_db()
 for file in arguments:
     (lines_read, lines_processed, lines_loaded, lines_skipped) = dycast.load_bird_file(file)
 
+

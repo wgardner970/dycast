@@ -17,11 +17,9 @@ services:
         - PGPORT=5432
         - TZ=EST
       volumes:
-        - ./application:/zikast/application
-        - ./docker:/docker
-        - ./zikast_log.txt:/zikast/zikast_log.txt
-        - ./inbox:/zikast/inbox
-        - ./outbox:/zikast/outbox
+        - zikast-log:/zikast/zikast_log.txt
+        - zikast-inbox:/zikast/inbox
+        - zikast-outbox:/zikast/outbox
       ports:
         - '81:8000'
       depends_on:
@@ -44,3 +42,6 @@ services:
 volumes:
     zikast-postgres-data:
     zikast-postgres-log:
+    zikast-inbox:
+    zikast-outbox:
+    zikast-log:

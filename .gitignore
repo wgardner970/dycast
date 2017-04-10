@@ -1,8 +1,8 @@
-# DYCAST specific
-
-dycast_log.txt
-
-# Python
+inbox/
+*.pyc
+zikast_log.txt
+outbox/
+data/
 *.py[cod]
 
 # C extensions
