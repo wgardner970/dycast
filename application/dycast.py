@@ -11,6 +11,8 @@ import time
 import fileinput
 import ConfigParser
 import logging
+import math
+from random import random
 from ftplib import FTP
 import inspect
 
@@ -38,7 +40,7 @@ except ImportError:
     print "couldn't import psycopg2 library in path:", sys.path
     sys.exit()
 
-#loglevel = logging.WARNING      # appropriate for almost silent use
+loglevel = logging.DEBUG      # appropriate for almost silent use
 
 conn = 0
 cur = 0
@@ -1271,7 +1273,7 @@ def text_export(window=None, file_prefix=None, countyname=None):
 
     querystring = "SELECT days_lit, count(distinct human_case_id) FROM " + human_cases_table_projected + " GROUP BY days_lit"
     if (countyname):
-        querystring = "SELECT a.days_lit, count(distinct a.human_case_id) FROM " + human_cases_table_projected + " a INNER JOIN counties b ON ST_Intersects(transform(a.location,4269), b.the_geom) WHERE b.name = \'" + countyname + "\' GROUP BY a.days_lit"
+        querystring = "SELECT a.days_lit, count(distinct a.human_case_id) FROM " + human_cases_table_projected + " a INNER JOIN counties b ON ST_Intersects(transform(a.location,29193), b.the_geom) WHERE b.name = \'" + countyname + "\' GROUP BY a.days_lit"
         #county_id = get_county_id_from_county_name(countyname)
         #querystring = "SELECT a.days_lit, count(distinct a.human_case_id) FROM " + human_cases_table_projected + " a INNER JOIN human_tiles_temp b ON a.human_case_id=b.human_case_id INNER JOIN effects_polys_unprojected c ON b.tile_id=c.tile_id WHERE c.county = " + str(county_id) + " GROUP BY a.days_lit"
     else:
@@ -1350,7 +1352,7 @@ def text_export(window=None, file_prefix=None, countyname=None):
 
     querystring = "SELECT days_before, count(distinct human_case_id) FROM " + human_cases_table_projected + " GROUP BY days_before"
     if (countyname):
-        querystring = "SELECT a.days_before, count(distinct a.human_case_id) FROM " + human_cases_table_projected + " a INNER JOIN counties b ON ST_Intersects(transform(a.location,4269), b.the_geom) WHERE b.name = \'" + countyname + "\' GROUP BY a.days_before"
+        querystring = "SELECT a.days_before, count(distinct a.human_case_id) FROM " + human_cases_table_projected + " a INNER JOIN counties b ON ST_Intersects(transform(a.location,29193), b.the_geom) WHERE b.name = \'" + countyname + "\' GROUP BY a.days_before"
         #county_id = get_county_id_from_county_name(countyname)
         #querystring = "SELECT a.days_before, count(distinct a.human_case_id) FROM " + human_cases_table_projected + " a INNER JOIN human_tiles_temp b ON a.human_case_id=b.human_case_id INNER JOIN effects_polys_unprojected c ON b.tile_id=c.tile_id WHERE c.county = " + str(county_id) + " GROUP BY a.days_before"
     try:
