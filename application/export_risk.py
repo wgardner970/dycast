@@ -1,5 +1,4 @@
 #! /usr/bin/env python
-#$Id: export_risk.py,v 1.3 2008/02/01 23:04:45 alan Exp alan $
 
 import sys
 import dycast
@@ -43,4 +42,5 @@ if options.txt:
     dycast.export_risk(riskdate, "txt")
 else:
     dycast.export_risk(riskdate, "dbf")
+
 
