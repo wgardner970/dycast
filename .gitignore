@@ -2,3 +2,4 @@ inbox/
 *.pyc
 zikast_log.txt
 outbox/
+data/
