@@ -8,7 +8,7 @@ ZIKAST_INBOX_COMPLETED=${ZIKAST_INBOX}/completed
 ZIKAST_OUTBOX=${ZIKAST_OUTBOX:-$ZIKAST_PATH/outbox}
 ZIKAST_INIT_PATH=${ZIKAST_APP_PATH}/init
 
-PG_SHARE_PATH_2_0=/usr/local/pgsql/share/contrib/postgis-2.0/
+PG_SHARE_PATH_2_0=/usr/share/postgresql/9.6/contrib/postgis-2.3
 
 init_zikast() {
 	if [[ "${FORCE_DB_INIT}" == "True" ]]; then
@@ -34,19 +34,36 @@ db_exists() {
 
 init_db() {
 	echo "Initializing database..."
+
+	echo "Dropping existing database ${PGDBNAME}"
 	dropdb -h ${PGHOST} -U ${PGUSER} ${PGDBNAME} # if necessary
+	echo "" 
+
+	echo "Creating database ${PGDBNAME}"
 	createdb -h ${PGHOST} -U ${PGUSER} --encoding=UTF8 ${PGDBNAME} --template template0
+	echo "" 
 	
 	### Using the new 9.1+ extension method:
+	echo "Creating extension 'postgis'"
     psql -h ${PGHOST} -U ${PGUSER} -d ${PGDBNAME} -c "CREATE EXTENSION postgis;" 
+	echo "" 
+
     ### And we need legacy functions (currently)
-    psql -h ${PGHOST} -U ${PGUSER} -d ${PGDBNAME} -f ${PG_SHARE_PATH_2_0}/legacy.sql
+    # psql -h ${PGHOST} -U ${PGUSER} -d ${PGDBNAME} -f ${PG_SHARE_PATH_2_0}/legacy.sql
+    # psql -h ${PGHOST} -U ${PGUSER} -d ${PGDBNAME} -f ${PG_SHARE_PATH_2_0}/postgis.sql
+    # psql -h ${PGHOST} -U ${PGUSER} -d ${PGDBNAME} -f ${PG_SHARE_PATH_2_0}/spatial_ref_sys.sql
 
+	echo "Running ${ZIKAST_INIT_PATH}/postgres_init.sql"
 	psql -h ${PGHOST} -U ${PGUSER} -d ${PGDBNAME} -f ${ZIKAST_INIT_PATH}/postgres_init.sql
+	echo "" 
 
+	echo "Running ${ZIKAST_INIT_PATH}/effects_poly_centers_projected/dycast_rp_cells_n_71824.shp as sql using shp2pgsql"
 	shp2pgsql -s 29193 ${ZIKAST_INIT_PATH}/effects_poly_centers_projected/dycast_rp_cells_n_71824.shp  public.effects_poly_centers_projected | psql -h ${PGHOST} -d ${PGDBNAME} -U ${PGUSER}
+	echo "" 
 
+	echo "Running ${ZIKAST_INIT_PATH}/dumped_dist_margs.sql"
 	psql -h ${PGHOST} -U ${PGUSER} -d ${PGDBNAME} -f ${ZIKAST_INIT_PATH}/dumped_dist_margs.sql
+	echo "" 
 }
 
 
