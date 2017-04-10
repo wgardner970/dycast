@@ -11,6 +11,7 @@ import fileinput
 import ConfigParser
 import logging
 from ftplib import FTP
+import inspect
 
 APPLICATION_ROOT = os.path.dirname(os.path.abspath(inspect.getfile(inspect.currentframe())))
 lib_dir = os.path.join(APPLICATION_ROOT, 'libs')
