@@ -82,18 +82,18 @@ CREATE TABLE effects_poly_centers (
 CREATE TABLE effects_poly_centers_unprojected (
 ) INHERITS (effects_poly_centers);
 
-CREATE TABLE effects_poly_centers_projected (
-) INHERITS (effects_poly_centers);
+-- CREATE TABLE effects_poly_centers_projected (
+-- ) INHERITS (effects_poly_centers);
 
 ALTER TABLE effects_poly_centers_unprojected ADD CONSTRAINT effects_polys_centers_unprojected_pkey PRIMARY KEY (tile_id);
 
-ALTER TABLE effects_poly_centers_projected ADD CONSTRAINT effects_polys_centers_projected_pkey PRIMARY KEY (tile_id);
+-- ALTER TABLE effects_poly_centers_projected ADD CONSTRAINT effects_polys_centers_projected_pkey PRIMARY KEY (tile_id);
 
 SELECT AddGeometryColumn('public', 'effects_poly_centers_unprojected', 'the_geom', 29193, 'POINT', 2);
 -- ALTER TABLE effects_poly_centers_unprojected ADD COLUMN "4269" geometry(Geometry,4269);
 -- ALTER TABLE effects_poly_centers_unprojected ADD COLUMN "29193" geometry(Geometry,54003);
 
-SELECT AddGeometryColumn('public', 'effects_poly_centers_projected', 'the_geom', 29193, 'POINT', 2);
+-- SELECT AddGeometryColumn('public', 'effects_poly_centers_projected', 'the_geom', 29193, 'POINT', 2);
 -- ALTER TABLE effects_poly_centers_projected ADD COLUMN "54003" geometry(Geometry,54003);
 -- ALTER TABLE effects_poly_centers_projected ADD COLUMN "29193" geometry(Geometry,29193);
 
