@@ -11,6 +11,19 @@ import fileinput
 import ConfigParser
 import logging
 from ftplib import FTP
+import inspect
+
+def get_optional_env_variable(var_name):
+    try:
+        return os.environ[var_name]
+    except KeyError:
+        return None  
+
+if get_optional_env_variable("DEBUG"):
+    import ptvsd
+    ptvsd.enable_attach("my_secret", address = ('0.0.0.0', 3000))
+    ptvsd.wait_for_attach()
+
 
 APPLICATION_ROOT = os.path.dirname(os.path.abspath(inspect.getfile(inspect.currentframe())))
 lib_dir = os.path.join(APPLICATION_ROOT, 'libs')
