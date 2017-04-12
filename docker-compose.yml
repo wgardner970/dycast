@@ -10,6 +10,8 @@ services:
         dockerfile: ./Dockerfile
       command: bash -c  "sleep 10 && /docker/entrypoint.sh"
       environment:
+        - START_DATE=
+        - END_DATE=
         - FORCE_DB_INIT=True
         - PGPASSWORD=postgres
         - PGDBNAME=zikast

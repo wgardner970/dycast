@@ -10,6 +10,10 @@ ZIKAST_INIT_PATH=${ZIKAST_APP_PATH}/init
 
 PG_SHARE_PATH_2_0=/usr/share/postgresql/9.6/contrib/postgis-2.3
 
+START_DATE=$(date -I -d "${START_DATE}") || exit -1
+END_DATE=$(date -I -d "${END_DATE}") || exit -1
+
+
 init_zikast() {
 	if [[ "${FORCE_DB_INIT}" == "True" ]]; then
 		echo ""
@@ -95,11 +99,28 @@ listen_for_input() {
 				filename=$(basename "$file")
 				mv "${file}" "${ZIKAST_INBOX_COMPLETED}/${filename}_completed"
 				
+
+				echo "" 
 				echo "Generating risk..."
-				python ${ZIKAST_APP_PATH}/daily_risk.py --date 1998-01-04
+				echo ""
+				current_day="${START_DATE}"
+				while [ "${current_day}" != "${END_DATE}" ]; do 
+					echo "Generating risk for ${current_day}..."
+					python ${ZIKAST_APP_PATH}/daily_risk.py --date ${current_day}
+					current_day=$(date -I -d "${current_day} + 1 day")
+				done
 				
+				
+				echo "" 
 				echo "Exporting risk..."
-				python ${ZIKAST_APP_PATH}/export_risk.py 1998-01-04
+				echo "" 
+				current_day="${START_DATE}"
+				while [ "${current_day}" != "${END_DATE}" ]; do 
+					echo "Exporting risk for ${current_day}..."
+					python ${ZIKAST_APP_PATH}/export_risk.py ${current_day}
+					current_day=$(date -I -d "${current_day} + 1 day")
+				done
+				
 
 				echo "Done."
 			fi
