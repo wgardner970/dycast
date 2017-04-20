@@ -104,7 +104,7 @@ listen_for_input() {
 				echo "Generating risk..."
 				echo ""
 				current_day="${START_DATE}"
-				while [ "${current_day}" != "${END_DATE}" ]; do 
+				while [[ ! "${current_day}" > "${END_DATE}" ]]; do 
 					echo "Generating risk for ${current_day}..."
 					python ${ZIKAST_APP_PATH}/daily_risk.py --date ${current_day}
 					current_day=$(date -I -d "${current_day} + 1 day")
@@ -115,7 +115,7 @@ listen_for_input() {
 				echo "Exporting risk..."
 				echo "" 
 				current_day="${START_DATE}"
-				while [ "${current_day}" != "${END_DATE}" ]; do 
+				while [[ ! "${current_day}" > "${END_DATE}" ]]; do 
 					echo "Exporting risk for ${current_day}..."
 					python ${ZIKAST_APP_PATH}/export_risk.py ${current_day}
 					current_day=$(date -I -d "${current_day} + 1 day")

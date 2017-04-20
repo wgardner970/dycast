@@ -10,20 +10,15 @@ services:
         dockerfile: ./Dockerfile
       command: bash -c  "sleep 10 && /docker/entrypoint.sh"
       environment:
+        - FORCE_DB_INIT=False
         - START_DATE=
         - END_DATE=
-        - FORCE_DB_INIT=True
+        - DEBUG=False
         - PGPASSWORD=postgres
         - PGDBNAME=zikast
         - PGHOST=zikast-db
         - PGPORT=5432
         - TZ=EST
-      volumes:
-        - ./application:/zikast/application
-        - ./docker:/docker
-        - ./zikast_log.txt:/zikast/zikast_log.txt
-        - ./inbox:/zikast/inbox
-        - ./outbox:/zikast/outbox
       ports:
         - '81:8000'
       depends_on:
