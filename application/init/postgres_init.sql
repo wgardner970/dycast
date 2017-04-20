@@ -1,7 +1,18 @@
--- Initialization queries run at setup time to create the necessary tables. 
+
+SET client_min_messages = warning;
 
 INSERT INTO spatial_ref_sys (srid, proj4text) VALUES (54003, '+proj=mill +lat_0=0 +lon_0=0 +x_0=0 +y_0=0 +R_A +ellps=WGS84 +datum=WGS84 +units=m no_defs');
+-- INSERT INTO spatial_ref_sys (srid, proj4text) VALUES (29193, '+proj=mill +lat_0=0 +lon_0=0 +x_0=0 +y_0=0 +R_A +ellps=WGS84 +datum=WGS84 +units=m no_defs');
 
+CREATE TABLE zikast_supported_areas (
+    id serial PRIMARY KEY,
+    srid integer not null,
+    area_name varchar(100)
+);
+
+INSERT INTO zikast_supported_areas (srid, area_name) VALUES (54003, 'World Miller Cylindrical');
+INSERT INTO zikast_supported_areas (srid, area_name) VALUES (4269, 'North America - onshore and offshore');
+INSERT INTO zikast_supported_areas (srid, area_name) VALUES (29193, 'South America');
 
 CREATE TABLE dead_birds (
     bird_id integer PRIMARY KEY,
@@ -20,8 +31,12 @@ ALTER TABLE dead_birds_unprojected ADD CONSTRAINT dead_birds_unprojected_pkey PR
 ALTER TABLE dead_birds_projected ADD CONSTRAINT dead_birds_projected_pkey PRIMARY KEY (bird_id);
 
 SELECT AddGeometryColumn('public', 'dead_birds_unprojected', 'location', 29193, 'POINT', 2);
+-- ALTER TABLE dead_birds_unprojected ADD COLUMN "4269" geometry(Geometry,4269);
+-- ALTER TABLE dead_birds_unprojected ADD COLUMN "29193" geometry(Geometry,29193);
 
 SELECT AddGeometryColumn('public', 'dead_birds_projected', 'location', 29193, 'POINT', 2);
+-- ALTER TABLE dead_birds_projected ADD COLUMN "54003" geometry(Geometry,54003);
+-- ALTER TABLE dead_birds_projected ADD COLUMN "29193" geometry(Geometry,29193);
 
 CREATE INDEX dead_birds_unprojected_locationsidx ON dead_birds_unprojected USING GIST ( location );
 
@@ -48,8 +63,12 @@ ALTER TABLE effects_polys_unprojected ADD CONSTRAINT effects_polys_unprojected_p
 ALTER TABLE effects_polys_projected ADD CONSTRAINT effects_polys_projected_pkey PRIMARY KEY (tile_id);
 
 SELECT AddGeometryColumn('public', 'effects_polys_unprojected', 'the_geom', 29193, 'MULTIPOLYGON', 2);
+-- ALTER TABLE effects_polys_unprojected ADD COLUMN "4269" geometry(Geometry,4269);
+-- ALTER TABLE effects_polys_unprojected ADD COLUMN "29193" geometry(Geometry,29193);
 
 SELECT AddGeometryColumn('public', 'effects_polys_projected', 'the_geom', 29193, 'MULTIPOLYGON', 2);
+-- ALTER TABLE effects_polys_projected ADD COLUMN "54003" geometry(Geometry,54003);
+-- ALTER TABLE effects_polys_projected ADD COLUMN "29193" geometry(Geometry,29193);
 
 CREATE TABLE county_codes (
     county_id smallint PRIMARY KEY, 
@@ -71,8 +90,12 @@ ALTER TABLE effects_poly_centers_unprojected ADD CONSTRAINT effects_polys_center
 -- ALTER TABLE effects_poly_centers_projected ADD CONSTRAINT effects_polys_centers_projected_pkey PRIMARY KEY (tile_id);
 
 SELECT AddGeometryColumn('public', 'effects_poly_centers_unprojected', 'the_geom', 29193, 'POINT', 2);
+-- ALTER TABLE effects_poly_centers_unprojected ADD COLUMN "4269" geometry(Geometry,4269);
+-- ALTER TABLE effects_poly_centers_unprojected ADD COLUMN "29193" geometry(Geometry,54003);
 
 -- SELECT AddGeometryColumn('public', 'effects_poly_centers_projected', 'the_geom', 29193, 'POINT', 2);
+-- ALTER TABLE effects_poly_centers_projected ADD COLUMN "54003" geometry(Geometry,54003);
+-- ALTER TABLE effects_poly_centers_projected ADD COLUMN "29193" geometry(Geometry,29193);
 
 CREATE TABLE risk_table_list (
     table_id integer PRIMARY KEY,
