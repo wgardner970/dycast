@@ -12,17 +12,9 @@ import ConfigParser
 import logging
 from ftplib import FTP
 import inspect
+from application.services import debug_service
 
-def get_optional_env_variable(var_name):
-    try:
-        return os.environ[var_name]
-    except KeyError:
-        return None  
-
-if get_optional_env_variable("DEBUG") == "True":
-    import ptvsd
-    ptvsd.enable_attach("my_secret", address = ('0.0.0.0', 3000))
-    ptvsd.wait_for_attach()
+debug_service.enable_debugger()
 
 
 APPLICATION_ROOT = os.path.dirname(os.path.abspath(inspect.getfile(inspect.currentframe())))
