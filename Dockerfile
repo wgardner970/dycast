@@ -14,12 +14,13 @@ RUN apt-get update -y &&\
     apt-get install -y postgis
 
 # ptvsd = for debugging with Visual Studio Code
-RUN pip install psycopg2 ptvsd
+RUN pip install psycopg2 ptvsd pyproj shapely
 
 ENV ZIKAST_PATH=/zikast
 ENV ZIKAST_APP_PATH=${ZIKAST_PATH}/application
 ENV PG_SHARE_PATH=/usr/local/pgsql/share
 ENV DOCKER_DIR=/docker
+ENV PYTHONPATH=${ZIKAST_PATH}:$PYTHONPATH
 
 COPY ./application ${ZIKAST_APP_PATH}
 
