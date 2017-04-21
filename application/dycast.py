@@ -19,12 +19,9 @@ debug_service.enable_debugger()
 
 APPLICATION_ROOT = os.path.dirname(os.path.abspath(inspect.getfile(inspect.currentframe())))
 lib_dir = os.path.join(APPLICATION_ROOT, 'libs')
-
-sys.path.append(lib_dir)            # the hard-coded library above
-sys.path.append("libs")             # a library relative to current folder
-
-sys.path.append(lib_dir+os.sep+"dbfpy") # the hard-coded library above
-sys.path.append("libs"+os.sep+"dbfpy")  # a library relative to current folder
+sys.path.append(lib_dir)
+sys.path.append(os.path.join(lib_dir, "psycopg2"))
+sys.path.append(os.path.join(lib_dir, "dbfpy"))
 
 try:
     import dbf
@@ -32,14 +29,12 @@ except ImportError:
     print "couldn't import dbf library in path:", sys.path
     sys.exit()
 
-sys.path.append(lib_dir+os.sep+"psycopg2")  # the hard-coded library above
-sys.path.append("libs"+os.sep+"psycopg2")   # a library relative to current folder
-
 try:
     import psycopg2
 except ImportError:
     print "couldn't import psycopg2 library in path:", sys.path
     sys.exit()
+
 
 #loglevel = logging.DEBUG        # For debugging
 loglevel = logging.INFO         # appropriate for normal use
