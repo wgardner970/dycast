@@ -105,12 +105,14 @@ CREATE TABLE risk_table_list (
 );
 
 CREATE TABLE risk_table_parent (
-    tile_id integer REFERENCES effects_polys (tile_id),
+    lat float NOT NULL,
+    long float NOT NULL,
     num_birds integer,
     close_pairs integer,
     close_space integer,
     close_time integer,
-    nmcm float
+    nmcm float,
+    PRIMARY KEY(lat, long)
 );
 
 CREATE TABLE dist_margs (
