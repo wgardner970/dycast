@@ -81,6 +81,9 @@ init_directories() {
 	fi
 }
 
+run_tests() {
+	python -m unittest discover -p "*_test.py"
+}
 
 listen_for_input() {
 	echo ""
@@ -136,4 +139,5 @@ listen_for_input() {
 }
 
 init_zikast
+run_tests
 listen_for_input

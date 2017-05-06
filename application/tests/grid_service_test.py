@@ -6,10 +6,10 @@ class TestGridService(unittest.TestCase):
 
     def test_generate_grid(self):
         srid = "29193"
-        extentMinX = 197457.283284349
-        extentMinY = 7639474.3256114
-        extentMaxX = 224257.283284349
-        extentMaxY = 7666274.3256114
+        extent_mix_x = 197457.283284349
+        extent_max_x = 197957.283284349
+        extent_min_y = 7639474.3256114
+        extent_max_y = 7639974.3256114
 
-        gridpoints = grid_service.generate_grid(srid, extentMinX, extentMinY, extentMaxX, extentMaxY)
+        gridpoints = grid_service.generate_grid(srid, extent_mix_x, extent_min_y, extent_max_x, extent_max_y)
         self.assertIsNotNone(gridpoints)
