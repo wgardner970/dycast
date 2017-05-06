@@ -11,6 +11,12 @@ p = optparse.OptionParser(usage)
 p.add_option('--date', '-d', 
             default="today", 
             )
+p.add_option('--srid'')
+p.add_option('--extent_min_x')
+p.add_option('--extent_max_x')
+p.add_option('--extent_min_y')
+p.add_option('--extent_max_y')
+
 p.add_option('--startpoly', '-s')
 p.add_option('--endpoly', '-e')
 p.add_option('--config', '-c', 

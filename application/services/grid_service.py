@@ -2,7 +2,7 @@ import shapely.geometry
 import pyproj
 
 
-def generate_grid(srid, extentMinX, extentMinY, extentMaxX, extentMaxY):
+def generate_grid(srid, extent_min_x, extent_max_x, extent_min_y, extent_max_y):
     # Set up projections
     p_ll = pyproj.Proj(init="epsg:{0}".format(srid))
     p_mt = pyproj.Proj(init='epsg:3857')  # metric; same as EPSG:900913

@@ -104,9 +104,14 @@ listen_for_input() {
 				echo "Generating risk..."
 				echo ""
 				current_day="${START_DATE}"
+				srid = "29193"
+				extent_min_x = 197457.283284349
+				extent_max_x = 224257.283284349
+				extent_min_y = 7639474.3256114
+				extent_max_y = 7666274.3256114
 				while [[ ! "${current_day}" > "${END_DATE}" ]]; do 
 					echo "Generating risk for ${current_day}..."
-					python ${ZIKAST_APP_PATH}/daily_risk.py --date ${current_day}
+					python ${ZIKAST_APP_PATH}/daily_risk.py --date ${current_day} --extent_min_x ${extent_min_x} --extent_max_x ${extent_max_x} --extent_min_y ${extent_min_y} --extent_max_y ${extent_max_y}
 					current_day=$(date -I -d "${current_day} + 1 day")
 				done
 				
