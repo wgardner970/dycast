@@ -12,8 +12,9 @@ import ConfigParser
 import logging
 from ftplib import FTP
 import inspect
-from application.services import debug_service
-from application.services import grid_service
+from services import debug_service
+from services import config_service
+from services import grid_service
 
 debug_service.enable_debugger()
 
@@ -66,10 +67,12 @@ effects_poly_table = "x"
 #def post_analysis_functions():
 #def kappa_test():
 
-def read_config(filename):
+def read_config(filename, config_object=None):
     # All dycast objects must be initialized from a config file, therefore,
     # all dycast applications must include the name of a config file, or they
     # must use the default, which is dycast.config in the current directory
+
+    config = config_object
 
     global dbname
     global user
@@ -93,8 +96,9 @@ def read_config(filename):
     global threshold
     global logfile
 
-    config = ConfigParser.SafeConfigParser()
-    config.read(filename)
+    if not config:
+        config = ConfigParser.SafeConfigParser()
+        config.read(filename)
 
     dbname = config.get("database", "dbname")
     user = config.get("database", "user")
@@ -126,7 +130,7 @@ def read_config(filename):
     threshold = int(config.get("dycast", "bird_threshold"))
 
 def get_log_level():
-    debug = debug_service.get_optional_env_variable("DEBUG")
+    debug = config_service.get_env_variable("DEBUG")
     if debug:
         return logging.DEBUG
     else:
@@ -188,7 +192,7 @@ def create_db(dbname):
     return 1
     
 
-def init_db():
+def init_db(config=None):
     global cur, conn
     try:
         conn = psycopg2.connect(dsn)
@@ -587,13 +591,8 @@ def insert_result(riskdate, latitude, longitude, num_birds, close_pairs, close_t
     conn.commit()
          
 
-def daily_risk(riskdate, startpoly=None, endpoly=None):
-    srid = "29193"
-    extent_min_x = 197457.283284349
-    extent_min_y = 7639474.3256114
-    extent_max_x = 224257.283284349
-    extent_max_y = 7666274.3256114
-    gridpoints = grid_service.generate_grid(srid, extent_min_x, extent_min_y, extent_max_x, extent_max_y)
+def daily_risk(riskdate, srid, extent_min_x, extent_min_y, extent_max_x, extent_max_y, startpoly=None, endpoly=None):
+    gridpoints = grid_service.generate_grid(srid, extent_min_x, extent_max_x, extent_min_y, extent_max_y)
 
     risk_tab = create_daily_risk_table(riskdate)
     vector_table_name = create_temp_bird_table(riskdate, td)
