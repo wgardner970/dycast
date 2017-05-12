@@ -18,7 +18,6 @@ from services import grid_service
 
 debug_service.enable_debugger()
 
-
 APPLICATION_ROOT = os.path.dirname(os.path.abspath(inspect.getfile(inspect.currentframe())))
 lib_dir = os.path.join(APPLICATION_ROOT, 'libs')
 sys.path.append(lib_dir)
@@ -95,6 +94,7 @@ def read_config(filename, config_object=None):
     global ct
     global threshold
     global logfile
+    global system_coordinate_system
 
     if not config:
         config = ConfigParser.SafeConfigParser()
@@ -128,6 +128,8 @@ def read_config(filename, config_object=None):
     ct = int(config.get("dycast", "close_in_time"))
     td = int(config.get("dycast", "temporal_domain"))
     threshold = int(config.get("dycast", "bird_threshold"))
+
+    system_coordinate_system = config.get("dycast", "system_coordinate_system")
 
 def get_log_level():
     debug = config_service.get_env_variable("DEBUG")
@@ -206,7 +208,7 @@ def init_db(config=None):
 ##### functions for loading data:
 ##########################################################################
 
-def load_bird(line):
+def load_bird(line, user_coordinate_system):
     try:
         (bird_id, report_date_string, lon, lat, species) = line.split("\t")
     except ValueError:
@@ -215,10 +217,10 @@ def load_bird(line):
     # We need to force this query to take lon and lat as the strings 
     # that they are, not quoted as would happen if I tried to list them 
     # in the execute statement.  That's why they're included in this line.
-    querystring = "INSERT INTO " + dead_birds_table_projected + " VALUES (%s, %s, %s, ST_Transform(ST_GeomFromText('POINT(" + lon + " " + lat + ")',29193),29193))"
+    querystring = "INSERT INTO " + dead_birds_table_projected + " VALUES (%s, %s, %s, ST_Transform(ST_GeomFromText('POINT(" + lon + " " + lat + ")',%s),%s))"
     #querystring = "INSERT INTO " + dead_birds_table_unprojected + " VALUES (%s, %s, %s, ST_GeomFromText('POINT(" + lon + " " + lat + ")',29193))"
     try:
-        cur.execute(querystring, (bird_id, report_date_string, species))
+        cur.execute(querystring, (bird_id, report_date_string, species, user_coordinate_system, system_coordinate_system))
     except Exception, inst:
         conn.rollback()
         if str(inst).startswith("duplicate key"): 
@@ -387,7 +389,7 @@ def download_birds():
         #sys.exit() # If there's no birds, we should still generate risk
     localfile.close()
 
-def load_bird_file(filename = None):
+def load_bird_file(user_coordinate_system, filename = None):
     if filename == None:
         filename = dead_birds_dir + os.sep + dead_birds_filename
     lines_read = 0
@@ -398,7 +400,7 @@ def load_bird_file(filename = None):
         if fileinput.filelineno() != 1:
             lines_read += 1
             result = 0
-            result = load_bird(line)
+            result = load_bird(line, user_coordinate_system)
 
             # If result is a bird ID or -1 (meaning duplicate) then:
             if result:                  
@@ -514,10 +516,10 @@ def get_county_id(tile_id):
     return 1
 
 
-def get_vector_count_for_point(bird_tab, point, projection_from, projection_to):
-    querystring = "SELECT count(*) from \"" + bird_tab + "\" a where st_distance(a.location,ST_Transform(ST_GeomFromText('POINT(%s %s)',%s),%s)) < %s" 
+def get_vector_count_for_point(bird_tab, point):
+    querystring = "SELECT count(*) from \"" + bird_tab + "\" a where st_distance(a.location,ST_GeomFromText('POINT(%s %s)',%s)) < %s" 
     try:
-        cur.execute(querystring, (point.x, point.y, projection_from, projection_to, sd))
+        cur.execute(querystring, (point.x, point.y, system_coordinate_system, sd))
     except Exception, inst:
         conn.rollback()
         logging.error("can't select bird count")
@@ -538,19 +540,19 @@ def print_bird_list(bird_tab, tile_id):
     for row in cur.fetchall():
         print row[0]
 
-def create_effects_poly_bird_table(bird_tab, point, projection_from, projection_to):
+def create_effects_poly_bird_table(bird_tab, point):
     tablename = "temp_table_bird_selection" 
     #tablename = bird_tab + "_" + tile_id
     # I don't think this can be a temp table, or else I'd have to use "EXECUTE"
     # (See Postgresql FAQ about functions and temp tables)
-    querystring = "CREATE TABLE \"" + tablename + "\" AS SELECT * from \"" + bird_tab + "\" a where st_distance(a.location,ST_Transform(ST_GeomFromText('POINT(%s %s)',%s),%s)) < %s" 
+    querystring = "CREATE TABLE \"" + tablename + "\" AS SELECT * from \"" + bird_tab + "\" a where st_distance(a.location,ST_GeomFromText('POINT(%s %s)',%s)) < %s" 
     try:
         #logging.info("selecting CREATE TABLE with st_distance(a.location,b.the_geom) < %s", sd)
-        cur.execute(querystring, (point.x, point.y, projection_from, projection_to, sd))
+        cur.execute(querystring, (point.x, point.y, system_coordinate_system, sd))
     except:
         conn.rollback()
         cur.execute("DROP TABLE \"" + tablename + "\"")
-        cur.execute(querystring, (point.x, point.y, projection_from, projection_to, sd))
+        cur.execute(querystring, (point.x, point.y, system_coordinate_system, sd))
     conn.commit()
     return tablename 
 
@@ -591,8 +593,8 @@ def insert_result(riskdate, latitude, longitude, num_birds, close_pairs, close_t
     conn.commit()
          
 
-def daily_risk(riskdate, srid, extent_min_x, extent_min_y, extent_max_x, extent_max_y, startpoly=None, endpoly=None):
-    gridpoints = grid_service.generate_grid(srid, extent_min_x, extent_max_x, extent_min_y, extent_max_y)
+def daily_risk(riskdate, user_coordinate_system, extent_min_x, extent_min_y, extent_max_x, extent_max_y, startpoly=None, endpoly=None):
+    gridpoints = grid_service.generate_grid(user_coordinate_system, system_coordinate_system, extent_min_x, extent_min_y, extent_max_x, extent_max_y)
 
     risk_tab = create_daily_risk_table(riskdate)
     vector_table_name = create_temp_bird_table(riskdate, td)
@@ -604,11 +606,9 @@ def daily_risk(riskdate, srid, extent_min_x, extent_min_y, extent_max_x, extent_
         logging.info("Starting daily_risk for %s", riskdate)
 
     for point in gridpoints:
-        projection_from = "29193"
-        projection_to = "29193"
-        vector_count = get_vector_count_for_point(vector_table_name, point, projection_from, projection_to)
+        vector_count = get_vector_count_for_point(vector_table_name, point)
         if vector_count >= threshold:
-            create_effects_poly_bird_table(vector_table_name, point, projection_from, projection_to)
+            create_effects_poly_bird_table(vector_table_name, point)
             st0 = time.time()
             results = cst_cs_ct_wrapper()
             st1 = time.time()
