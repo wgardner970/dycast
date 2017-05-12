@@ -55,7 +55,6 @@ threshold = 1
 dsn = "x"
 dead_birds_table_unprojected = "x"
 dead_birds_table_projected = "x"
-effects_poly_table = "x"
 
 # dist_margs means "distribution marginals" and is the result of the
 # monte carlo simulations.  See Theophilides et al. for more information
@@ -87,7 +86,6 @@ def read_config(filename, config_object=None):
     global lib_dir
     global dead_birds_table_unprojected
     global dead_birds_table_projected
-    global effects_poly_table
     global sd
     global td
     global cs
@@ -121,7 +119,6 @@ def read_config(filename, config_object=None):
 
     dead_birds_table_unprojected = config.get("database", "dead_birds_table_unprojected")
     dead_birds_table_projected = config.get("database", "dead_birds_table_projected")
-    effects_poly_table = config.get("database", "effects_poly_table")
 
     sd = float(config.get("dycast", "spatial_domain")) * miles_to_metres
     cs = float(config.get("dycast", "close_in_space")) * miles_to_metres
@@ -330,7 +327,6 @@ def dbf_print(lat, long, nmcm):
     rec = dbfn.newRecord()
     rec['LAT'] = lat
     rec['LONG'] = long
-    # rec['COUNTY'] = get_county_id(id)
     if nmcm > 0:
         rec['RISK'] = 1
     else:
@@ -480,42 +476,6 @@ def create_daily_risk_table(riskdate):
     conn.commit()
     return tablename
 
-
-def get_ids(startpoly=None, endpoly=None):
-    try:
-        if endpoly != None and startpoly != None:
-            querystring = "SELECT tile_id from " + effects_poly_table + " where tile_id >= %s and tile_id <= %s"
-            cur.execute(querystring, (startpoly, endpoly))
-        elif startpoly != None:
-            querystring = "SELECT tile_id from " + effects_poly_table + " where tile_id >= %s"
-            cur.execute(querystring, (startpoly,))
-        else:
-            querystring = "SELECT tile_id from " + effects_poly_table
-            cur.execute(querystring)
-    except Exception, inst:
-        logging.error("can't select tile_id from %s", effects_poly_table)
-        logging.error(inst)
-        sys.exit()
-    rows = cur.fetchall()
-    return rows
-
-def get_county_id(tile_id):
-    try:
-        #TODO: This poly table needs to be the one with counties in it
-        # I'm not sure why it works adding the tile_id as a string, but
-        # doesn't work if I replace it with %s and include it in 
-        #cur.execute as a second argument
-        querystring = "SELECT county FROM effects_polys where tile_id = " + str(tile_id)
-        cur.execute(querystring)
-    except Exception, inst:
-        conn.rollback()
-        logging.warning("warning: can't select county for effects poly %s", tile_id)
-        logging.warning(inst)
-        return 0
-    # return cur.fetchone()[0]
-    return 1
-
-
 def get_vector_count_for_point(bird_tab, point):
     querystring = "SELECT count(*) from \"" + bird_tab + "\" a where st_distance(a.location,ST_GeomFromText('POINT(%s %s)',%s)) < %s" 
     try:
@@ -527,18 +487,6 @@ def get_vector_count_for_point(bird_tab, point):
         sys.exit()
     new_row = cur.fetchone()
     return new_row[0]
-
-def print_bird_list(bird_tab, tile_id):
-    querystring = "SELECT bird_id from \"" + bird_tab + "\" a, " + effects_poly_table + " b where b.tile_id = %s and st_distance(a.location,b.the_geom) < %s" 
-    try:
-        cur.execute(querystring, (tile_id, sd))
-    except Exception, inst:
-        conn.rollback()
-        logging.error("can't select bird list")
-        logging.error(inst)
-        sys.exit()
-    for row in cur.fetchall():
-        print row[0]
 
 def create_effects_poly_bird_table(bird_tab, point):
     tablename = "temp_table_bird_selection" 

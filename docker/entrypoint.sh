@@ -61,10 +61,6 @@ init_db() {
 	psql -h ${PGHOST} -U ${PGUSER} -d ${PGDBNAME} -f ${ZIKAST_INIT_PATH}/postgres_init.sql
 	echo "" 
 
-	echo "Running ${ZIKAST_INIT_PATH}/dengue_brazil/effects_poly_centers_projected_71824_brazil.sql"
-	psql -h ${PGHOST} -U ${PGUSER} -d ${PGDBNAME} -f ${ZIKAST_INIT_PATH}/dengue_brazil/effects_poly_centers_projected_71824_brazil.sql
-	echo "" 
-
 	echo "Running ${ZIKAST_INIT_PATH}/dumped_dist_margs.sql"
 	psql -h ${PGHOST} -U ${PGUSER} -d ${PGDBNAME} -f ${ZIKAST_INIT_PATH}/dumped_dist_margs.sql
 	echo "" 
