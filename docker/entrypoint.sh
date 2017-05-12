@@ -98,12 +98,19 @@ listen_for_input() {
 	echo ""
 	echo "*** Zikast is now listening for new .tsv files in ${ZIKAST_INBOX}... ***"
 	echo "" 
+	
+	user_coordinate_system="29193"
+	extent_min_x=197457.283284349
+	extent_min_y=7666274.3256114
+	extent_max_x=224257.283284349
+	extent_max_y=7639474.3256114
+
 	while true; do
 		for file in ${ZIKAST_INBOX}/*.tsv; do
 			if [[ -f ${file} ]]; then
 			
 				echo "Loading input file: ${file}..."
-				python ${ZIKAST_APP_PATH}/load_birds.py "${file}"
+				python ${ZIKAST_APP_PATH}/load_birds.py --srid ${user_coordinate_system} "${file}"
 				
 				exit_code=$?
 				if [[ ! "${exit_code}" == "0" ]]; then
@@ -120,14 +127,10 @@ listen_for_input() {
 				echo "Generating risk..."
 				echo ""
 				current_day="${START_DATE}"
-				srid = "29193"
-				extent_min_x = 197457.283284349
-				extent_max_x = 224257.283284349
-				extent_min_y = 7639474.3256114
-				extent_max_y = 7666274.3256114
 				while [[ ! "${current_day}" > "${END_DATE}" ]]; do 
+					
 					echo "Generating risk for ${current_day}..."
-					python ${ZIKAST_APP_PATH}/daily_risk.py --date ${current_day} --extent_min_x ${extent_min_x} --extent_max_x ${extent_max_x} --extent_min_y ${extent_min_y} --extent_max_y ${extent_max_y}
+					python ${ZIKAST_APP_PATH}/daily_risk.py --date ${current_day} --srid ${user_coordinate_system} --extent_min_x ${extent_min_x} --extent_min_y ${extent_min_y} --extent_max_x ${extent_max_x} --extent_max_y ${extent_max_y}
 					
 					exit_code=$?
 					if [[ ! "${exit_code}" == "0" ]]; then

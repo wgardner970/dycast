@@ -23,23 +23,31 @@ import dycast
 import optparse
 
 usage = "usage: %prog [options] datafile.tsv"
+required = "srid".split()
+
 p = optparse.OptionParser(usage)
 p.add_option('--config', '-c', 
             default="./dycast.config", 
             help="load config file FILE", 
             metavar="FILE")
+p.add_option('--srid')
+
 options, arguments = p.parse_args()
 
+for r in required:
+    if options.__dict__[r] is None:
+        parser.error("parameter %s required"%r)
+        sys.exit(1)
+
 config_file = options.config
-
 dycast.read_config(config_file)
-
 dycast.init_logging()
-
 dycast.init_db()
+
+user_coordinate_system = options.srid
 
 # If arguments includes multiple filenames, fileinput will handle them all
 
 for file in arguments:
-    (lines_read, lines_processed, lines_loaded, lines_skipped) = dycast.load_bird_file(file)
+    (lines_read, lines_processed, lines_loaded, lines_skipped) = dycast.load_bird_file(user_coordinate_system, file)
 
