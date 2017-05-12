@@ -30,11 +30,11 @@ ALTER TABLE dead_birds_unprojected ADD CONSTRAINT dead_birds_unprojected_pkey PR
 
 ALTER TABLE dead_birds_projected ADD CONSTRAINT dead_birds_projected_pkey PRIMARY KEY (bird_id);
 
-SELECT AddGeometryColumn('public', 'dead_birds_unprojected', 'location', 29193, 'POINT', 2);
+SELECT AddGeometryColumn('public', 'dead_birds_unprojected', 'location', 3857, 'POINT', 2);
 -- ALTER TABLE dead_birds_unprojected ADD COLUMN "4269" geometry(Geometry,4269);
 -- ALTER TABLE dead_birds_unprojected ADD COLUMN "29193" geometry(Geometry,29193);
 
-SELECT AddGeometryColumn('public', 'dead_birds_projected', 'location', 29193, 'POINT', 2);
+SELECT AddGeometryColumn('public', 'dead_birds_projected', 'location', 3857, 'POINT', 2);
 -- ALTER TABLE dead_birds_projected ADD COLUMN "54003" geometry(Geometry,54003);
 -- ALTER TABLE dead_birds_projected ADD COLUMN "29193" geometry(Geometry,29193);
 
@@ -60,6 +60,8 @@ CREATE TABLE effects_polys_projected (
 
 ALTER TABLE effects_polys_unprojected ADD CONSTRAINT effects_polys_unprojected_pkey PRIMARY KEY (tile_id);
 ALTER TABLE effects_polys_projected ADD CONSTRAINT effects_polys_projected_pkey PRIMARY KEY (tile_id);
+SELECT AddGeometryColumn('public', 'effects_polys_unprojected', 'the_geom', 3857, 'MULTIPOLYGON', 2);
+SELECT AddGeometryColumn('public', 'effects_polys_projected', 'the_geom', 3857, 'MULTIPOLYGON', 2);
 
 CREATE TABLE risk_table_list (
     table_id integer PRIMARY KEY,
