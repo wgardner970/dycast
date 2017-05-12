@@ -82,7 +82,16 @@ init_directories() {
 }
 
 run_tests() {
-	python -m unittest discover -p "*_test.py"
+
+	echo "Running unit tests..."
+	nosetests -vv tests
+
+	exit_code=$?
+	if [[ ! "${exit_code}" == "0" ]]; then
+		echo "Unit test(s) failed, exiting..."
+		exit ${exit_code}
+	fi
+
 }
 
 listen_for_input() {
@@ -90,13 +99,17 @@ listen_for_input() {
 	echo "*** Zikast is now listening for new .tsv files in ${ZIKAST_INBOX}... ***"
 	echo "" 
 	while true; do
-		# echo "Running daily_tasks.py..."
-		# python ${ZIKAST_APP_PATH}/daily_tasks.py
 		for file in ${ZIKAST_INBOX}/*.tsv; do
 			if [[ -f ${file} ]]; then
 			
 				echo "Loading input file: ${file}..."
 				python ${ZIKAST_APP_PATH}/load_birds.py "${file}"
+				
+				exit_code=$?
+				if [[ ! "${exit_code}" == "0" ]]; then
+					echo "load_birds failed, exiting..."
+					exit ${exit_code}
+				fi
 				
 				echo "Completed loading input file, moving it to ${ZIKAST_INBOX_COMPLETED}"
 				filename=$(basename "$file")
@@ -115,6 +128,13 @@ listen_for_input() {
 				while [[ ! "${current_day}" > "${END_DATE}" ]]; do 
 					echo "Generating risk for ${current_day}..."
 					python ${ZIKAST_APP_PATH}/daily_risk.py --date ${current_day} --extent_min_x ${extent_min_x} --extent_max_x ${extent_max_x} --extent_min_y ${extent_min_y} --extent_max_y ${extent_max_y}
+					
+					exit_code=$?
+					if [[ ! "${exit_code}" == "0" ]]; then
+						echo "daily_risk failed, exiting..."
+						exit ${exit_code}
+					fi
+					
 					current_day=$(date -I -d "${current_day} + 1 day")
 				done
 				
@@ -124,8 +144,16 @@ listen_for_input() {
 				echo "" 
 				current_day="${START_DATE}"
 				while [[ ! "${current_day}" > "${END_DATE}" ]]; do 
+
 					echo "Exporting risk for ${current_day}..."
 					python ${ZIKAST_APP_PATH}/export_risk.py ${current_day}
+				
+					exit_code=$?
+					if [[ ! "${exit_code}" == "0" ]]; then
+						echo "export_risk failed, exiting..."
+						exit ${exit_code}
+					fi
+
 					current_day=$(date -I -d "${current_day} + 1 day")
 				done
 				
