@@ -5,7 +5,7 @@ services:
       container_name: zikast
       restart: always
       image: cvast/cvast-zikast:dev
-      build: 
+      build:
         context: .
         dockerfile: ./Dockerfile
       command: bash -c  "sleep 10 && /docker/entrypoint.sh"
@@ -14,16 +14,15 @@ services:
         - START_DATE=
         - END_DATE=
         - DEBUG=False
+        - REMOTE_DEBUG=False
         - PGPASSWORD=postgres
         - PGDBNAME=zikast
         - PGHOST=zikast-db
         - PGPORT=5432
         - TZ=EST
-      ports:
-        - '81:8000'
       depends_on:
         - zikast-db
-        
+
     zikast-db:
       container_name: zikast-db
       restart: always
@@ -36,8 +35,8 @@ services:
       environment:
         - POSTGRES_PASSWORD=postgres
         - TZ=EST
-    
-        
+
+
 volumes:
     zikast-postgres-data:
     zikast-postgres-log:
