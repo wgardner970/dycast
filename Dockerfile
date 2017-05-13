@@ -14,7 +14,7 @@ RUN apt-get update -y &&\
     apt-get install -y postgis
 
 # ptvsd = for debugging with Visual Studio Code
-RUN pip install psycopg2 ptvsd pyproj shapely nose
+RUN pip install psycopg2 ptvsd pyproj shapely nose django==1.11.1
 
 ENV ZIKAST_PATH=/zikast
 ENV ZIKAST_APP_PATH=${ZIKAST_PATH}/application
