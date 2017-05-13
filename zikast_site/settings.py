@@ -49,7 +49,7 @@ MIDDLEWARE = [
     'django.middleware.clickjacking.XFrameOptionsMiddleware',
 ]
 
-ROOT_URLCONF = 'zikast.urls'
+ROOT_URLCONF = 'zikast_site.urls'
 
 TEMPLATES = [
     {
@@ -67,7 +67,7 @@ TEMPLATES = [
     },
 ]
 
-WSGI_APPLICATION = 'zikast.wsgi.application'
+WSGI_APPLICATION = 'zikast_site.wsgi.application'
 
 
 # Database
