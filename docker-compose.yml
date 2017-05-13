@@ -11,12 +11,14 @@ services:
       command: bash -c  "sleep 10 && /docker/entrypoint.sh"
       environment:
         - FORCE_DB_INIT=False
+        - START_DATE=
+        - END_DATE=
+        - DEBUG=False
         - PGPASSWORD=postgres
         - PGDBNAME=zikast
         - PGHOST=zikast-db
         - PGPORT=5432
         - TZ=EST
-      volumes:
       ports:
         - '81:8000'
       depends_on:

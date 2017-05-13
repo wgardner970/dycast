@@ -1,48 +1,19 @@
 #!/bin/sh
-
-# This script is for initializing the DYCAST database
+#$Id: setup_db.sh,v 1.5 2008/03/31 18:41:52 alan Exp alan $
 
 DBNAME=dycast
 USERNAME=postgres
 DYCAST_PATH=/Users/alan/Documents/DYCAST/
 DYCAST_APP_PATH=$DYCAST_PATH/application/
 DYCAST_INIT_PATH=$DYCAST_PATH/init/
-PG_SHARE_PATH_1_5=/usr/local/pgsql/share/contrib/postgis-1.5/
-PG_SHARE_PATH_2_0=/usr/local/pgsql/share/contrib/postgis-2.0/
-
-# Change this to TRUE if you are using PostgreSQL 8.4 and PostGIS 1.5
-# Leave this as FALSE if you are using PostgreSQL 9.1 and PostGIS 2.0
-
-USE_POSTGIS_1_5="FALSE"
+#PG_BIN_PATH=/usr/local/pgsql/bin...?
+PG_SHARE_PATH=/usr/local/pgsql/share/
 
 dropdb -U $USERNAME $DBNAME # if necessary
-
-createdb -U $USERNAME --encoding=UTF8 $DBNAME --template template0
-
-### Note that plpgsql is usually already installed for postgres 8.4+
-# createlang -U $USERNAME plpgsql $DBNAME
-
-if [ "$USE_POSTGIS_1_5" == "TRUE" ]; then
-
-    echo "using 1.5"
-
-    ### For postgres 9.1+ we don't load these here. Instead, we will
-    ### add PostGIS as an extension, below
-    psql -U $USERNAME -d $DBNAME -f $PG_SHARE_PATH_1_5/postgis.sql
-    psql -U $USERNAME -d $DBNAME -f $PG_SHARE_PATH_1_5/spatial_ref_sys.sql
-
-else
-
-    echo "using 2.0"
-
-    ### Using the new 9.1+ extension method:
-    psql -U $USERNAME -d $DBNAME -c "CREATE EXTENSION postgis;" 
-
-    ### And we need legacy functions (currently)
-    psql -U $USERNAME -d $DBNAME -f $PG_SHARE_PATH_2_0/legacy.sql
-
-fi
-
+createdb -U $USERNAME --encoding=UTF8 $DBNAME
+createlang -U $USERNAME plpgsql $DBNAME
+psql -U $USERNAME -d $DBNAME -f $PG_SHARE_PATH/lwpostgis.sql
+psql -U $USERNAME -d $DBNAME -f $PG_SHARE_PATH/spatial_ref_sys.sql
 psql -U $USERNAME -d $DBNAME -f $DYCAST_APP_PATH/postgres_init.sql
 
 psql -U $USERNAME -d $DBNAME -f $DYCAST_INIT_PATH/dumped_dist_margs.sql

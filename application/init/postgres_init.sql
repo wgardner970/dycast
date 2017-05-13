@@ -30,11 +30,11 @@ ALTER TABLE dead_birds_unprojected ADD CONSTRAINT dead_birds_unprojected_pkey PR
 
 ALTER TABLE dead_birds_projected ADD CONSTRAINT dead_birds_projected_pkey PRIMARY KEY (bird_id);
 
-SELECT AddGeometryColumn('public', 'dead_birds_unprojected', 'location', 29193, 'POINT', 2);
+SELECT AddGeometryColumn('public', 'dead_birds_unprojected', 'location', 3857, 'POINT', 2);
 -- ALTER TABLE dead_birds_unprojected ADD COLUMN "4269" geometry(Geometry,4269);
 -- ALTER TABLE dead_birds_unprojected ADD COLUMN "29193" geometry(Geometry,29193);
 
-SELECT AddGeometryColumn('public', 'dead_birds_projected', 'location', 29193, 'POINT', 2);
+SELECT AddGeometryColumn('public', 'dead_birds_projected', 'location', 3857, 'POINT', 2);
 -- ALTER TABLE dead_birds_projected ADD COLUMN "54003" geometry(Geometry,54003);
 -- ALTER TABLE dead_birds_projected ADD COLUMN "29193" geometry(Geometry,29193);
 
@@ -59,43 +59,9 @@ CREATE TABLE effects_polys_projected (
 ) INHERITS (effects_polys);
 
 ALTER TABLE effects_polys_unprojected ADD CONSTRAINT effects_polys_unprojected_pkey PRIMARY KEY (tile_id);
-
 ALTER TABLE effects_polys_projected ADD CONSTRAINT effects_polys_projected_pkey PRIMARY KEY (tile_id);
-
-SELECT AddGeometryColumn('public', 'effects_polys_unprojected', 'the_geom', 29193, 'MULTIPOLYGON', 2);
--- ALTER TABLE effects_polys_unprojected ADD COLUMN "4269" geometry(Geometry,4269);
--- ALTER TABLE effects_polys_unprojected ADD COLUMN "29193" geometry(Geometry,29193);
-
-SELECT AddGeometryColumn('public', 'effects_polys_projected', 'the_geom', 29193, 'MULTIPOLYGON', 2);
--- ALTER TABLE effects_polys_projected ADD COLUMN "54003" geometry(Geometry,54003);
--- ALTER TABLE effects_polys_projected ADD COLUMN "29193" geometry(Geometry,29193);
-
-CREATE TABLE county_codes (
-    county_id smallint PRIMARY KEY, 
-    name varchar(90)
-);
-
-CREATE TABLE effects_poly_centers (
-    tile_id integer REFERENCES effects_polys
-);
-
-CREATE TABLE effects_poly_centers_unprojected (
-) INHERITS (effects_poly_centers);
-
--- CREATE TABLE effects_poly_centers_projected (
--- ) INHERITS (effects_poly_centers);
-
-ALTER TABLE effects_poly_centers_unprojected ADD CONSTRAINT effects_polys_centers_unprojected_pkey PRIMARY KEY (tile_id);
-
--- ALTER TABLE effects_poly_centers_projected ADD CONSTRAINT effects_polys_centers_projected_pkey PRIMARY KEY (tile_id);
-
-SELECT AddGeometryColumn('public', 'effects_poly_centers_unprojected', 'the_geom', 29193, 'POINT', 2);
--- ALTER TABLE effects_poly_centers_unprojected ADD COLUMN "4269" geometry(Geometry,4269);
--- ALTER TABLE effects_poly_centers_unprojected ADD COLUMN "29193" geometry(Geometry,54003);
-
--- SELECT AddGeometryColumn('public', 'effects_poly_centers_projected', 'the_geom', 29193, 'POINT', 2);
--- ALTER TABLE effects_poly_centers_projected ADD COLUMN "54003" geometry(Geometry,54003);
--- ALTER TABLE effects_poly_centers_projected ADD COLUMN "29193" geometry(Geometry,29193);
+SELECT AddGeometryColumn('public', 'effects_polys_unprojected', 'the_geom', 3857, 'MULTIPOLYGON', 2);
+SELECT AddGeometryColumn('public', 'effects_polys_projected', 'the_geom', 3857, 'MULTIPOLYGON', 2);
 
 CREATE TABLE risk_table_list (
     table_id integer PRIMARY KEY,
@@ -105,12 +71,14 @@ CREATE TABLE risk_table_list (
 );
 
 CREATE TABLE risk_table_parent (
-    tile_id integer REFERENCES effects_polys (tile_id),
+    lat float NOT NULL,
+    long float NOT NULL,
     num_birds integer,
     close_pairs integer,
     close_space integer,
     close_time integer,
-    nmcm float
+    nmcm float,
+    PRIMARY KEY(lat, long)
 );
 
 CREATE TABLE dist_margs (

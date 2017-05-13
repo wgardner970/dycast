@@ -10,6 +10,10 @@ ZIKAST_INIT_PATH=${ZIKAST_APP_PATH}/init
 
 PG_SHARE_PATH_2_0=/usr/share/postgresql/9.6/contrib/postgis-2.3
 
+START_DATE=$(date -I -d "${START_DATE}") || exit -1
+END_DATE=$(date -I -d "${END_DATE}") || exit -1
+
+
 init_zikast() {
 	if [[ "${FORCE_DB_INIT}" == "True" ]]; then
 		echo ""
@@ -57,10 +61,6 @@ init_db() {
 	psql -h ${PGHOST} -U ${PGUSER} -d ${PGDBNAME} -f ${ZIKAST_INIT_PATH}/postgres_init.sql
 	echo "" 
 
-	echo "Running ${ZIKAST_INIT_PATH}/dengue_brazil/effects_poly_centers_projected_71824_brazil.sql"
-	psql -h ${PGHOST} -U ${PGUSER} -d ${PGDBNAME} -f ${ZIKAST_INIT_PATH}/dengue_brazil/effects_poly_centers_projected_71824_brazil.sql
-	echo "" 
-
 	echo "Running ${ZIKAST_INIT_PATH}/dumped_dist_margs.sql"
 	psql -h ${PGHOST} -U ${PGUSER} -d ${PGDBNAME} -f ${ZIKAST_INIT_PATH}/dumped_dist_margs.sql
 	echo "" 
@@ -77,29 +77,85 @@ init_directories() {
 	fi
 }
 
+run_tests() {
+
+	echo "Running unit tests..."
+	nosetests -vv tests
+
+	exit_code=$?
+	if [[ ! "${exit_code}" == "0" ]]; then
+		echo "Unit test(s) failed, exiting..."
+		exit ${exit_code}
+	fi
+
+}
 
 listen_for_input() {
 	echo ""
 	echo "*** Zikast is now listening for new .tsv files in ${ZIKAST_INBOX}... ***"
 	echo "" 
+	
+	user_coordinate_system="29193"
+	extent_min_x=197457.283284349
+	extent_min_y=7666274.3256114
+	extent_max_x=224257.283284349
+	extent_max_y=7639474.3256114
+
 	while true; do
-		# echo "Running daily_tasks.py..."
-		# python ${ZIKAST_APP_PATH}/daily_tasks.py
 		for file in ${ZIKAST_INBOX}/*.tsv; do
 			if [[ -f ${file} ]]; then
 			
 				echo "Loading input file: ${file}..."
-				python ${ZIKAST_APP_PATH}/load_birds.py "${file}"
+				python ${ZIKAST_APP_PATH}/load_birds.py --srid ${user_coordinate_system} "${file}"
+				
+				exit_code=$?
+				if [[ ! "${exit_code}" == "0" ]]; then
+					echo "load_birds failed, exiting..."
+					exit ${exit_code}
+				fi
 				
 				echo "Completed loading input file, moving it to ${ZIKAST_INBOX_COMPLETED}"
 				filename=$(basename "$file")
 				mv "${file}" "${ZIKAST_INBOX_COMPLETED}/${filename}_completed"
 				
+
+				echo "" 
 				echo "Generating risk..."
-				python ${ZIKAST_APP_PATH}/daily_risk.py --date 1998-01-04
+				echo ""
+				current_day="${START_DATE}"
+				while [[ ! "${current_day}" > "${END_DATE}" ]]; do 
+					
+					echo "Generating risk for ${current_day}..."
+					python ${ZIKAST_APP_PATH}/daily_risk.py --date ${current_day} --srid ${user_coordinate_system} --extent_min_x ${extent_min_x} --extent_min_y ${extent_min_y} --extent_max_x ${extent_max_x} --extent_max_y ${extent_max_y}
+					
+					exit_code=$?
+					if [[ ! "${exit_code}" == "0" ]]; then
+						echo "daily_risk failed, exiting..."
+						exit ${exit_code}
+					fi
+					
+					current_day=$(date -I -d "${current_day} + 1 day")
+				done
 				
+				
+				echo "" 
 				echo "Exporting risk..."
-				python ${ZIKAST_APP_PATH}/export_risk.py 1998-01-04
+				echo "" 
+				current_day="${START_DATE}"
+				while [[ ! "${current_day}" > "${END_DATE}" ]]; do 
+
+					echo "Exporting risk for ${current_day}..."
+					python ${ZIKAST_APP_PATH}/export_risk.py ${current_day}
+				
+					exit_code=$?
+					if [[ ! "${exit_code}" == "0" ]]; then
+						echo "export_risk failed, exiting..."
+						exit ${exit_code}
+					fi
+
+					current_day=$(date -I -d "${current_day} + 1 day")
+				done
+				
 
 				echo "Done."
 			fi
@@ -110,4 +166,5 @@ listen_for_input() {
 }
 
 init_zikast
+run_tests
 listen_for_input

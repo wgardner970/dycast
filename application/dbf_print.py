@@ -1,5 +1,5 @@
 #! /usr/bin/env python
-
+#$Id: dbf_print.py,v 1.3 2008/04/08 15:56:21 alan Exp alan $
 # Simple script for printing out the content of a DBF.
 # Meant only for quick debugging
 
@@ -11,7 +11,7 @@ import optparse
 if sys.platform == 'win32':
     lib_dir = "C:\\DYCAST\\application\\libs"
 else:
-    lib_dir = "/Users/alan/Documents/DYCAST/application/libs"
+    lib_dir = "/Users/alan/Documents/DYCAST/py_bin/libs"
 
 sys.path.append(lib_dir)            # the hard-coded library above
 sys.path.append("libs")             # a library relative to current folder
@@ -29,9 +29,6 @@ except ImportError:
 
 usage = "usage: %prog [options] file.dbf"
 p = optparse.OptionParser(usage)
-p.add_option('--postgres', '-p', 
-            help="print only ids, suitable for postgres",
-            action="store_true")
 options, arguments = p.parse_args()
 
 for filename in arguments:
@@ -42,12 +39,7 @@ for filename in arguments:
     for recnum in range(0,len(dbfn)):
         rec = dbfn[recnum]
         for fldName in dbfn.fieldNames:
-            if options.postgres:
-                if fldName == 'ID':
-                    print '%s,' % rec[fldName],
-            else:
-                print '%s\t' % rec[fldName],
-        if not options.postgres:
-            print
+            print '%s\t' % rec[fldName],
+        print
     dbfn.close()
         

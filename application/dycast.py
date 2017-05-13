@@ -12,27 +12,17 @@ import ConfigParser
 import logging
 from ftplib import FTP
 import inspect
+from services import debug_service
+from services import config_service
+from services import grid_service
 
-def get_optional_env_variable(var_name):
-    try:
-        return os.environ[var_name]
-    except KeyError:
-        return None  
-
-if get_optional_env_variable("DEBUG") == "True":
-    import ptvsd
-    ptvsd.enable_attach("my_secret", address = ('0.0.0.0', 3000))
-    ptvsd.wait_for_attach()
-
+debug_service.enable_debugger()
 
 APPLICATION_ROOT = os.path.dirname(os.path.abspath(inspect.getfile(inspect.currentframe())))
 lib_dir = os.path.join(APPLICATION_ROOT, 'libs')
-
-sys.path.append(lib_dir)            # the hard-coded library above
-sys.path.append("libs")             # a library relative to current folder
-
-sys.path.append(lib_dir+os.sep+"dbfpy") # the hard-coded library above
-sys.path.append("libs"+os.sep+"dbfpy")  # a library relative to current folder
+sys.path.append(lib_dir)
+sys.path.append(os.path.join(lib_dir, "psycopg2"))
+sys.path.append(os.path.join(lib_dir, "dbfpy"))
 
 try:
     import dbf
@@ -40,18 +30,12 @@ except ImportError:
     print "couldn't import dbf library in path:", sys.path
     sys.exit()
 
-sys.path.append(lib_dir+os.sep+"psycopg2")  # the hard-coded library above
-sys.path.append("libs"+os.sep+"psycopg2")   # a library relative to current folder
-
 try:
     import psycopg2
 except ImportError:
     print "couldn't import psycopg2 library in path:", sys.path
     sys.exit()
 
-#loglevel = logging.DEBUG        # For debugging
-loglevel = logging.INFO         # appropriate for normal use
-#loglevel = logging.WARNING      # appropriate for almost silent use
 
 conn = 0
 cur = 0
@@ -71,7 +55,6 @@ threshold = 1
 dsn = "x"
 dead_birds_table_unprojected = "x"
 dead_birds_table_projected = "x"
-effects_poly_table = "x"
 
 # dist_margs means "distribution marginals" and is the result of the
 # monte carlo simulations.  See Theophilides et al. for more information
@@ -82,10 +65,12 @@ effects_poly_table = "x"
 #def post_analysis_functions():
 #def kappa_test():
 
-def read_config(filename):
+def read_config(filename, config_object=None):
     # All dycast objects must be initialized from a config file, therefore,
     # all dycast applications must include the name of a config file, or they
     # must use the default, which is dycast.config in the current directory
+
+    config = config_object
 
     global dbname
     global user
@@ -101,16 +86,17 @@ def read_config(filename):
     global lib_dir
     global dead_birds_table_unprojected
     global dead_birds_table_projected
-    global effects_poly_table
     global sd
     global td
     global cs
     global ct
     global threshold
     global logfile
+    global system_coordinate_system
 
-    config = ConfigParser.SafeConfigParser()
-    config.read(filename)
+    if not config:
+        config = ConfigParser.SafeConfigParser()
+        config.read(filename)
 
     dbname = config.get("database", "dbname")
     user = config.get("database", "user")
@@ -133,7 +119,6 @@ def read_config(filename):
 
     dead_birds_table_unprojected = config.get("database", "dead_birds_table_unprojected")
     dead_birds_table_projected = config.get("database", "dead_birds_table_projected")
-    effects_poly_table = config.get("database", "effects_poly_table")
 
     sd = float(config.get("dycast", "spatial_domain")) * miles_to_metres
     cs = float(config.get("dycast", "close_in_space")) * miles_to_metres
@@ -141,10 +126,30 @@ def read_config(filename):
     td = int(config.get("dycast", "temporal_domain"))
     threshold = int(config.get("dycast", "bird_threshold"))
 
+    system_coordinate_system = config.get("dycast", "system_coordinate_system")
+
+def get_log_level():
+    debug = config_service.get_env_variable("DEBUG")
+    if debug:
+        return logging.DEBUG
+    else:
+        return logging.INFO
+    
+
 def init_logging():
-    logging.basicConfig(format='%(asctime)s %(levelname)8s %(message)s', 
+    loglevel = get_log_level()
+
+    logging.basicConfig(format='%(asctime)s %(levelname)8s %(message)s',
         filename=logfile, filemode='a')
-    logging.getLogger().setLevel(loglevel)
+        
+    root = logging.getLogger()
+    root.setLevel(loglevel)
+
+    handler = logging.StreamHandler(sys.stdout)
+    handler.setLevel(logging.DEBUG)
+    formatter = logging.Formatter('%(asctime)s %(levelname)8s %(message)s')
+    handler.setFormatter(formatter)
+    root.addHandler(handler)
 
 def debug(message):
     logging.debug(message)
@@ -186,7 +191,7 @@ def create_db(dbname):
     return 1
     
 
-def init_db():
+def init_db(config=None):
     global cur, conn
     try:
         conn = psycopg2.connect(dsn)
@@ -200,7 +205,7 @@ def init_db():
 ##### functions for loading data:
 ##########################################################################
 
-def load_bird(line):
+def load_bird(line, user_coordinate_system):
     try:
         (bird_id, report_date_string, lon, lat, species) = line.split("\t")
     except ValueError:
@@ -209,10 +214,10 @@ def load_bird(line):
     # We need to force this query to take lon and lat as the strings 
     # that they are, not quoted as would happen if I tried to list them 
     # in the execute statement.  That's why they're included in this line.
-    querystring = "INSERT INTO " + dead_birds_table_projected + " VALUES (%s, %s, %s, ST_Transform(ST_GeomFromText('POINT(" + lon + " " + lat + ")',29193),29193))"
+    querystring = "INSERT INTO " + dead_birds_table_projected + " VALUES (%s, %s, %s, ST_Transform(ST_GeomFromText('POINT(" + lon + " " + lat + ")',%s),%s))"
     #querystring = "INSERT INTO " + dead_birds_table_unprojected + " VALUES (%s, %s, %s, ST_GeomFromText('POINT(" + lon + " " + lat + ")',29193))"
     try:
-        cur.execute(querystring, (bird_id, report_date_string, species))
+        cur.execute(querystring, (bird_id, report_date_string, species, user_coordinate_system, system_coordinate_system))
     except Exception, inst:
         conn.rollback()
         if str(inst).startswith("duplicate key"): 
@@ -253,7 +258,7 @@ def export_risk(riskdate, format = "dbf", path = None):
     except:
         logging.error("couldn't convert date to string: %s", riskdate)
         return 0
-    querystring = "SELECT tile_id, num_birds, close_pairs, close_space, close_time, nmcm FROM \"risk%s\"" % riskdate_string
+    querystring = "SELECT lat, long, num_birds, close_pairs, close_space, close_time, nmcm FROM \"risk%s\"" % riskdate_string
     try:
         cur.execute(querystring) 
     except Exception, inst:
@@ -273,14 +278,14 @@ def export_risk(riskdate, format = "dbf", path = None):
         # Currently just sprints to stdout.  Fix this later if needed
         for row in rows:
             # Be careful of the ordering of space and time in the db vs the txt file
-            [id, num_birds, close_pairs, close_space, close_time, nmcm] = row
-            print "%s\t1.5\t0.2500\t3\t%s\t%s\t?.???\t%s\t%s\t%s" % (id, num_birds, close_pairs, close_time, close_space, nmcm)
+            [lat, long, num_birds, close_pairs, close_space, close_time, nmcm] = row
+            print "%s\t1.5\t0.2500\t3\t%s\t%s\t?.???\t%s\t%s\t%s" % (lat, long, num_birds, close_pairs, close_time, close_space, nmcm)
         txt_close()
     else:
         for row in rows:
             # Be careful of the ordering of space and time in the db vs the txt file
-            [id, num_birds, close_pairs, close_space, close_time, nmcm] = row
-            dbf_print(id, nmcm)
+            [lat, long, num_birds, close_pairs, close_space, close_time, nmcm] = row
+            dbf_print(lat, long, nmcm)
         dbf_close()
         if using_tmp:
             dir, base = os.path.split(dbf_out.name)
@@ -300,7 +305,8 @@ def init_dbf_out(riskdate, path = None):
     filename = path + os.sep + "risk" + riskdate.strftime("%Y-%m-%d") + ".dbf"
     dbfn = dbf.Dbf(filename, new=True)
     dbfn.addField(
-        ("ID",'N',8,0),
+        ("LAT",'N',8,0),
+        ("LONG",'N',8,0),
         ("COUNTY",'N',3,0),
         ("RISK",'N',1,0),
         ("DISP_VAL",'N',8,6),
@@ -315,12 +321,12 @@ def init_dbf_out(riskdate, path = None):
 def txt_print(id, num_birds, close_pairs, close_space, close_time, nmcm):
     print "%s\t1.5\t0.2500\t3\t%s\t%s\t?.???\t%s\t%s\t%s" % (id, num_birds, close_pairs, close_time, close_space, nmcm)
     
-def dbf_print(id, nmcm):
+def dbf_print(lat, long, nmcm):
     global dbfn
     global riskdate_tuple
     rec = dbfn.newRecord()
-    rec['ID'] = id
-    rec['COUNTY'] = get_county_id(id)
+    rec['LAT'] = lat
+    rec['LONG'] = long
     if nmcm > 0:
         rec['RISK'] = 1
     else:
@@ -379,7 +385,7 @@ def download_birds():
         #sys.exit() # If there's no birds, we should still generate risk
     localfile.close()
 
-def load_bird_file(filename = None):
+def load_bird_file(user_coordinate_system, filename = None):
     if filename == None:
         filename = dead_birds_dir + os.sep + dead_birds_filename
     lines_read = 0
@@ -390,7 +396,7 @@ def load_bird_file(filename = None):
         if fileinput.filelineno() != 1:
             lines_read += 1
             result = 0
-            result = load_bird(line)
+            result = load_bird(line, user_coordinate_system)
 
             # If result is a bird ID or -1 (meaning duplicate) then:
             if result:                  
@@ -470,46 +476,10 @@ def create_daily_risk_table(riskdate):
     conn.commit()
     return tablename
 
-
-def get_ids(startpoly=None, endpoly=None):
+def get_vector_count_for_point(bird_tab, point):
+    querystring = "SELECT count(*) from \"" + bird_tab + "\" a where st_distance(a.location,ST_GeomFromText('POINT(%s %s)',%s)) < %s" 
     try:
-        if endpoly != None and startpoly != None:
-            querystring = "SELECT tile_id from " + effects_poly_table + " where tile_id >= %s and tile_id <= %s"
-            cur.execute(querystring, (startpoly, endpoly))
-        elif startpoly != None:
-            querystring = "SELECT tile_id from " + effects_poly_table + " where tile_id >= %s"
-            cur.execute(querystring, (startpoly,))
-        else:
-            querystring = "SELECT tile_id from " + effects_poly_table
-            cur.execute(querystring)
-    except Exception, inst:
-        logging.error("can't select tile_id from %s", effects_poly_table)
-        logging.error(inst)
-        sys.exit()
-    rows = cur.fetchall()
-    return rows
-
-def get_county_id(tile_id):
-    try:
-        #TODO: This poly table needs to be the one with counties in it
-        # I'm not sure why it works adding the tile_id as a string, but
-        # doesn't work if I replace it with %s and include it in 
-        #cur.execute as a second argument
-        querystring = "SELECT county FROM effects_polys where tile_id = " + str(tile_id)
-        cur.execute(querystring)
-    except Exception, inst:
-        conn.rollback()
-        logging.warning("warning: can't select county for effects poly %s", tile_id)
-        logging.warning(inst)
-        return 0
-    # return cur.fetchone()[0]
-    return 1
-
-
-def check_bird_count(bird_tab, tile_id):
-    querystring = "SELECT count(*) from \"" + bird_tab + "\" a, " + effects_poly_table + " b where b.tile_id = %s and st_distance(a.location,b.the_geom) < %s" 
-    try:
-        cur.execute(querystring, (tile_id, sd))
+        cur.execute(querystring, (point.x, point.y, system_coordinate_system, sd))
     except Exception, inst:
         conn.rollback()
         logging.error("can't select bird count")
@@ -518,31 +488,19 @@ def check_bird_count(bird_tab, tile_id):
     new_row = cur.fetchone()
     return new_row[0]
 
-def print_bird_list(bird_tab, tile_id):
-    querystring = "SELECT bird_id from \"" + bird_tab + "\" a, " + effects_poly_table + " b where b.tile_id = %s and st_distance(a.location,b.the_geom) < %s" 
-    try:
-        cur.execute(querystring, (tile_id, sd))
-    except Exception, inst:
-        conn.rollback()
-        logging.error("can't select bird list")
-        logging.error(inst)
-        sys.exit()
-    for row in cur.fetchall():
-        print row[0]
-
-def create_effects_poly_bird_table(bird_tab, tile_id):
+def create_effects_poly_bird_table(bird_tab, point):
     tablename = "temp_table_bird_selection" 
     #tablename = bird_tab + "_" + tile_id
     # I don't think this can be a temp table, or else I'd have to use "EXECUTE"
     # (See Postgresql FAQ about functions and temp tables)
-    querystring = "CREATE TABLE \"" + tablename + "\" AS SELECT * from \"" + bird_tab + "\" a, " + effects_poly_table + " b where b.tile_id = %s and st_distance(a.location,b.the_geom) < %s" 
+    querystring = "CREATE TABLE \"" + tablename + "\" AS SELECT * from \"" + bird_tab + "\" a where st_distance(a.location,ST_GeomFromText('POINT(%s %s)',%s)) < %s" 
     try:
         #logging.info("selecting CREATE TABLE with st_distance(a.location,b.the_geom) < %s", sd)
-        cur.execute(querystring, (tile_id, sd))
+        cur.execute(querystring, (point.x, point.y, system_coordinate_system, sd))
     except:
         conn.rollback()
         cur.execute("DROP TABLE \"" + tablename + "\"")
-        cur.execute(querystring, (tile_id, sd))
+        cur.execute(querystring, (point.x, point.y, system_coordinate_system, sd))
     conn.commit()
     return tablename 
 
@@ -569,12 +527,12 @@ def nmcm_wrapper(num_birds, close_pairs, close_space, close_time):
         sys.exit()
     return cur.fetchall()
   
-def insert_result(riskdate, tile_id, num_birds, close_pairs, close_time, close_space, nmcm):
+def insert_result(riskdate, latitude, longitude, num_birds, close_pairs, close_time, close_space, nmcm):
     tablename = "risk" + riskdate.strftime("%Y-%m-%d") 
-    querystring = "INSERT INTO \"" + tablename + "\" (tile_id, num_birds, close_pairs, close_space, close_time, nmcm) VALUES (%s, %s, %s, %s, %s, %s)"
+    querystring = "INSERT INTO \"" + tablename + "\" (lat, long, num_birds, close_pairs, close_space, close_time, nmcm) VALUES (%s, %s, %s, %s, %s, %s, %s)"
     try:
         # Be careful of the ordering of space and time in the db vs the txt file
-        cur.execute(querystring, (tile_id, num_birds, close_pairs, close_space, close_time, nmcm))
+        cur.execute(querystring, (latitude, longitude, num_birds, close_pairs, close_space, close_time, nmcm))
     except Exception, inst:
         conn.rollback()
         logging.error("couldn't insert effects_poly risk")
@@ -583,11 +541,11 @@ def insert_result(riskdate, tile_id, num_birds, close_pairs, close_time, close_s
     conn.commit()
          
 
-def daily_risk(riskdate, startpoly=None, endpoly=None):
-    rows = get_ids(startpoly, endpoly)
+def daily_risk(riskdate, user_coordinate_system, extent_min_x, extent_min_y, extent_max_x, extent_max_y, startpoly=None, endpoly=None):
+    gridpoints = grid_service.generate_grid(user_coordinate_system, system_coordinate_system, extent_min_x, extent_min_y, extent_max_x, extent_max_y)
 
     risk_tab = create_daily_risk_table(riskdate)
-    dead_birds_daterange = create_temp_bird_table(riskdate, td)
+    vector_table_name = create_temp_bird_table(riskdate, td)
 
     st = time.time()
     if startpoly or endpoly:
@@ -595,28 +553,21 @@ def daily_risk(riskdate, startpoly=None, endpoly=None):
     else:
         logging.info("Starting daily_risk for %s", riskdate)
 
-    inc = 0
-    for row in rows:
-        tile_id = row[0]
-        inc += 1
-        if not inc % 1000:
-            logging.debug("tile_id: %s done: %s time elapsed: %s", tile_id, inc, time.time() - st)
-        num_birds = check_bird_count(dead_birds_daterange, tile_id)
-        if num_birds >= threshold:
-            create_effects_poly_bird_table(dead_birds_daterange, tile_id)
+    for point in gridpoints:
+        vector_count = get_vector_count_for_point(vector_table_name, point)
+        if vector_count >= threshold:
+            create_effects_poly_bird_table(vector_table_name, point)
             st0 = time.time()
             results = cst_cs_ct_wrapper()
             st1 = time.time()
             close_pairs = results[0][0]
             close_space = results[1][0] - close_pairs
             close_time = results[2][0] - close_pairs
-            #print "tile ", tile_id, "found", num_birds, "birds (above threshold) %s actual close pairs, %s close in space, %s close in time" % (close_pairs, close_space, close_time)
-            #print_bird_list(dead_birds_daterange, tile_id)
-            result2 = nmcm_wrapper(num_birds, close_pairs, close_space, close_time)
-            insert_result(riskdate, tile_id, num_birds, close_pairs, close_time, close_space, result2[0][0])
+            result2 = nmcm_wrapper(vector_count, close_pairs, close_space, close_time)
+            insert_result(riskdate, point.x, point.y, vector_count, close_pairs, close_time, close_space, result2[0][0])
      
     #logging.info("Finished daily_risk for %s: done %s tiles, time elapsed: %s seconds", riskdate, inc, time.time() - st)
-    logging.info("Finished daily_risk for %s: done %s tiles", riskdate, inc)
+    logging.info("Finished daily_risk for %s: done %s points", riskdate, len(gridpoints))
 
 ##########################################################################
 ##########################################################################

@@ -1,12 +1,11 @@
 #! /usr/bin/env python
+#$Id: upload_risk.py,v 1.3 2008/02/01 23:04:45 alan Exp alan $
 #
 # Upload a risk .dbf file to an FTP site
 #
 # Meant to be run daily as a scheduled task
 #
 # The connection parameters for the FTP site are given in a config file
-# 
-# I'm not sure if this has been tested...
 
 import sys
 import dycast

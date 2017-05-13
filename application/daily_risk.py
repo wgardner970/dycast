@@ -1,4 +1,5 @@
 #! /usr/bin/env python
+#$Id: daily_risk.py,v 1.9 2008/04/08 15:56:57 alan Exp alan $
 
 import sys
 import dycast
@@ -6,10 +7,18 @@ import datetime
 import optparse
 
 usage = "usage: %prog [options] YYYY-MM-DD"
+required = "srid".split()
+
 p = optparse.OptionParser(usage)
-p.add_option('--date', '-d', 
+p.add_option('--date', 
             default="today", 
             )
+p.add_option('--srid')
+p.add_option('--extent_min_x')
+p.add_option('--extent_min_y')
+p.add_option('--extent_max_x')
+p.add_option('--extent_max_y')
+
 p.add_option('--startpoly', '-s')
 p.add_option('--endpoly', '-e')
 p.add_option('--config', '-c', 
@@ -18,13 +27,12 @@ p.add_option('--config', '-c',
             metavar="FILE"
             )
 
-# If these options are not specified, defaults will be taken from the config file
-p.add_option('--closespace')
-p.add_option('--closetime')
-p.add_option('--spatialdomain')
-p.add_option('--temporaldomain')
-
 options, arguments = p.parse_args()
+
+for r in required:
+    if options.__dict__[r] is None:
+        parser.error("parameter %s required"%r)
+        sys.exit(1)
 
 config_file = options.config
 
@@ -34,30 +42,16 @@ except:
     print "could not read config file:", config_file
     sys.exit()
 
-dycast.init_logging()
+riskdate = options.date
+user_coordinate_system = options.srid
+extent_min_x = float(options.extent_min_x)
+extent_min_y = float(options.extent_min_y)
+extent_max_x = float(options.extent_max_x)
+extent_max_y = float(options.extent_max_y)
 
+dycast.init_logging()
 dycast.init_db()
 
-riskdate = options.date 
-
-(default_cs, default_ct, default_sd, default_td) = dycast.get_default_parameters()
-
-if options.closespace:
-  cs = options.closespace
-else:
-  cs = default_cs
-if options.closetime:
-  ct = options.closetime
-else:
-  ct = default_ct
-if options.spatialdomain:
-  sd = options.spatialdomain
-else:
-  sd = default_sd
-if options.temporaldomain:
-  td = options.temporaldomain
-else:
-  td = default_td
 
 if riskdate == "today" or not riskdate:
     riskdate = datetime.date.today()
@@ -72,11 +66,11 @@ else:
         sys.exit()
 
 if options.endpoly and options.startpoly:
-    dycast.daily_risk(riskdate, cs, ct, sd, td, options.startpoly, options.endpoly)
+    dycast.daily_risk(riskdate, options.startpoly, options.endpoly)
 elif options.endpoly and not options.startpoly:
     print "ERROR: the endpoly option is only supported along with startpoly"
 elif options.startpoly:
-    dycast.daily_risk(riskdate, cs, ct, sd, td, options.startpoly)
+    dycast.daily_risk(riskdate, options.startpoly)
 else:
-    dycast.daily_risk(riskdate, cs, ct, sd, td)
+    dycast.daily_risk(riskdate, user_coordinate_system, extent_min_x, extent_min_y, extent_max_x, extent_max_y)
 
