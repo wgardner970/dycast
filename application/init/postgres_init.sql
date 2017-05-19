@@ -2,7 +2,6 @@
 SET client_min_messages = warning;
 
 INSERT INTO spatial_ref_sys (srid, proj4text) VALUES (54003, '+proj=mill +lat_0=0 +lon_0=0 +x_0=0 +y_0=0 +R_A +ellps=WGS84 +datum=WGS84 +units=m no_defs');
--- INSERT INTO spatial_ref_sys (srid, proj4text) VALUES (29193, '+proj=mill +lat_0=0 +lon_0=0 +x_0=0 +y_0=0 +R_A +ellps=WGS84 +datum=WGS84 +units=m no_defs');
 
 CREATE TABLE zikast_supported_areas (
     id serial PRIMARY KEY,
@@ -31,12 +30,8 @@ ALTER TABLE dead_birds_unprojected ADD CONSTRAINT dead_birds_unprojected_pkey PR
 ALTER TABLE dead_birds_projected ADD CONSTRAINT dead_birds_projected_pkey PRIMARY KEY (bird_id);
 
 SELECT AddGeometryColumn('public', 'dead_birds_unprojected', 'location', 3857, 'POINT', 2);
--- ALTER TABLE dead_birds_unprojected ADD COLUMN "4269" geometry(Geometry,4269);
--- ALTER TABLE dead_birds_unprojected ADD COLUMN "29193" geometry(Geometry,29193);
 
 SELECT AddGeometryColumn('public', 'dead_birds_projected', 'location', 3857, 'POINT', 2);
--- ALTER TABLE dead_birds_projected ADD COLUMN "54003" geometry(Geometry,54003);
--- ALTER TABLE dead_birds_projected ADD COLUMN "29193" geometry(Geometry,29193);
 
 CREATE INDEX dead_birds_unprojected_locationsidx ON dead_birds_unprojected USING GIST ( location );
 

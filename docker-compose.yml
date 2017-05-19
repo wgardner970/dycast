@@ -13,6 +13,11 @@ services:
         - FORCE_DB_INIT=False
         - START_DATE=
         - END_DATE=
+        - USER_COORDINATE_SYSTEM=
+        - EXTENT_MIN_X=
+        - EXTENT_MIN_Y=
+        - EXTENT_MAX_X=
+        - EXTENT_MAX_Y=
         - DEBUG=False
         - REMOTE_DEBUG=False
         - PGPASSWORD=postgres

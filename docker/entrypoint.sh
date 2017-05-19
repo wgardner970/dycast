@@ -13,6 +13,11 @@ PG_SHARE_PATH_2_0=/usr/share/postgresql/9.6/contrib/postgis-2.3
 START_DATE=$(date -I -d "${START_DATE}") || exit -1
 END_DATE=$(date -I -d "${END_DATE}") || exit -1
 
+USER_COORDINATE_SYSTEM="${USER_COORDINATE_SYSTEM}"
+EXTENT_MIN_X=${EXTENT_MIN_X}
+EXTENT_MIN_Y=${EXTENT_MIN_Y}
+EXTENT_MAX_X=${EXTENT_MAX_X}
+EXTENT_MAX_Y=${EXTENT_MAX_Y}
 
 init_zikast() {
 	if [[ "${FORCE_DB_INIT}" == "True" ]]; then
@@ -37,7 +42,13 @@ db_exists() {
 
 
 init_db() {
-	echo "Initializing database..."
+	echo "" && echo ""
+	echo "*** Initializing database ***"
+	echo ""
+	echo "*** Any existing Zikast database will be deleted ***"
+	echo "" && echo ""
+
+	echo "5" && sleep 1 && echo "4" && sleep 1 && echo "3" && sleep 1 && echo "2" && sleep 1 &&	echo "1" &&	sleep 1 && echo "0" && echo ""
 
 	echo "Dropping existing database ${PGDBNAME}"
 	dropdb -h ${PGHOST} -U ${PGUSER} ${PGDBNAME} # if necessary
@@ -51,11 +62,6 @@ init_db() {
 	echo "Creating extension 'postgis'"
     psql -h ${PGHOST} -U ${PGUSER} -d ${PGDBNAME} -c "CREATE EXTENSION postgis;" 
 	echo "" 
-
-    ### And we need legacy functions (currently)
-    # psql -h ${PGHOST} -U ${PGUSER} -d ${PGDBNAME} -f ${PG_SHARE_PATH_2_0}/legacy.sql
-    # psql -h ${PGHOST} -U ${PGUSER} -d ${PGDBNAME} -f ${PG_SHARE_PATH_2_0}/postgis.sql
-    # psql -h ${PGHOST} -U ${PGUSER} -d ${PGDBNAME} -f ${PG_SHARE_PATH_2_0}/spatial_ref_sys.sql
 
 	echo "Running ${ZIKAST_INIT_PATH}/postgres_init.sql"
 	psql -h ${PGHOST} -U ${PGUSER} -d ${PGDBNAME} -f ${ZIKAST_INIT_PATH}/postgres_init.sql
@@ -94,19 +100,13 @@ listen_for_input() {
 	echo ""
 	echo "*** Zikast is now listening for new .tsv files in ${ZIKAST_INBOX}... ***"
 	echo "" 
-	
-	user_coordinate_system="29193"
-	extent_min_x=197457.283284349
-	extent_min_y=7666274.3256114
-	extent_max_x=224257.283284349
-	extent_max_y=7639474.3256114
 
 	while true; do
 		for file in ${ZIKAST_INBOX}/*.tsv; do
 			if [[ -f ${file} ]]; then
-			
+
 				echo "Loading input file: ${file}..."
-				python ${ZIKAST_APP_PATH}/load_birds.py --srid ${user_coordinate_system} "${file}"
+				python ${ZIKAST_APP_PATH}/load_birds.py --srid ${USER_COORDINATE_SYSTEM} "${file}"
 				
 				exit_code=$?
 				if [[ ! "${exit_code}" == "0" ]]; then
@@ -126,7 +126,7 @@ listen_for_input() {
 				while [[ ! "${current_day}" > "${END_DATE}" ]]; do 
 					
 					echo "Generating risk for ${current_day}..."
-					python ${ZIKAST_APP_PATH}/daily_risk.py --date ${current_day} --srid ${user_coordinate_system} --extent_min_x ${extent_min_x} --extent_min_y ${extent_min_y} --extent_max_x ${extent_max_x} --extent_max_y ${extent_max_y}
+					python ${ZIKAST_APP_PATH}/daily_risk.py --date ${current_day} --srid ${USER_COORDINATE_SYSTEM} --extent_min_x ${EXTENT_MIN_X} --extent_min_y ${EXTENT_MIN_Y} --extent_max_x ${EXTENT_MAX_X} --extent_max_y ${EXTENT_MAX_Y}
 					
 					exit_code=$?
 					if [[ ! "${exit_code}" == "0" ]]; then
@@ -165,6 +165,30 @@ listen_for_input() {
 	done
 }
 
+check_variable() {
+	local VARIABLE_VALUE=$1
+	local VARIABLE_NAME=$2
+	if [[ -z ${VARIABLE_VALUE} ]] || [[ "${VARIABLE_VALUE}" == "" ]]; then
+		echo "ERROR! Environment variable ${VARIABLE_NAME} not specified. Exiting..."
+		exit 1
+	fi
+}
+
+check_all_variables() {
+	check_variable "${START_DATE}" START_DATE
+	check_variable "${END_DATE}" END_DATE
+	check_variable "${USER_COORDINATE_SYSTEM}" USER_COORDINATE_SYSTEM
+	check_variable "${EXTENT_MIN_X}" EXTENT_MIN_X
+	check_variable "${EXTENT_MIN_Y}" EXTENT_MIN_Y
+	check_variable "${EXTENT_MAX_X}" EXTENT_MAX_X
+	check_variable "${EXTENT_MAX_Y}" EXTENT_MAX_Y
+	check_variable "${PGPASSWORD}" PGPASSWORD
+	check_variable "${PGDBNAME}" PGDBNAME
+	check_variable "${PGHOST}" PGHOST
+	check_variable "${PGPORT}" PGPORT
+}
+
+check_all_variables
 init_zikast
 run_tests
 listen_for_input
