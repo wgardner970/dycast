@@ -23,7 +23,7 @@ init_zikast() {
 	if [[ "${FORCE_DB_INIT}" == "True" ]]; then
 		echo ""
 		echo "*** Warning: FORCE_DB_INIT = True ***"
-		echo "" 
+		echo ""
 		init_db
 	elif db_exists; then
 		echo "Database ${PGDBNAME} already exists, skipping initialization."
@@ -31,7 +31,7 @@ init_zikast() {
 		echo "Database ${PGDBNAME} does not exists."
 		init_db
 	fi
-	
+
 	init_directories
 }
 
@@ -52,20 +52,20 @@ init_db() {
 
 	echo "Dropping existing database ${PGDBNAME}"
 	dropdb -h ${PGHOST} -U ${PGUSER} ${PGDBNAME} # if necessary
-	echo "" 
+	echo ""
 
 	echo "Creating database ${PGDBNAME}"
 	createdb -h ${PGHOST} -U ${PGUSER} --encoding=UTF8 ${PGDBNAME} --template template0
-	echo "" 
-	
+	echo ""
+
 	### Using the new 9.1+ extension method:
 	echo "Creating extension 'postgis'"
-    psql -h ${PGHOST} -U ${PGUSER} -d ${PGDBNAME} -c "CREATE EXTENSION postgis;" 
-	echo "" 
+	psql -h ${PGHOST} -U ${PGUSER} -d ${PGDBNAME} -c "CREATE EXTENSION postgis;" 
+	echo ""
 
 	echo "Running ${ZIKAST_INIT_PATH}/postgres_init.sql"
 	psql -h ${PGHOST} -U ${PGUSER} -d ${PGDBNAME} -f ${ZIKAST_INIT_PATH}/postgres_init.sql
-	echo "" 
+	echo ""
 
 	echo "Running ${ZIKAST_INIT_PATH}/dumped_dist_margs.sql"
 	psql -h ${PGHOST} -U ${PGUSER} -d ${PGDBNAME} -f ${ZIKAST_INIT_PATH}/dumped_dist_margs.sql
@@ -77,7 +77,7 @@ init_directories() {
 	if [[ ! -d ${ZIKAST_INBOX_COMPLETED} ]]; then
 		mkdir -p ${ZIKAST_INBOX_COMPLETED}
 	fi
-	
+
 	if [[ ! -d ${ZIKAST_OUTBOX}/tmp ]]; then
 		mkdir -p ${ZIKAST_OUTBOX}/{tmp,cur,new}
 	fi
@@ -99,7 +99,7 @@ run_tests() {
 listen_for_input() {
 	echo ""
 	echo "*** Zikast is now listening for new .tsv files in ${ZIKAST_INBOX}... ***"
-	echo "" 
+	echo ""
 
 	while true; do
 		for file in ${ZIKAST_INBOX}/*.tsv; do
@@ -107,46 +107,46 @@ listen_for_input() {
 
 				echo "Loading input file: ${file}..."
 				python ${ZIKAST_APP_PATH}/load_birds.py --srid ${USER_COORDINATE_SYSTEM} "${file}"
-				
+
 				exit_code=$?
 				if [[ ! "${exit_code}" == "0" ]]; then
 					echo "load_birds failed, exiting..."
 					exit ${exit_code}
 				fi
-				
+
 				echo "Completed loading input file, moving it to ${ZIKAST_INBOX_COMPLETED}"
 				filename=$(basename "$file")
 				mv "${file}" "${ZIKAST_INBOX_COMPLETED}/${filename}_completed"
-				
 
-				echo "" 
+
+				echo ""
 				echo "Generating risk..."
 				echo ""
 				current_day="${START_DATE}"
-				while [[ ! "${current_day}" > "${END_DATE}" ]]; do 
-					
+				while [[ ! "${current_day}" > "${END_DATE}" ]]; do
+
 					echo "Generating risk for ${current_day}..."
 					python ${ZIKAST_APP_PATH}/daily_risk.py --date ${current_day} --srid ${USER_COORDINATE_SYSTEM} --extent_min_x ${EXTENT_MIN_X} --extent_min_y ${EXTENT_MIN_Y} --extent_max_x ${EXTENT_MAX_X} --extent_max_y ${EXTENT_MAX_Y}
-					
+
 					exit_code=$?
 					if [[ ! "${exit_code}" == "0" ]]; then
 						echo "daily_risk failed, exiting..."
 						exit ${exit_code}
 					fi
-					
+
 					current_day=$(date -I -d "${current_day} + 1 day")
 				done
-				
-				
-				echo "" 
+
+
+				echo ""
 				echo "Exporting risk..."
-				echo "" 
+				echo ""
 				current_day="${START_DATE}"
-				while [[ ! "${current_day}" > "${END_DATE}" ]]; do 
+				while [[ ! "${current_day}" > "${END_DATE}" ]]; do
 
 					echo "Exporting risk for ${current_day}..."
 					python ${ZIKAST_APP_PATH}/export_risk.py ${current_day}
-				
+
 					exit_code=$?
 					if [[ ! "${exit_code}" == "0" ]]; then
 						echo "export_risk failed, exiting..."
@@ -155,12 +155,12 @@ listen_for_input() {
 
 					current_day=$(date -I -d "${current_day} + 1 day")
 				done
-				
+
 
 				echo "Done."
 			fi
 		done
-		
+
 		sleep 5
 	done
 }
