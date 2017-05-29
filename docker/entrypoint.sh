@@ -86,7 +86,7 @@ init_directories() {
 run_tests() {
 
 	echo "Running unit tests..."
-	nosetests -vv tests
+	nosetests -vv --exe tests
 
 	exit_code=$?
 	if [[ ! "${exit_code}" == "0" ]]; then
