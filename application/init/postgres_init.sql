@@ -37,10 +37,18 @@ CREATE INDEX dead_birds_unprojected_locationsidx ON dead_birds_unprojected USING
 
 CREATE INDEX dead_birds_projected_locationsidx ON dead_birds_projected USING GIST ( location );
 
-CREATE TABLE temp_table_bird_selection (
+
+CREATE TABLE tmp_daily_case_selection (
 ) INHERITS (dead_birds_projected);
 
-CREATE INDEX temp_dead_birds_projected_locationsidx ON temp_table_bird_selection USING GIST ( location );
+CREATE INDEX tmp_daily_case_selection_locationsidx ON tmp_daily_case_selection USING GIST ( location );
+
+
+CREATE TABLE tmp_cluster_per_point_selection (
+) INHERITS (dead_birds_projected);
+
+CREATE INDEX tmp_cluster_per_point_selection_locationsidx ON tmp_cluster_per_point_selection USING GIST ( location );
+
 
 CREATE TABLE effects_polys (
     tile_id integer PRIMARY KEY,
@@ -93,21 +101,21 @@ CREATE INDEX dist_margs_ctidx ON dist_margs (close_time);
 CREATE OR REPLACE FUNCTION 
     close_space_and_time(close_space float, close_time integer)
     RETURNS bigint
-    AS 'select distinct count(*) from temp_table_bird_selection a, temp_table_bird_selection b where a.bird_id < b.bird_id and st_distance(a.location, b.location) < $1 and abs(a.report_date - b.report_date) <= $2;'
+    AS 'select distinct count(*) from tmp_cluster_per_point_selection a, tmp_cluster_per_point_selection b where a.bird_id < b.bird_id and st_distance(a.location, b.location) < $1 and abs(a.report_date - b.report_date) <= $2;'
     LANGUAGE SQL
     STABLE;
 
 CREATE OR REPLACE FUNCTION 
     close_space_only(close_space float)
     RETURNS bigint
-    AS 'select distinct count(*) from temp_table_bird_selection a, temp_table_bird_selection b where a.bird_id < b.bird_id and st_distance(a.location, b.location) < $1;'
+    AS 'select distinct count(*) from tmp_cluster_per_point_selection a, tmp_cluster_per_point_selection b where a.bird_id < b.bird_id and st_distance(a.location, b.location) < $1;'
     LANGUAGE SQL
     STABLE;
 
 CREATE OR REPLACE FUNCTION 
     close_time_only(close_time integer)
     RETURNS bigint
-    AS 'select distinct count(*) from temp_table_bird_selection a, temp_table_bird_selection b 
+    AS 'select distinct count(*) from tmp_cluster_per_point_selection a, tmp_cluster_per_point_selection b 
           where a.bird_id < b.bird_id 
           and abs(a.report_date - b.report_date) <= $1;'
     LANGUAGE SQL

@@ -86,6 +86,8 @@ def read_config(filename, config_object=None):
     global lib_dir
     global dead_birds_table_unprojected
     global dead_birds_table_projected
+    global tmp_daily_case_table
+    global tmp_cluster_per_point_selection_table
     global sd
     global td
     global cs
@@ -119,6 +121,8 @@ def read_config(filename, config_object=None):
 
     dead_birds_table_unprojected = config.get("database", "dead_birds_table_unprojected")
     dead_birds_table_projected = config.get("database", "dead_birds_table_projected")
+    tmp_daily_case_table = config.get("database", "tmp_daily_case_table")
+    tmp_cluster_per_point_selection_table = config.get("database", "tmp_cluster_per_point_selection_table")
 
     sd = float(config.get("dycast", "spatial_domain")) * miles_to_metres
     cs = float(config.get("dycast", "close_in_space")) * miles_to_metres
@@ -438,24 +442,18 @@ def upload_risk(path, filename):
 ##### functions for generating risk:
 ##########################################################################
 
-def create_temp_bird_table(riskdate, days_prev):
+def setup_tmp_daily_case_table_for_date(tmp_daily_case_table_name, riskdate, days_prev):
     enddate = riskdate
     startdate = riskdate - datetime.timedelta(days=(days_prev))
-    tablename = "dead_birds_" + startdate.strftime("%Y-%m-%d") + "_to_" + enddate.strftime("%Y-%m-%d")
-    querystring = "CREATE TEMP TABLE \"" + tablename + "\" AS SELECT * FROM " + dead_birds_table_projected + " where report_date >= %s and report_date <= %s"
+    querystring = "TRUNCATE " + tmp_daily_case_table_name + "; INSERT INTO " + tmp_daily_case_table_name + " SELECT * from " + dead_birds_table_projected + " where report_date >= %s and report_date <= %s"
     try:
         cur.execute(querystring, (startdate, enddate))
     except Exception, inst:
         conn.rollback()
-        # If string includes "already exists"...
-        if str(inst).find("already exists"):
-            cur.execute("DROP TABLE \"" + tablename + "\"")
-            cur.execute(querystring, (startdate, enddate))
-        else:
-            logging.error(inst)
-            sys.exit()
+        logging.error("Something went wrong when setting up tmp_daily_case_selection table: " + str(riskdate))
+        logging.error(inst)
+        sys.exit(1)
     conn.commit()
-    return tablename
 
 def create_daily_risk_table(riskdate):
     tablename = "risk" + riskdate.strftime("%Y-%m-%d")
@@ -488,21 +486,16 @@ def get_vector_count_for_point(bird_tab, point):
     new_row = cur.fetchone()
     return new_row[0]
 
-def create_effects_poly_bird_table(bird_tab, point):
-    tablename = "temp_table_bird_selection"
-    #tablename = bird_tab + "_" + tile_id
-    # I don't think this can be a temp table, or else I'd have to use "EXECUTE"
-    # (See Postgresql FAQ about functions and temp tables)
-    querystring = "CREATE TABLE \"" + tablename + "\" AS SELECT * from \"" + bird_tab + "\" a where st_distance(a.location,ST_GeomFromText('POINT(%s %s)',%s)) < %s"
+def insert_cases_in_cluster_table(tmp_cluster_table_name, tmp_daily_case_table_name, point):
+    querystring = "TRUNCATE " + tmp_cluster_table_name + "; INSERT INTO " + tmp_cluster_table_name + " SELECT * from " + tmp_daily_case_table_name + " a where st_distance(a.location,ST_GeomFromText('POINT(%s %s)',%s)) < %s"
     try:
-        #logging.info("selecting CREATE TABLE with st_distance(a.location,b.the_geom) < %s", sd)
         cur.execute(querystring, (point.x, point.y, system_coordinate_system, sd))
-    except:
+    except Exception, inst:
         conn.rollback()
-        cur.execute("DROP TABLE \"" + tablename + "\"")
-        cur.execute(querystring, (point.x, point.y, system_coordinate_system, sd))
+        logging.error("Something went wrong at point: " + str(point))
+        logging.error(inst)
+        sys.exit(1)
     conn.commit()
-    return tablename
 
 def cst_cs_ct_wrapper():
     querystring = "SELECT * FROM cst_cs_ct(%s, %s)"
@@ -542,10 +535,10 @@ def insert_result(riskdate, latitude, longitude, num_birds, close_pairs, close_t
 
 
 def daily_risk(riskdate, user_coordinate_system, extent_min_x, extent_min_y, extent_max_x, extent_max_y, startpoly=None, endpoly=None):
-    gridpoints = grid_service.generate_grid(user_coordinate_system, system_coordinate_system, extent_min_x, extent_min_y, extent_max_x, extent_max_y)
+    exported_risk_tab = create_daily_risk_table(riskdate)
+    setup_tmp_daily_case_table_for_date(tmp_daily_case_table, riskdate, td)
 
-    risk_tab = create_daily_risk_table(riskdate)
-    vector_table_name = create_temp_bird_table(riskdate, td)
+    gridpoints = grid_service.generate_grid(user_coordinate_system, system_coordinate_system, extent_min_x, extent_min_y, extent_max_x, extent_max_y)
 
     st = time.time()
     if startpoly or endpoly:
@@ -554,9 +547,9 @@ def daily_risk(riskdate, user_coordinate_system, extent_min_x, extent_min_y, ext
         logging.info("Starting daily_risk for %s", riskdate)
 
     for point in gridpoints:
-        vector_count = get_vector_count_for_point(vector_table_name, point)
+        vector_count = get_vector_count_for_point(tmp_daily_case_table, point)
         if vector_count >= threshold:
-            create_effects_poly_bird_table(vector_table_name, point)
+            insert_cases_in_cluster_table(tmp_cluster_per_point_selection_table, tmp_daily_case_table, point)
             st0 = time.time()
             results = cst_cs_ct_wrapper()
             st1 = time.time()
