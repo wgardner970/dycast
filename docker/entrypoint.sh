@@ -128,26 +128,11 @@ listen_for_input() {
 				echo ""
 				echo "Exporting risk..."
 				echo ""
-				current_day="${START_DATE}"
-				while [[ ! "${current_day}" > "${END_DATE}" ]]; do
-
-					echo "Exporting risk for ${current_day}..."
-					python ${ZIKAST_APP_PATH}/export_risk.py ${current_day}
-
-					exit_code=$?
-					if [[ ! "${exit_code}" == "0" ]]; then
-						echo "export_risk failed, exiting..."
-						exit ${exit_code}
-					fi
-
-					current_day=$(date -I -d "${current_day} + 1 day")
-				done
-
+				python ${ZIKAST_APP_PATH}/export_risk.py --startdate ${START_DATE} --enddate ${END_DATE} --txt true
 
 				echo "Done."
 			fi
 		done
-
 		sleep 5
 	done
 }

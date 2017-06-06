@@ -17,6 +17,7 @@ import inspect
 from services import debug_service
 from services import config_service
 from services import grid_service
+from services import conversion_service
 from models.enums import enums
 
 debug_service.enable_debugger()
@@ -231,68 +232,65 @@ def fail_on_incorrect_count(location_type, line):
 
 
 ##########################################################################
-##### functions for exporting results:
+# functions for exporting results:
 ##########################################################################
 
-def export_risk(riskdate, format = "dbf", path = None):
+def export_risk(startdate, enddate, format = "dbf", path = None):
+    # Quick and dirty solution
+    if (format != "dbf" and format != "txt"):
+        logging.error("Incorrect export format: %s", format)
+        return 1
+
+    # dates are objects, not strings
+    startdate_string = conversion_service.get_string_from_date_object(startdate)
+    enddate_string = conversion_service.get_string_from_date_object(enddate)
+
     if path == None:
         path = risk_file_dir + "/tmp/"
         using_tmp = True
     else:
         using_tmp = False
 
-
-    # riskdate is a date object, not a string
-    try:
-        riskdate_string = riskdate.strftime("%Y-%m-%d")
-    except:
-        logging.error("couldn't convert date to string: %s", riskdate)
-        return 0
-    querystring = "SELECT lat, long, num_birds, close_pairs, close_space, close_time, nmcm FROM \"risk%s\"" % riskdate_string
-    try:
-        cur.execute(querystring)
-    except Exception, inst:
-        conn.rollback()
-        logging.error("couldn't select risk for date: %s", riskdate_string)
-        logging.error(inst)
-        return 0
+    filename = "risk" + startdate_string + "--" + enddate_string + "." + format
+    filepath = os.path.join(path, filename)
 
     if format == "txt":
-        txt_out = init_txt_out(riskdate, path)
-    else:   # dbf or other
-        dbf_out = init_dbf_out(riskdate, path)
+        txt_out = init_txt_out(filepath)
+    else:   # dbf
+        dbf_out = init_dbf_out(filepath)
+
+
+    logging.info("Exporting risk for: %s - %s", (startdate_string, enddate_string))
+    query = "SELECT risk_date, lat, long, num_birds, close_pairs, close_space, close_time, nmcm FROM risk WHERE risk_date >= %s AND risk_date <= %s"
+
+    try:
+        cur.execute(query, (startdate, enddate))
+    except Exception, e:
+        conn.rollback()
+        logging.error(e)
+        raise
 
     rows = cur.fetchall()
 
     if format == "txt":
-        # Currently just sprints to stdout.  Fix this later if needed
-        for row in rows:
-            # Be careful of the ordering of space and time in the db vs the txt file
-            [lat, long, num_birds, close_pairs, close_space, close_time, nmcm] = row
-            print "%s\t1.5\t0.2500\t3\t%s\t%s\t?.???\t%s\t%s\t%s" % (lat, long, num_birds, close_pairs, close_time, close_space, nmcm)
-        txt_close()
-    else:
-        for row in rows:
-            # Be careful of the ordering of space and time in the db vs the txt file
-            [lat, long, num_birds, close_pairs, close_space, close_time, nmcm] = row
-            dbf_print(lat, long, nmcm)
+        write_rows_to_txt(filepath, rows)
+    else: # dbf
+        write_rows_to_dbf(dbf_out, rows)
         dbf_close()
-        if using_tmp:
-            dir, base = os.path.split(dbf_out.name)
-            dir, tmp = os.path.split(dir)   # Remove the "tmp" to get outbox
-            outbox_tmp_to_new(dir, base)    # Move finished file to "new"
+        
+    if using_tmp:
+        outbox_tmp_to_new(risk_file_dir, filename)    # Move finished file to "new"
 
 
-def init_txt_out(riskdate, path):
-    # Currently just sprints to stdout.  Fix this later if needed
-    print "ID\tBuf\tcs\tct\tnum\tpairs\texp\tT_Only\tS_Only\tnmcm"
+def init_txt_out(filepath):
+    dirname = os.path.dirname(filepath)
+    if not os.path.exists(dirname):
+        os.makedirs(dirname)
 
-def init_dbf_out(riskdate, path = None):
-    if path == None:
-        path = "."
-    global dbfn
-    global riskdate_tuple
-    filename = path + os.sep + "risk" + riskdate.strftime("%Y-%m-%d") + ".dbf"
+    with open(filepath, "w") as text_file:
+        text_file.write("risk_date\tlat\tlong\tnumber_of_cases\tclose_pairs\tclose_time\tclose_space\tp_value\n")
+
+def init_dbf_out(filename):
     dbfn = dbf.Dbf(filename, new=True)
     dbfn.addField(
         ("LAT",'N',8,0),
@@ -300,37 +298,35 @@ def init_dbf_out(riskdate, path = None):
         ("COUNTY",'N',3,0),
         ("RISK",'N',1,0),
         ("DISP_VAL",'N',8,6),
-        ("DATE",'D',8)
+        ("RISK_DATE",'D',8)
     )
 
-    riskdate_tuple = (int(riskdate.strftime("%Y")), int(riskdate.strftime("%m")), int(riskdate.strftime("%d")))
-
-    #TODO: make this an object
+    # TODO: make this an object
     return dbfn
 
-def txt_print(id, num_birds, close_pairs, close_space, close_time, nmcm):
-    print "%s\t1.5\t0.2500\t3\t%s\t%s\t?.???\t%s\t%s\t%s" % (id, num_birds, close_pairs, close_time, close_space, nmcm)
+def write_rows_to_txt(filepath, rows):
+    with open(filepath, "a") as text_file:
+        for row in rows:
+            [date, lat, long, num_birds, close_pairs, close_space, close_time, monte_carlo_p_value] = row
+            text_file.write("%s\t%s\t%s\t%s\t%s\t%s\t%s\t%s\n" % (date, lat, long, num_birds, close_pairs, close_time, close_space, monte_carlo_p_value))
 
-def dbf_print(lat, long, nmcm):
-    global dbfn
-    global riskdate_tuple
-    rec = dbfn.newRecord()
-    rec['LAT'] = lat
-    rec['LONG'] = long
-    if nmcm > 0:
-        rec['RISK'] = 1
-    else:
-        rec['RISK'] = 0
-    rec['DISP_VAL'] = nmcm
-    rec['DATE'] = riskdate_tuple
-    rec.store()
+def write_rows_to_dbf(dbfn, rows):
+    for row in rows:
+        [date, lat, long, num_birds, close_pairs, close_space, close_time, monte_carlo_p_value] = row
+        rec = dbfn.newRecord()
+        
+        rec['LAT'] = lat
+        rec['LONG'] = long
+        if nmcm > 0:
+            rec['RISK'] = 1
+        else:
+            rec['RISK'] = 0
+        rec['DISP_VAL'] = nmcm
+        rec['DATE'] = (int(date.strftime("%Y")), int(date.strftime("%m")), int(date.strftime("%d")))
 
-def txt_close():
-    # Currently just sprints to stdout.  Fix this later if needed
-    print "done"
+        rec.store()
 
-def dbf_close():
-    global dbfn
+def dbf_close(dbfn):
     dbfn.close()
 
 ##########################################################################

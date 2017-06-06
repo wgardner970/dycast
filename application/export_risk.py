@@ -8,6 +8,10 @@ import optparse
 
 usage = "usage: %prog [options] YYYY-MM-DD"
 p = optparse.OptionParser(usage)
+p.add_option('--startdate', 
+            default="today", 
+            )
+p.add_option('--enddate')
 p.add_option('--dbf', '-d')
 p.add_option('--txt', '-t')
 #p.add_option('--outfile', '-o')
@@ -19,28 +23,42 @@ p.add_option('--config', '-c',
 options, arguments = p.parse_args()
 
 config_file = options.config
-
 dycast.read_config(config_file)
 
 dycast.init_db()
 
 
-riskdate = arguments[0]
-
-if riskdate == "today" or not riskdate:
-    riskdate = datetime.date.today()
+startdate_string = options.startdate
+if startdate_string == "today" or not startdate_string:
+    startdate = datetime.date.today()
 else:
     try:
         # This very simple parsing will work fine if date is YYYY-MM-DD
-        (y, m, d) = riskdate.split('-')
-        riskdate = datetime.date(int(y), int(m), int(d))
+        (y, m, d) = startdate_string.split('-')
+        startdate = datetime.date(int(y), int(m), int(d))
     except Exception, inst:
-        print "couldn't parse", riskdate
+        print "couldn't parse", startdate_string
+        print inst
+        sys.exit()
+
+
+enddate_string = options.enddate
+if enddate_string == "today":
+    enddate = datetime.date.today()
+elif not enddate_string:
+    enddate = startdate
+else:
+    try:
+        # This very simple parsing will work fine if date is YYYY-MM-DD
+        (y, m, d) = enddate_string.split('-')
+        enddate = datetime.date(int(y), int(m), int(d))
+    except Exception, inst:
+        print "couldn't parse", enddate_string
         print inst
         sys.exit()
 
 if options.txt:
-    dycast.export_risk(riskdate, "txt")
+    dycast.export_risk(startdate, enddate, "txt")
 else:
-    dycast.export_risk(riskdate, "dbf")
+    dycast.export_risk(startdate, enddate, "dbf")
 
