@@ -3,7 +3,35 @@
 *Under construction* 
 
 This is fork from https://github.com/almccon/DYCAST, which is a tool to create risk maps for West Nile Virus.
-The aim of this fork is to create risk maps for Zika virus. 
+The aim of this fork is to create risk maps for the Zika virus. 
+
+
+## Parameters
+
+**Zika min**  
+spatial: 600 meters  
+temporal: 38 days  
+close space: 100 meters  
+close time: 4 days  
+
+**Zika max**  
+spatial: 800 meters  
+temporal: 38 days  
+close space: 200 meters  
+close time: 4 days  
+
+**dengue**  
+spatial: 600 meters  
+temporal: 28 days  
+close space: 100 meters  
+close time: 4 days  
+
+**dengue max**  
+spatial: 800 meters  
+temporal: 28 days  
+close space: 200 meters  
+close time: 4 days  
+
 
 # Original Readme
 
