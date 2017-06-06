@@ -1,5 +1,7 @@
-#$Id: dycast.py,v 1.15 2008/04/08 15:56:03 alan Exp alan $
-# DYCAST functions
+# Zikast functions
+
+# dist_margs means "distribution marginals" and is the result of the
+# monte carlo simulations.  See Theophilides et al. for more information
 
 import sys
 import os
@@ -19,7 +21,8 @@ from models.enums import enums
 
 debug_service.enable_debugger()
 
-APPLICATION_ROOT = os.path.dirname(os.path.abspath(inspect.getfile(inspect.currentframe())))
+APPLICATION_ROOT = os.path.dirname(
+    os.path.abspath(inspect.getfile(inspect.currentframe())))
 lib_dir = os.path.join(APPLICATION_ROOT, 'libs')
 sys.path.append(lib_dir)
 sys.path.append(os.path.join(lib_dir, "psycopg2"))
@@ -40,8 +43,6 @@ except ImportError:
 
 conn = 0
 cur = 0
-dbfn = 0
-riskdate_tuple = ()
 
 # TODO: find a more appropriate way to initialize these
 sd = 1
@@ -55,14 +56,8 @@ dsn = "x"
 dead_birds_table_unprojected = "x"
 dead_birds_table_projected = "x"
 
-# dist_margs means "distribution marginals" and is the result of the
-# monte carlo simulations.  See Theophilides et al. for more information
-#def create_dist_margs():
-#def create_analysis_grid():
-#def load_prepared_dist_margs():
-#def load_prepared_analysis_grid():
-#def post_analysis_functions():
-#def kappa_test():
+
+
 
 def read_config(filename, config_object=None):
     # All dycast objects must be initialized from a config file, therefore,
@@ -103,25 +98,35 @@ def read_config(filename, config_object=None):
     user = config.get("database", "user")
     password = config.get("database", "password")
     host = config.get("database", "host")
-    dsn = "dbname='" + dbname + "' user='" + user + "' password='" + password + "' host='" + host + "'"
+    dsn = "dbname='" + dbname + "' user='" + user + \
+        "' password='" + password + "' host='" + host + "'"
 
     ftp_site = config.get("ftp", "server")
     ftp_user = config.get("ftp", "username")
     ftp_pass = config.get("ftp", "password")
     dead_birds_filename = config.get("ftp", "filename")
     if sys.platform == 'win32':
-        logfile = config.get("system", "windows_dycast_path") + config.get("system", "logfile")
-        dead_birds_dir = config.get("system", "windows_dycast_path") + config.get("system", "dead_birds_subdir")
-        risk_file_dir = config.get("system", "windows_dycast_path") + config.get("system", "risk_file_subdir")
+        logfile = config.get("system", "windows_dycast_path") + \
+                             config.get("system", "logfile")
+        dead_birds_dir = config.get(
+            "system", "windows_dycast_path") + config.get("system", "dead_birds_subdir")
+        risk_file_dir = config.get(
+            "system", "windows_dycast_path") + config.get("system", "risk_file_subdir")
     else:
-        logfile = config.get("system", "unix_dycast_path") + config.get("system", "logfile")
-        dead_birds_dir = config.get("system", "unix_dycast_path") + config.get("system", "dead_birds_subdir")
-        risk_file_dir = config.get("system", "unix_dycast_path") + config.get("system", "risk_file_subdir")
+        logfile = config.get("system", "unix_dycast_path") + \
+                             config.get("system", "logfile")
+        dead_birds_dir = config.get(
+            "system", "unix_dycast_path") + config.get("system", "dead_birds_subdir")
+        risk_file_dir = config.get(
+            "system", "unix_dycast_path") + config.get("system", "risk_file_subdir")
 
-    dead_birds_table_unprojected = config.get("database", "dead_birds_table_unprojected")
-    dead_birds_table_projected = config.get("database", "dead_birds_table_projected")
+    dead_birds_table_unprojected = config.get(
+        "database", "dead_birds_table_unprojected")
+    dead_birds_table_projected = config.get(
+        "database", "dead_birds_table_projected")
     tmp_daily_case_table = config.get("database", "tmp_daily_case_table")
-    tmp_cluster_per_point_selection_table = config.get("database", "tmp_cluster_per_point_selection_table")
+    tmp_cluster_per_point_selection_table = config.get(
+        "database", "tmp_cluster_per_point_selection_table")
 
     sd = float(config.get("dycast", "spatial_domain"))
     cs = float(config.get("dycast", "close_in_space"))
@@ -130,6 +135,7 @@ def read_config(filename, config_object=None):
     threshold = int(config.get("dycast", "bird_threshold"))
 
     system_coordinate_system = config.get("dycast", "system_coordinate_system")
+
 
 def get_log_level():
     debug = config_service.get_env_variable("DEBUG")
@@ -154,45 +160,21 @@ def init_logging():
     handler.setFormatter(formatter)
     root.addHandler(handler)
 
+
 def debug(message):
     logging.debug(message)
+
 
 def info(message):
     logging.info(message)
 
+
 def warning(message):
     logging.warning(message)
 
+
 def error(message):
     logging.error(message)
-
-def create_db(dbname):
-    # Currently this doesn't work
-    try:
-        #conn = psycopg2.connect("dbname='template1' user='" + user + "' host='" + host + "'")
-        conn = psycopg2.connect("user='" + user + "' host='" + host + "'")
-    except Exception, inst:
-        logging.error("Unable to connect to server")
-        logging.error(inst)
-        sys.exit()
-    #conn.autocommit(True)
-    #conn.set_isolation_level(ISOLATION_LEVEL_AUTOCOMMIT)
-    #conn.switch_isolation_level(ISOLATION_LEVEL_AUTOCOMMIT)
-    cur = conn.cursor()
-    try:
-        cur.execute("SET TRANSACTION ISOLATION LEVEL SERIALIZABLE")
-    except Exception, inst:
-        logging.error(inst)
-        return 0
-
-    try:
-        cur.execute("CREATE DATABASE " + dbname)
-    except Exception, inst:
-        logging.error(inst)
-        return 0
-
-    return 1
-
 
 def init_db(config=None):
     global cur, conn
@@ -352,7 +334,7 @@ def dbf_close():
     dbfn.close()
 
 ##########################################################################
-##### functions for uploading and downloading files:
+# functions for uploading and downloading files:
 ##########################################################################
 
 # The outbox functions are based on the Maildir directory structure.
@@ -369,8 +351,6 @@ def outbox_new_to_cur(outboxpath, filename):
 
 def backup_birds():
     (stripped_file, ext) = os.path.splitext(dead_birds_filename)
-    #stripped_file = dead_birds_filename.rstrip("tsv")
-    #stripped_file = stripped_file.rstrip("txt")    # Just in case
     new_file = stripped_file + "_" + datetime.date.today().strftime("%Y-%m-%d") + ".tsv"
     shutil.copyfile(dead_birds_dir + dead_birds_filename, dead_birds_dir + new_file)
 
@@ -390,7 +370,6 @@ def download_birds():
     except Exception, inst:
         logging.error("could not download birds: unable retrieve file")
         logging.error(inst)
-        #sys.exit() # If there's no birds, we should still generate risk
     localfile.close()
 
 def load_case_file(user_coordinate_system, filename = None):
@@ -438,21 +417,9 @@ def upload_new_risk(outboxpath = None):
             upload_risk(newdir, file)
             outbox_new_to_cur(outboxpath, file)
 
-def upload_risk(path, filename):
-    ######
-    ###### Not tested
-    ######
-
-    # Fix this: allow uploading multiple files:
-    # Also check if this should use outboxpath
-    localfile = open(path + os.sep + filename)
-
-    ftp = FTP(ftp_site, ftp_user, ftp_pass)
-    ftp.storbinary('STOR ' + filename, localfile)
-    localfile.close()
 
 ##########################################################################
-##### functions for generating risk:
+# functions for generating risk:
 ##########################################################################
 
 def setup_tmp_daily_case_table_for_date(tmp_daily_case_table_name, riskdate, days_prev):
@@ -513,7 +480,6 @@ def insert_cases_in_cluster_table(tmp_cluster_table_name, tmp_daily_case_table_n
 def cst_cs_ct_wrapper():
     querystring = "SELECT * FROM cst_cs_ct(%s, %s)"
     try:
-        #logging.info("selecting SELECT * FROM cst_cs_ct(%s, %s)", cs, ct)
         cur.execute(querystring, (cs, ct))
     except Exception, inst:
         conn.rollback()
