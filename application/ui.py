@@ -40,7 +40,7 @@ class DYCAST_control(Tkinter.Frame):
         dycast.init_logging()
         
 
-    def load_birds(self):
+    def load_cases(self):
         self.status_label["text"] = "Status: loading birds..."
         self.status_label.update_idletasks()
         self.load_birds_button["state"] = Tkinter.DISABLED
@@ -51,7 +51,7 @@ class DYCAST_control(Tkinter.Frame):
                 dir, base = os.path.split(file)
                 self.status_label["text"] = "Status: loading birds... %s" % base
                 self.status_label.update_idletasks()
-                dycast.load_bird_file(file)
+                dycast.load_case_file(file)
         except:
             if (self.files):
                 tkMessageBox.showwarning(
@@ -188,7 +188,7 @@ class DYCAST_control(Tkinter.Frame):
 
         self.load_birds_button = Tkinter.Button(self.bird_frame, background=my_panelcolor)
         self.load_birds_button["text"] = "load birds"
-        self.load_birds_button["command"] =  self.load_birds
+        self.load_birds_button["command"] =  self.load_cases
 
         self.load_birds_button.pack({"side": "right"})
 

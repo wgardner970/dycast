@@ -106,11 +106,11 @@ listen_for_input() {
 			if [[ -f ${file} ]]; then
 
 				echo "Loading input file: ${file}..."
-				python ${ZIKAST_APP_PATH}/load_birds.py --srid ${USER_COORDINATE_SYSTEM} "${file}"
+				python ${ZIKAST_APP_PATH}/load_cases.py --srid ${USER_COORDINATE_SYSTEM} "${file}"
 
 				exit_code=$?
 				if [[ ! "${exit_code}" == "0" ]]; then
-					echo "load_birds failed, exiting..."
+					echo "load_cases failed, exiting..."
 					exit ${exit_code}
 				fi
 

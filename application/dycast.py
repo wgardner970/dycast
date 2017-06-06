@@ -15,6 +15,7 @@ import inspect
 from services import debug_service
 from services import config_service
 from services import grid_service
+from models.enums import enums
 
 debug_service.enable_debugger()
 
@@ -203,44 +204,49 @@ def init_db(config=None):
         sys.exit()
     cur = conn.cursor()
 
+
 ##########################################################################
-##### functions for loading data:
+# functions for loading data:
 ##########################################################################
 
-def load_bird(line, user_coordinate_system):
+
+def load_case(line, location_type, user_coordinate_system):
+    if location_type not in (enums.Location_type.LAT_LONG, enums.Location_type.GEOMETRY):
+        logging.error("Wrong value for 'location_type', exiting...")
+        sys.exit(1)
+
+    if location_type == enums.Location_type.LAT_LONG:
+        try:
+            (case_id, report_date_string, lon, lat, species) = line.split("\t")
+        except ValueError:
+            fail_on_incorrect_count()
+        querystring = "INSERT INTO " + dead_birds_table_projected + " VALUES (%s, %s, %s, ST_Transform(ST_GeomFromText('POINT(" + lon + " " + lat + ")'," + user_coordinate_system + "),%s))"
+
+    else:
+        try:
+            (case_id, report_date_string, geometry, species) = line.split("\t")
+        except ValueError:
+            fail_on_incorrect_count()
+        querystring = "INSERT INTO " + dead_birds_table_projected + " VALUES (%s, %s, %s, ST_Transform(Geometry('" + geometry + "'), %s))"
+
     try:
-        (bird_id, report_date_string, lon, lat, species) = line.split("\t")
-    except ValueError:
-        logging.warning("SKIP incorrect number of fields: %s", line.rstrip())
-        return 0
-    # We need to force this query to take lon and lat as the strings
-    # that they are, not quoted as would happen if I tried to list them
-    # in the execute statement.  That's why they're included in this line.
-    querystring = "INSERT INTO " + dead_birds_table_projected + " VALUES (%s, %s, %s, ST_Transform(ST_GeomFromText('POINT(" + lon + " " + lat + ")',%s),%s))"
-    #querystring = "INSERT INTO " + dead_birds_table_unprojected + " VALUES (%s, %s, %s, ST_GeomFromText('POINT(" + lon + " " + lat + ")',29193))"
-    try:
-        cur.execute(querystring, (bird_id, report_date_string, species, user_coordinate_system, system_coordinate_system))
+        cur.execute(querystring, (case_id, report_date_string, species, system_coordinate_system))
     except Exception, inst:
         conn.rollback()
         if str(inst).startswith("duplicate key"):
-            logging.debug("couldn't insert duplicate dead bird key %s, skipping...", bird_id)
+            logging.debug("couldn't insert duplicate case key %s, skipping...", case_id)
             return -1
         else:
-            logging.warning("couldn't insert dead bird record")
+            logging.warning("couldn't insert case record")
             logging.warning(inst)
             return 0
     conn.commit()
-    return bird_id
+    return case_id
 
-#def analyze_tables():
-    # This must be run outside a transaction block.  However, psycopg2 has
-    # a problem doing that on Mac
+def fail_on_incorrect_count(location_type, line):
+    logging.error("Incorrect number of fields for 'location_type' %s: %s, exiting...", (location_type, line.rstrip()))
+    sys.exit(1)    
 
-    #querystring = "VACUUM ANALYZE " + dead_birds_table_projected
-    #try:
-    #    cur.execute(querystring)
-    #except Exception, inst:
-    #    print inst
 
 ##########################################################################
 ##### functions for exporting results:
@@ -387,18 +393,28 @@ def download_birds():
         #sys.exit() # If there's no birds, we should still generate risk
     localfile.close()
 
-def load_bird_file(user_coordinate_system, filename = None):
+def load_case_file(user_coordinate_system, filename = None):
     if filename == None:
         filename = dead_birds_dir + os.sep + dead_birds_filename
     lines_read = 0
     lines_processed = 0
     lines_loaded = 0
     lines_skipped = 0
+    location_type = ""
     for line in fileinput.input(filename):
-        if fileinput.filelineno() != 1:
+        if fileinput.filelineno() == 1:
+            header_count = line.count("\t") + 1
+            if header_count == 5:
+                location_type = enums.Location_type.LAT_LONG
+            elif header_count == 4:
+                location_type = enums.Location_type.GEOMETRY
+            else:
+                logging.error("Incorrect column count, exiting...")
+                sys.exit(1)
+        else:
             lines_read += 1
             result = 0
-            result = load_bird(line, user_coordinate_system)
+            result = load_case(line, location_type, user_coordinate_system)
 
             # If result is a bird ID or -1 (meaning duplicate) then:
             if result:
@@ -408,8 +424,7 @@ def load_bird_file(user_coordinate_system, filename = None):
                 else:
                     lines_loaded += 1
 
-    # dycast.analyze_tables()
-    logging.info("bird load complete: %s processed %s of %s lines, %s loaded, %s duplicate IDs skipped", filename, lines_processed, lines_read, lines_loaded, lines_skipped)
+    logging.info("case load complete: %s processed %s of %s lines, %s loaded, %s duplicate IDs skipped", filename, lines_processed, lines_read, lines_loaded, lines_skipped)
     return lines_read, lines_processed, lines_loaded, lines_skipped
 
 

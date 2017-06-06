@@ -73,7 +73,7 @@ Once you have your dead bird data files in the correct format, there are two way
 
 * 	Alternatively, open a command prompt (from the start menu), change directory to *C:\DYCAST\application* and execute:
 
-     	C:\DYCAST\application> load_birds.py ..\inbox\dycast_export_2007.tsv
+     	C:\DYCAST\application> load_cases.py ..\inbox\dycast_export_2007.tsv
 
 	(replace “..\inbox\dycast_export_2007.tsv” with the filename of a dead bird export)
 	
@@ -139,7 +139,7 @@ Give the task a name, and choose the desired scheduling (in previous years, we w
 
 Or use individual tasks, if you are not using FTP to fetch and send data: 
 
-    load_birds.py (if you are placing them in inbox manually, not via FTP) 
+    load_cases.py (if you are placing them in inbox manually, not via FTP) 
 
     daily_risk.py (generates risk, but does not input or output) 
 
