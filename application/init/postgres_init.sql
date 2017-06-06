@@ -63,7 +63,8 @@ CREATE TABLE risk_table_list (
     monte_carlo_id integer
 );
 
-CREATE TABLE risk_table_parent (
+CREATE TABLE risk (
+    risk_date date NOT NULL,
     lat float NOT NULL,
     long float NOT NULL,
     num_birds integer,
@@ -71,7 +72,7 @@ CREATE TABLE risk_table_parent (
     close_space integer,
     close_time integer,
     nmcm float,
-    PRIMARY KEY(lat, long)
+    PRIMARY KEY(risk_date, lat, long)
 );
 
 CREATE TABLE dist_margs (

@@ -428,40 +428,33 @@ def setup_tmp_daily_case_table_for_date(tmp_daily_case_table_name, riskdate, day
     querystring = "TRUNCATE " + tmp_daily_case_table_name + "; INSERT INTO " + tmp_daily_case_table_name + " SELECT * from " + dead_birds_table_projected + " where report_date >= %s and report_date <= %s"
     try:
         cur.execute(querystring, (startdate, enddate))
-    except Exception, inst:
+    except Exception as e:
         conn.rollback()
         logging.error("Something went wrong when setting up tmp_daily_case_selection table: " + str(riskdate))
-        logging.error(inst)
-        sys.exit(1)
+        logging.error(e)
+        raise
     conn.commit()
 
-def create_daily_risk_table(riskdate):
-    tablename = "risk" + riskdate.strftime("%Y-%m-%d")
-    querystring = "CREATE TABLE \"" + tablename + "\" (LIKE \"risk_table_parent\" INCLUDING CONSTRAINTS)"
-    # the foreign key constraints are not being copied for some reason.
+def get_daily_case_count(tmp_daily_case_table_name):
+    query = "SELECT COUNT(*) FROM {0}".format(tmp_daily_case_table_name)
     try:
-        cur.execute(querystring)
-    except Exception, inst:
+        cur.execute(query)
+    except Exception as e:
         conn.rollback()
-        # TODO: save old version of risk instead of overwriting
-        try:
-            cur.execute("DROP TABLE \"" + tablename + "\"")
-            cur.execute(querystring)
-        except:
-            conn.rollback()
-            logging.error("couldn't create risk table: %s", tablename)
-            sys.exit()
-    conn.commit()
-    return tablename
+        logging.error("Something went wrong when getting count from tmp_daily_case_selection table: " + str(riskdate))
+        logging.error(e)
+        raise
+    result_count = cur.fetchone()
+    return result_count[0]
 
 def get_vector_count_for_point(bird_tab, point):
     querystring = "SELECT count(*) from \"" + bird_tab + "\" a where st_distance(a.location,ST_GeomFromText('POINT(%s %s)',%s)) < %s" 
     try:
         cur.execute(querystring, (point.x, point.y, system_coordinate_system, sd))
-    except Exception, inst:
+    except Exception as e:
         conn.rollback()
         logging.error("can't select bird count")
-        logging.error(inst)
+        logging.error(e)
         sys.exit()
     new_row = cur.fetchone()
     return new_row[0]
@@ -500,11 +493,10 @@ def nmcm_wrapper(num_birds, close_pairs, close_space, close_time):
     return cur.fetchall()
 
 def insert_result(riskdate, latitude, longitude, num_birds, close_pairs, close_time, close_space, nmcm):
-    tablename = "risk" + riskdate.strftime("%Y-%m-%d")
-    querystring = "INSERT INTO \"" + tablename + "\" (lat, long, num_birds, close_pairs, close_space, close_time, nmcm) VALUES (%s, %s, %s, %s, %s, %s, %s)"
+    querystring = "INSERT INTO risk (risk_date, lat, long, num_birds, close_pairs, close_space, close_time, nmcm) VALUES (%s, %s, %s, %s, %s, %s, %s, %s)"
     try:
         # Be careful of the ordering of space and time in the db vs the txt file
-        cur.execute(querystring, (latitude, longitude, num_birds, close_pairs, close_space, close_time, nmcm))
+        cur.execute(querystring, (riskdate, latitude, longitude, num_birds, close_pairs, close_space, close_time, nmcm))
     except Exception, inst:
         conn.rollback()
         logging.error("couldn't insert effects_poly risk")
@@ -513,33 +505,39 @@ def insert_result(riskdate, latitude, longitude, num_birds, close_pairs, close_t
     conn.commit()
 
 
-def daily_risk(riskdate, user_coordinate_system, extent_min_x, extent_min_y, extent_max_x, extent_max_y, startpoly=None, endpoly=None):
-    exported_risk_tab = create_daily_risk_table(riskdate)
-    setup_tmp_daily_case_table_for_date(tmp_daily_case_table, riskdate, td)
-
+def daily_risk(startdate, enddate, user_coordinate_system, extent_min_x, extent_min_y, extent_max_x, extent_max_y):
+    
     gridpoints = grid_service.generate_grid(user_coordinate_system, system_coordinate_system, extent_min_x, extent_min_y, extent_max_x, extent_max_y)
 
-    st = time.time()
-    if startpoly or endpoly:
-        logging.info("Starting daily_risk for %s, startpoly: %s, endpoly: %s", riskdate, startpoly, endpoly)
-    else:
-        logging.info("Starting daily_risk for %s", riskdate)
+    day = startdate
+    delta = datetime.timedelta(days=1)
 
-    for point in gridpoints:
-        vector_count = get_vector_count_for_point(tmp_daily_case_table, point)
-        if vector_count >= threshold:
-            insert_cases_in_cluster_table(tmp_cluster_per_point_selection_table, tmp_daily_case_table, point)
-            st0 = time.time()
-            results = cst_cs_ct_wrapper()
-            st1 = time.time()
-            close_pairs = results[0][0]
-            close_space = results[1][0] - close_pairs
-            close_time = results[2][0] - close_pairs
-            result2 = nmcm_wrapper(vector_count, close_pairs, close_space, close_time)
-            insert_result(riskdate, point.x, point.y, vector_count, close_pairs, close_time, close_space, result2[0][0])
+    while day <= enddate:
 
-    #logging.info("Finished daily_risk for %s: done %s tiles, time elapsed: %s seconds", riskdate, inc, time.time() - st)
-    logging.info("Finished daily_risk for %s: done %s points", riskdate, len(gridpoints))
+        setup_tmp_daily_case_table_for_date(tmp_daily_case_table, day, td)
+        daily_case_count = get_daily_case_count(tmp_daily_case_table)
 
+        if daily_case_count >= threshold:
+            st = time.time()
+            logging.info("Starting daily_risk for %s", day)
+
+            for point in gridpoints:
+                vector_count = get_vector_count_for_point(tmp_daily_case_table, point)
+                if vector_count >= threshold:
+                    insert_cases_in_cluster_table(tmp_cluster_per_point_selection_table, tmp_daily_case_table, point)
+                    results = cst_cs_ct_wrapper()
+                    close_pairs = results[0][0]
+                    close_space = results[1][0] - close_pairs
+                    close_time = results[2][0] - close_pairs
+                    result2 = nmcm_wrapper(vector_count, close_pairs, close_space, close_time)
+                    insert_result(day, point.x, point.y, vector_count, close_pairs, close_time, close_space, result2[0][0])
+
+            logging.info("Finished daily_risk for %s: done %s points", day, len(gridpoints))
+            logging.info("Time elapsed: %s.2f seconds", time.time() - st)
+        else:
+            logging.info("Amount of cases for {0} lower than threshold {1}: {2}, skipping.".format(day, threshold, daily_case_count))
+
+        day += delta
+    
 ##########################################################################
 ##########################################################################

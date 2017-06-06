@@ -10,17 +10,16 @@ usage = "usage: %prog [options] YYYY-MM-DD"
 required = "srid".split()
 
 p = optparse.OptionParser(usage)
-p.add_option('--date', 
+p.add_option('--startdate', 
             default="today", 
             )
+p.add_option('--enddate')
 p.add_option('--srid')
 p.add_option('--extent_min_x')
 p.add_option('--extent_min_y')
 p.add_option('--extent_max_x')
 p.add_option('--extent_max_y')
 
-p.add_option('--startpoly', '-s')
-p.add_option('--endpoly', '-e')
 p.add_option('--config', '-c', 
             default="./dycast.config", 
             help="load config file FILE", 
@@ -42,7 +41,6 @@ except:
     print "could not read config file:", config_file
     sys.exit()
 
-riskdate = options.date
 user_coordinate_system = options.srid
 extent_min_x = float(options.extent_min_x)
 extent_min_y = float(options.extent_min_y)
@@ -53,24 +51,34 @@ dycast.init_logging()
 dycast.init_db()
 
 
-if riskdate == "today" or not riskdate:
-    riskdate = datetime.date.today()
+startdate_string = options.startdate
+if startdate_string == "today" or not startdate_string:
+    startdate = datetime.date.today()
 else:
     try:
         # This very simple parsing will work fine if date is YYYY-MM-DD
-        (y, m, d) = riskdate.split('-')
-        riskdate = datetime.date(int(y), int(m), int(d))
+        (y, m, d) = startdate_string.split('-')
+        startdate = datetime.date(int(y), int(m), int(d))
     except Exception, inst:
-        print "couldn't parse", riskdate
+        print "couldn't parse", startdate_string
         print inst
         sys.exit()
 
-if options.endpoly and options.startpoly:
-    dycast.daily_risk(riskdate, options.startpoly, options.endpoly)
-elif options.endpoly and not options.startpoly:
-    print "ERROR: the endpoly option is only supported along with startpoly"
-elif options.startpoly:
-    dycast.daily_risk(riskdate, options.startpoly)
+
+enddate_string = options.enddate
+if enddate_string == "today":
+    enddate = datetime.date.today()
+elif not enddate_string:
+    enddate = startdate
 else:
-    dycast.daily_risk(riskdate, user_coordinate_system, extent_min_x, extent_min_y, extent_max_x, extent_max_y)
+    try:
+        # This very simple parsing will work fine if date is YYYY-MM-DD
+        (y, m, d) = enddate_string.split('-')
+        enddate = datetime.date(int(y), int(m), int(d))
+    except Exception, inst:
+        print "couldn't parse", enddate_string
+        print inst
+        sys.exit()
+
+dycast.daily_risk(startdate, enddate, user_coordinate_system, extent_min_x, extent_min_y, extent_max_x, extent_max_y)
 

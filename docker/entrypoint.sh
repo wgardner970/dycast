@@ -122,20 +122,7 @@ listen_for_input() {
 				echo ""
 				echo "Generating risk..."
 				echo ""
-				current_day="${START_DATE}"
-				while [[ ! "${current_day}" > "${END_DATE}" ]]; do
-
-					echo "Generating risk for ${current_day}..."
-					python ${ZIKAST_APP_PATH}/daily_risk.py --date ${current_day} --srid ${USER_COORDINATE_SYSTEM} --extent_min_x ${EXTENT_MIN_X} --extent_min_y ${EXTENT_MIN_Y} --extent_max_x ${EXTENT_MAX_X} --extent_max_y ${EXTENT_MAX_Y}
-
-					exit_code=$?
-					if [[ ! "${exit_code}" == "0" ]]; then
-						echo "daily_risk failed, exiting..."
-						exit ${exit_code}
-					fi
-
-					current_day=$(date -I -d "${current_day} + 1 day")
-				done
+				python ${ZIKAST_APP_PATH}/daily_risk.py --startdate ${START_DATE} --enddate ${END_DATE} --srid ${USER_COORDINATE_SYSTEM} --extent_min_x ${EXTENT_MIN_X} --extent_min_y ${EXTENT_MIN_Y} --extent_max_x ${EXTENT_MAX_X} --extent_max_y ${EXTENT_MAX_Y}
 
 
 				echo ""
