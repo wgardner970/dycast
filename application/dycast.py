@@ -88,15 +88,17 @@ def read_config(filename, config_object=None):
     global system_coordinate_system
 
     if not config:
-        config = ConfigParser.SafeConfigParser()
+        config = ConfigParser.SafeConfigParser(os.environ)
         config.read(filename)
 
     dbname = config.get("database", "dbname")
     user = config.get("database", "user")
     password = config.get("database", "password")
     host = config.get("database", "host")
+    port = config.get("database", "port")
     dsn = "dbname='" + dbname + "' user='" + user + \
-        "' password='" + password + "' host='" + host + "'"
+        "' password='" + password + "' host='" + host + \
+        "' port='" + port + "'"
 
     if sys.platform == 'win32':
         logfile = config.get("system", "windows_dycast_path") + \

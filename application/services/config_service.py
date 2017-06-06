@@ -14,7 +14,7 @@ def get_default_config():
     current_dir = os.path.dirname(os.path.abspath(inspect.getfile(inspect.currentframe())))
     config_file = os.path.join(current_dir, "..", "dycast.config")
 
-    config = ConfigParser.SafeConfigParser()
+    config = ConfigParser.SafeConfigParser(os.environ)
 
     try:
         print "Reading config file..."
