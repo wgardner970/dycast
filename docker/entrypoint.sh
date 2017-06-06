@@ -67,8 +67,8 @@ init_db() {
 	psql -h ${PGHOST} -U ${PGUSER} -d ${PGDBNAME} -f ${ZIKAST_INIT_PATH}/postgres_init.sql
 	echo ""
 
-	echo "Running ${ZIKAST_INIT_PATH}/dumped_dist_margs.sql"
-	psql -h ${PGHOST} -U ${PGUSER} -d ${PGDBNAME} -f ${ZIKAST_INIT_PATH}/dumped_dist_margs.sql
+	echo "Importing Monte Carlo data"
+	psql -h ${PGHOST} -U ${PGUSER} -d ${PGDBNAME} -c "\COPY dist_margs FROM '${ZIKAST_INIT_PATH}/Dengue_2010-03-24.csv' delimiter ',';"
 	echo "" 
 }
 
