@@ -42,9 +42,7 @@ cur = 0
 dbfn = 0
 riskdate_tuple = ()
 
-# Conversions and the DYCAST parameters:
-miles_to_metres = 1609.34722
-#TODO: find a more appropriate way to initialize these
+# TODO: find a more appropriate way to initialize these
 sd = 1
 cs = 1
 ct = 1
@@ -124,8 +122,8 @@ def read_config(filename, config_object=None):
     tmp_daily_case_table = config.get("database", "tmp_daily_case_table")
     tmp_cluster_per_point_selection_table = config.get("database", "tmp_cluster_per_point_selection_table")
 
-    sd = float(config.get("dycast", "spatial_domain")) * miles_to_metres
-    cs = float(config.get("dycast", "close_in_space")) * miles_to_metres
+    sd = float(config.get("dycast", "spatial_domain"))
+    cs = float(config.get("dycast", "close_in_space"))
     ct = int(config.get("dycast", "close_in_time"))
     td = int(config.get("dycast", "temporal_domain"))
     threshold = int(config.get("dycast", "bird_threshold"))
