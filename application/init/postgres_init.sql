@@ -3,16 +3,6 @@ SET client_min_messages = warning;
 
 INSERT INTO spatial_ref_sys (srid, proj4text) VALUES (54003, '+proj=mill +lat_0=0 +lon_0=0 +x_0=0 +y_0=0 +R_A +ellps=WGS84 +datum=WGS84 +units=m no_defs');
 
-CREATE TABLE zikast_supported_areas (
-    id serial PRIMARY KEY,
-    srid integer not null,
-    area_name varchar(100)
-);
-
-INSERT INTO zikast_supported_areas (srid, area_name) VALUES (54003, 'World Miller Cylindrical');
-INSERT INTO zikast_supported_areas (srid, area_name) VALUES (4269, 'North America - onshore and offshore');
-INSERT INTO zikast_supported_areas (srid, area_name) VALUES (29193, 'South America');
-
 CREATE TABLE dead_birds (
     bird_id integer PRIMARY KEY,
     report_date date,
