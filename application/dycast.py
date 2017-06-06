@@ -12,7 +12,6 @@ import time
 import fileinput
 import ConfigParser
 import logging
-from ftplib import FTP
 import inspect
 from services import debug_service
 from services import config_service
@@ -72,9 +71,6 @@ def read_config(filename, config_object=None):
     global password
     global host
     global dsn
-    global ftp_site
-    global ftp_user
-    global ftp_pass
     global dead_birds_filename
     global dead_birds_dir
     global risk_file_dir
@@ -102,10 +98,6 @@ def read_config(filename, config_object=None):
     dsn = "dbname='" + dbname + "' user='" + user + \
         "' password='" + password + "' host='" + host + "'"
 
-    ftp_site = config.get("ftp", "server")
-    ftp_user = config.get("ftp", "username")
-    ftp_pass = config.get("ftp", "password")
-    dead_birds_filename = config.get("ftp", "filename")
     if sys.platform == 'win32':
         logfile = config.get("system", "windows_dycast_path") + \
                              config.get("system", "logfile")
@@ -349,24 +341,6 @@ def backup_birds():
     (stripped_file, ext) = os.path.splitext(dead_birds_filename)
     new_file = stripped_file + "_" + datetime.date.today().strftime("%Y-%m-%d") + ".tsv"
     shutil.copyfile(dead_birds_dir + dead_birds_filename, dead_birds_dir + new_file)
-
-def download_birds():
-    localfile = open(dead_birds_dir + os.sep + dead_birds_filename, 'w')
-
-    try:
-        ftp = FTP(ftp_site, ftp_user, ftp_pass)
-    except Exception, inst:
-        logging.error("could not download birds: unable to connect")
-        logging.error(inst)
-        localfile.close()
-        sys.exit()
-
-    try:
-        ftp.retrbinary('RETR ' + dead_birds_filename, localfile.write)
-    except Exception, inst:
-        logging.error("could not download birds: unable retrieve file")
-        logging.error(inst)
-    localfile.close()
 
 def load_case_file(user_coordinate_system, filename = None):
     if filename == None:

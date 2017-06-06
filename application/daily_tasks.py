@@ -69,7 +69,6 @@ oneday = datetime.timedelta(days=1)
 if cur_date.weekday() == calendar.FRIDAY:
     dycast.backup_birds()
 
-dycast.download_birds() # All options set in config file
 dycast.load_case_file(user_coordinate_system) # All other options set in config file 
 while i > 0:
     dycast.daily_risk(cur_date, user_coordinate_system, extent_min_x, extent_min_y, extent_max_x, extent_max_y)
