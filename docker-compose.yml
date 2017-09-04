@@ -4,7 +4,7 @@ services:
     zikast:
       container_name: zikast
       restart: always
-      image: cvast/cvast-zikast:dev
+      image: cvast/cvast-zikast:2.0.1dev
       build:
         context: .
         dockerfile: ./Dockerfile
