@@ -374,6 +374,9 @@ def load_case_file(user_coordinate_system, filename = None):
                     lines_skipped += 1
                 else:
                     lines_loaded += 1
+            else:
+                print "No result after loading case: "
+                print line
 
     logging.info("case load complete: %s processed %s of %s lines, %s loaded, %s duplicate IDs skipped", filename, lines_processed, lines_read, lines_loaded, lines_skipped)
     return lines_read, lines_processed, lines_loaded, lines_skipped
@@ -491,11 +494,13 @@ def daily_risk(startdate, enddate, user_coordinate_system, extent_min_x, extent_
 
         if daily_case_count >= threshold:
             st = time.time()
-            logging.info("Starting daily_risk for %s", day)
+            logging.info("Starting daily_risk for {0}".format(day))
+            points_above_threshold = 0
 
             for point in gridpoints:
                 vector_count = get_vector_count_for_point(tmp_daily_case_table, point)
                 if vector_count >= threshold:
+                    points_above_threshold += 1
                     insert_cases_in_cluster_table(tmp_cluster_per_point_selection_table, tmp_daily_case_table, point)
                     results = cst_cs_ct_wrapper()
                     close_pairs = results[0][0]
@@ -504,8 +509,9 @@ def daily_risk(startdate, enddate, user_coordinate_system, extent_min_x, extent_
                     result2 = nmcm_wrapper(vector_count, close_pairs, close_space, close_time)
                     insert_result(day, point.x, point.y, vector_count, close_pairs, close_time, close_space, result2[0][0])
 
-            logging.info("Finished daily_risk for %s: done %s points", day, len(gridpoints))
-            logging.info("Time elapsed: %s.2f seconds", time.time() - st)
+            logging.info("Finished daily_risk for {0}: done {1} points".format(day, len(gridpoints)))
+            logging.info("Total points above threshold of {0}: {1}".format(threshold, points_above_threshold))
+            logging.info("Time elapsed: {:.0f} seconds".format(time.time() - st))
         else:
             logging.info("Amount of cases for {0} lower than threshold {1}: {2}, skipping.".format(day, threshold, daily_case_count))
 
