@@ -197,7 +197,7 @@ def load_case(line, location_type, user_coordinate_system):
             (case_id, report_date_string, lon, lat, species) = line.split("\t")
         except ValueError:
             fail_on_incorrect_count()
-        querystring = "INSERT INTO " + dead_birds_table_projected + " VALUES (%s, %s, %s, ST_Transform(ST_GeomFromText('POINT(" + lon + " " + lat + ")'," + user_coordinate_system + "),%s))"
+        querystring = "INSERT INTO " + dead_birds_table_projected + " VALUES (%s, %s, %s, ST_Transform(ST_GeomFromText('POINT(" + lon + " " + lat + ")', %s), CAST (%s AS integer)))"
 
     else:
         try:
@@ -207,7 +207,7 @@ def load_case(line, location_type, user_coordinate_system):
         querystring = "INSERT INTO " + dead_birds_table_projected + " VALUES (%s, %s, %s, ST_Transform(Geometry('" + geometry + "'), %s))"
 
     try:
-        cur.execute(querystring, (case_id, report_date_string, species, system_coordinate_system))
+        cur.execute(querystring, (case_id, report_date_string, species, user_coordinate_system, system_coordinate_system))
     except Exception, inst:
         conn.rollback()
         if str(inst).startswith("duplicate key"):

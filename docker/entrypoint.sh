@@ -55,7 +55,7 @@ init_db() {
 	echo ""
 
 	echo "Creating database ${PGDBNAME}"
-	createdb -h ${PGHOST} -U ${PGUSER} --encoding=UTF8 ${PGDBNAME} --template template0
+	createdb -h ${PGHOST} -U ${PGUSER} --encoding=UTF8 ${PGDBNAME}
 	echo ""
 
 	### Using the new 9.1+ extension method:

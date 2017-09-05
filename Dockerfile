@@ -8,7 +8,7 @@ RUN apt-get update -y &&\
 RUN echo "deb http://apt.postgresql.org/pub/repos/apt/ trusty-pgdg main" >> /etc/apt/sources.list.d/pgdg.list &&\
 	wget --quiet -O - https://www.postgresql.org/media/keys/ACCC4CF8.asc | apt-key add - &&\
 	apt-get update -y &&\
-	apt-get install -y postgresql-client-9.1
+	apt-get install -y postgresql-client-9.6
 
 RUN apt-get update -y &&\
     apt-get install -y postgis

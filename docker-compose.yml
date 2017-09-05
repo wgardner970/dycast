@@ -31,7 +31,7 @@ services:
     zikast-db:
       container_name: zikast-db
       restart: always
-      image: jthibault/postgis:latest
+      image: mdillon/postgis:9.6
       volumes:
           - zikast-postgres-data:/var/lib/postgresql/data
           - zikast-postgres-log:/var/log/postgresql
