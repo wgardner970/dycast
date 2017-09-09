@@ -8,5 +8,5 @@ def enable_debugger():
         ptvsd.enable_attach(secret=secret, address=('0.0.0.0', 3000))
 
         if config_service.get_env_variable("REMOTE_DEBUG") == "True":
-            print "Waiting for debugger to attach..."
+            logging.info("Waiting for debugger to attach...")
             ptvsd.wait_for_attach()
