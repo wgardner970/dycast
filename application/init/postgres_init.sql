@@ -29,14 +29,20 @@ CREATE INDEX dead_birds_projected_locationsidx ON dead_birds_projected USING GIS
 
 
 CREATE TABLE tmp_daily_case_selection (
-) INHERITS (dead_birds_projected);
-
+    bird_id integer PRIMARY KEY,
+    report_date date,
+    species varchar(40)
+);
+SELECT AddGeometryColumn('public', 'tmp_daily_case_selection', 'location', 3857, 'POINT', 2);
 CREATE INDEX tmp_daily_case_selection_locationsidx ON tmp_daily_case_selection USING GIST ( location );
 
 
 CREATE TABLE tmp_cluster_per_point_selection (
-) INHERITS (dead_birds_projected);
-
+    bird_id integer PRIMARY KEY,
+    report_date date,
+    species varchar(40)
+);
+SELECT AddGeometryColumn('public', 'tmp_cluster_per_point_selection', 'location', 3857, 'POINT', 2);
 CREATE INDEX tmp_cluster_per_point_selection_locationsidx ON tmp_cluster_per_point_selection USING GIST ( location );
 
 
