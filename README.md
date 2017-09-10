@@ -20,7 +20,7 @@ temporal: 38 days
 close space: 200 meters  
 close time: 4 days  
 
-**dengue**  
+**dengue min**  
 spatial: 600 meters  
 temporal: 28 days  
 close space: 100 meters  
