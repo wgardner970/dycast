@@ -1,10 +1,10 @@
 version: '2'
 services:
 
-    zikast:
-      container_name: zikast
+    dycast:
+      container_name: dycast
       restart: always
-      image: cvast/cvast-zikast:2.0.1dev
+      image: cvast/cvast-dycast:2.0.1dev
       build:
         context: .
         dockerfile: ./Dockerfile
@@ -21,20 +21,20 @@ services:
         - DEBUG=False
         - REMOTE_DEBUG=False
         - PGPASSWORD=postgres
-        - PGDBNAME=zikast
-        - PGHOST=zikast-db
+        - PGDBNAME=dycast
+        - PGHOST=dycast-db
         - PGPORT=5432
         - TZ=EST
       depends_on:
-        - zikast-db
+        - dycast-db
 
-    zikast-db:
-      container_name: zikast-db
+    dycast-db:
+      container_name: dycast-db
       restart: always
       image: mdillon/postgis:9.6
       volumes:
-          - zikast-postgres-data:/var/lib/postgresql/data
-          - zikast-postgres-log:/var/log/postgresql
+          - dycast-postgres-data:/var/lib/postgresql/data
+          - dycast-postgres-log:/var/log/postgresql
       ports:
         - '5432:5432'
       environment:
@@ -43,5 +43,5 @@ services:
 
 
 volumes:
-    zikast-postgres-data:
-    zikast-postgres-log:
+    dycast-postgres-data:
+    dycast-postgres-log:

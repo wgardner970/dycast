@@ -3,10 +3,10 @@
 PGDBNAME=${PGDBNAME}
 PGUSER=${PGUSER:-postgres}
 
-ZIKAST_INBOX=${ZIKAST_INBOX:-$ZIKAST_PATH/inbox}
-ZIKAST_INBOX_COMPLETED=${ZIKAST_INBOX}/completed
-ZIKAST_OUTBOX=${ZIKAST_OUTBOX:-$ZIKAST_PATH/outbox}
-ZIKAST_INIT_PATH=${ZIKAST_APP_PATH}/init
+DYCAST_INBOX=${DYCAST_INBOX:-$DYCAST_PATH/inbox}
+DYCAST_INBOX_COMPLETED=${DYCAST_INBOX}/completed
+DYCAST_OUTBOX=${DYCAST_OUTBOX:-$DYCAST_PATH/outbox}
+DYCAST_INIT_PATH=${DYCAST_APP_PATH}/init
 
 PG_SHARE_PATH_2_0=/usr/share/postgresql/9.6/contrib/postgis-2.3
 
@@ -19,7 +19,7 @@ EXTENT_MIN_Y=${EXTENT_MIN_Y}
 EXTENT_MAX_X=${EXTENT_MAX_X}
 EXTENT_MAX_Y=${EXTENT_MAX_Y}
 
-init_zikast() {
+init_dycast() {
 	if [[ "${FORCE_DB_INIT}" == "True" ]]; then
 		echo ""
 		echo "*** Warning: FORCE_DB_INIT = True ***"
@@ -45,7 +45,7 @@ init_db() {
 	echo "" && echo ""
 	echo "*** Initializing database ***"
 	echo ""
-	echo "*** Any existing Zikast database will be deleted ***"
+	echo "*** Any existing Dycast database will be deleted ***"
 	echo "" && echo ""
 
 	echo "5" && sleep 1 && echo "4" && sleep 1 && echo "3" && sleep 1 && echo "2" && sleep 1 &&	echo "1" &&	sleep 1 && echo "0" && echo ""
@@ -63,23 +63,23 @@ init_db() {
 	psql -h ${PGHOST} -U ${PGUSER} -d ${PGDBNAME} -c "CREATE EXTENSION postgis;" 
 	echo ""
 
-	echo "Running ${ZIKAST_INIT_PATH}/postgres_init.sql"
-	psql -h ${PGHOST} -U ${PGUSER} -d ${PGDBNAME} -f ${ZIKAST_INIT_PATH}/postgres_init.sql
+	echo "Running ${DYCAST_INIT_PATH}/postgres_init.sql"
+	psql -h ${PGHOST} -U ${PGUSER} -d ${PGDBNAME} -f ${DYCAST_INIT_PATH}/postgres_init.sql
 	echo ""
 
 	echo "Importing Monte Carlo data"
-	psql -h ${PGHOST} -U ${PGUSER} -d ${PGDBNAME} -c "\COPY dist_margs FROM '${ZIKAST_INIT_PATH}/Dengue_2010-03-24.csv' delimiter ',';"
+	psql -h ${PGHOST} -U ${PGUSER} -d ${PGDBNAME} -c "\COPY dist_margs FROM '${DYCAST_INIT_PATH}/Dengue_min_75.csv' delimiter ',';"
 	echo "" 
 }
 
 
 init_directories() {
-	if [[ ! -d ${ZIKAST_INBOX_COMPLETED} ]]; then
-		mkdir -p ${ZIKAST_INBOX_COMPLETED}
+	if [[ ! -d ${DYCAST_INBOX_COMPLETED} ]]; then
+		mkdir -p ${DYCAST_INBOX_COMPLETED}
 	fi
 
-	if [[ ! -d ${ZIKAST_OUTBOX}/tmp ]]; then
-		mkdir -p ${ZIKAST_OUTBOX}/{tmp,cur,new}
+	if [[ ! -d ${DYCAST_OUTBOX}/tmp ]]; then
+		mkdir -p ${DYCAST_OUTBOX}/{tmp,cur,new}
 	fi
 }
 
@@ -98,15 +98,15 @@ run_tests() {
 
 listen_for_input() {
 	echo ""
-	echo "*** Zikast is now listening for new .tsv files in ${ZIKAST_INBOX}... ***"
+	echo "*** Dycast is now listening for new .tsv files in ${DYCAST_INBOX}... ***"
 	echo ""
 
 	while true; do
-		for file in ${ZIKAST_INBOX}/*.tsv; do
+		for file in ${DYCAST_INBOX}/*.tsv; do
 			if [[ -f ${file} ]]; then
 
 				echo "Loading input file: ${file}..."
-				python ${ZIKAST_APP_PATH}/load_cases.py --srid ${USER_COORDINATE_SYSTEM} "${file}"
+				python ${DYCAST_APP_PATH}/load_cases.py --srid ${USER_COORDINATE_SYSTEM} "${file}"
 
 				exit_code=$?
 				if [[ ! "${exit_code}" == "0" ]]; then
@@ -114,21 +114,21 @@ listen_for_input() {
 					exit ${exit_code}
 				fi
 
-				echo "Completed loading input file, moving it to ${ZIKAST_INBOX_COMPLETED}"
+				echo "Completed loading input file, moving it to ${DYCAST_INBOX_COMPLETED}"
 				filename=$(basename "$file")
-				mv "${file}" "${ZIKAST_INBOX_COMPLETED}/${filename}_completed"
+				mv "${file}" "${DYCAST_INBOX_COMPLETED}/${filename}_completed"
 
 
 				echo ""
 				echo "Generating risk..."
 				echo ""
-				python ${ZIKAST_APP_PATH}/daily_risk.py --startdate ${START_DATE} --enddate ${END_DATE} --srid ${USER_COORDINATE_SYSTEM} --extent_min_x ${EXTENT_MIN_X} --extent_min_y ${EXTENT_MIN_Y} --extent_max_x ${EXTENT_MAX_X} --extent_max_y ${EXTENT_MAX_Y}
+				python ${DYCAST_APP_PATH}/daily_risk.py --startdate ${START_DATE} --enddate ${END_DATE} --srid ${USER_COORDINATE_SYSTEM} --extent_min_x ${EXTENT_MIN_X} --extent_min_y ${EXTENT_MIN_Y} --extent_max_x ${EXTENT_MAX_X} --extent_max_y ${EXTENT_MAX_Y}
 
 
 				echo ""
 				echo "Exporting risk..."
 				echo ""
-				python ${ZIKAST_APP_PATH}/export_risk.py --startdate ${START_DATE} --enddate ${END_DATE} --txt true
+				python ${DYCAST_APP_PATH}/export_risk.py --startdate ${START_DATE} --enddate ${END_DATE} --txt true
 
 				echo "Done."
 			fi

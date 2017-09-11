@@ -1,9 +1,9 @@
-# Zikast
+# Dycast
 
 *Under construction* 
 
 This is fork from https://github.com/almccon/DYCAST, which is a tool to create risk maps for West Nile Virus.
-The aim of this fork is to create risk maps for the Zika virus. 
+The aim of this fork is to expand this application so that it supports the generation of prediction models for multiple virusses, including Zika and Dengue. 
 
 
 ## Parameters

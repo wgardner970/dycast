@@ -1,5 +1,5 @@
 inbox/
 *.pyc
-zikast_log.txt
+dycast_log.txt
 outbox/
 data/

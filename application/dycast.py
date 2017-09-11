@@ -1,4 +1,4 @@
-# Zikast functions
+# Dycast functions
 
 # dist_margs means "distribution marginals" and is the result of the
 # monte carlo simulations.  See Theophilides et al. for more information
