@@ -56,6 +56,26 @@ init_dycast() {
 }
 
 
+wait_for_db() {
+	echo "Testing database connection..."
+	tries=0
+	while true
+	do
+		psql -h ${PGHOST} -p ${PGPORT} -U postgres -c "select 1" >&/dev/null
+		return_code=$?
+		((tries++))
+		if [[ ${return_code} == 0 ]]; then
+	        break
+		elif [[ ${tries} == 6 ]]; then
+		    echo "Database server cannot be reached, exiting..."
+			exit 1
+		fi
+		sleep 1
+	done
+	echo "Connected."
+}
+
+
 db_exists() {
 	psql -lqt -h ${PGHOST} -U ${PGUSER} | cut -d \| -f 1 | grep -qw ${PGDBNAME}
 }
