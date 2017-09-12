@@ -32,3 +32,7 @@ RUN	chmod -R 700 ${DOCKER_DIR} &&\
 	dos2unix ${DOCKER_DIR}/*
 
 WORKDIR ${DYCAST_APP_PATH}
+
+# Set entrypoint
+ENTRYPOINT ["/docker/entrypoint.sh"]
+CMD ["run_dycast"]
