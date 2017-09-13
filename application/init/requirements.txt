@@ -4,3 +4,5 @@ ptvsd==3.0.0
 pyproj
 shapely
 nose
+boto3
+rfc3986>=0.3.1
