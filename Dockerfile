@@ -14,7 +14,7 @@ RUN apt-get update -y &&\
     apt-get install -y postgis
 
 # ptvsd = for debugging with Visual Studio Code
-RUN pip install psycopg2 ptvsd pyproj shapely nose
+RUN pip install psycopg2 ptvsd==3.0.0 pyproj shapely nose
 
 ENV DYCAST_PATH=/dycast
 ENV DYCAST_APP_PATH=${DYCAST_PATH}/application
