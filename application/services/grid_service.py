@@ -1,6 +1,6 @@
 import shapely.geometry
 import pyproj
-
+import logging
 
 # Returns a raster grid with points in the coordinate system specified in global setting 'system_coordinate_system'
 def generate_grid(user_coordinate_system, system_coordinate_system, extent_min_x, extent_min_y, extent_max_x, extent_max_y):
@@ -23,7 +23,7 @@ def generate_grid(user_coordinate_system, system_coordinate_system, extent_min_x
     # Iterate over 2D area
     gridpoints = []
     x = start[0]
-    print "Started generating grid..."
+    logging.info("Started generating grid...")
     while x < end[0]:
         y = start[1]
         while y > end[1]:
@@ -33,6 +33,6 @@ def generate_grid(user_coordinate_system, system_coordinate_system, extent_min_x
             y -= stepsize
         x += stepsize
 
-    print "Done generating grid."
+    logging.info("Done generating grid.")
 
     return gridpoints

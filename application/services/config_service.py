@@ -3,6 +3,7 @@ import os
 import inspect
 import ConfigParser
 import dycast
+import logging
 
 def get_env_variable(var_name):
     try:
@@ -17,11 +18,11 @@ def get_default_config():
     config = ConfigParser.SafeConfigParser(os.environ)
 
     try:
-        print "Reading config file..."
+        logging.info("Reading config file...")
         config.read(config_file)
-        print "Done reading config file."
+        logging.info("Done reading config file.")
     except:
-        print "could not read config file:", config_file
+        logging.info("Could not read config file: {0}".format(config_file))
         sys.exit()
 
     return config

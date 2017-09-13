@@ -25,6 +25,7 @@ options, arguments = p.parse_args()
 config_file = options.config
 dycast.read_config(config_file)
 
+dycast.init_logging()
 dycast.init_db()
 
 

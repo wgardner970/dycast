@@ -1,4 +1,5 @@
 import os
+import logging
 import config_service
 
 def enable_debugger():

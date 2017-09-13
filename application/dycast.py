@@ -31,13 +31,13 @@ sys.path.append(os.path.join(lib_dir, "dbfpy"))
 try:
     import dbf
 except ImportError:
-    print "couldn't import dbf library in path:", sys.path
+    logging.error("Couldn't import dbf library in path:", sys.path)
     sys.exit()
 
 try:
     import psycopg2
 except ImportError:
-    print "couldn't import psycopg2 library in path:", sys.path
+    logging.error("Couldn't import psycopg2 library in path:", sys.path)
     sys.exit()
 
 
@@ -141,35 +141,22 @@ def get_log_level():
 
 
 def init_logging():
+    rootLogger = logging.getLogger()
+
     loglevel = get_log_level()
+    rootLogger.setLevel(loglevel)
 
-    logging.basicConfig(format='%(asctime)s %(levelname)8s %(message)s',
-        filename=logfile, filemode='a')
+    if not rootLogger.handlers:
+        logFormatter = logging.Formatter('%(asctime)s [%(threadName)-12.12s] [%(levelname)-5.5s]  %(message)s')
 
-    root = logging.getLogger()
-    root.setLevel(loglevel)
+        fileHandler = logging.FileHandler(logfile)
+        fileHandler.setFormatter(logFormatter)
+        rootLogger.addHandler(fileHandler)
 
-    handler = logging.StreamHandler(sys.stdout)
-    handler.setLevel(logging.DEBUG)
-    formatter = logging.Formatter('%(asctime)s %(levelname)8s %(message)s')
-    handler.setFormatter(formatter)
-    root.addHandler(handler)
+        consoleHandler = logging.StreamHandler(sys.stdout)
+        consoleHandler.setFormatter(logFormatter)
+        rootLogger.addHandler(consoleHandler)
 
-
-def debug(message):
-    logging.debug(message)
-
-
-def info(message):
-    logging.info(message)
-
-
-def warning(message):
-    logging.warning(message)
-
-
-def error(message):
-    logging.error(message)
 
 def init_db(config=None):
     global cur, conn
@@ -211,10 +198,10 @@ def load_case(line, location_type, user_coordinate_system):
     except Exception, inst:
         conn.rollback()
         if str(inst).startswith("duplicate key"):
-            logging.debug("couldn't insert duplicate case key %s, skipping...", case_id)
+            logging.debug("Couldn't insert duplicate case key %s, skipping...", case_id)
             return -1
         else:
-            logging.warning("couldn't insert case record")
+            logging.warning("Couldn't insert case record")
             logging.warning(inst)
             return 0
     conn.commit()
@@ -252,7 +239,6 @@ def export_risk(startdate, enddate, format = "dbf", path = None):
         txt_out = init_txt_out(filepath)
     else:   # dbf
         dbf_out = init_dbf_out(filepath)
-
 
     logging.info("Exporting risk for: %s - %s", (startdate_string, enddate_string))
     query = "SELECT risk_date, lat, long, num_birds, close_pairs, close_space, close_time, nmcm FROM risk WHERE risk_date >= %s AND risk_date <= %s"
@@ -375,10 +361,11 @@ def load_case_file(user_coordinate_system, filename = None):
                 else:
                     lines_loaded += 1
             else:
-                print "No result after loading case: "
-                print line
+                logging.error("No result after loading case: ")
+                logging.error(line)
 
-    logging.info("case load complete: %s processed %s of %s lines, %s loaded, %s duplicate IDs skipped", filename, lines_processed, lines_read, lines_loaded, lines_skipped)
+    logging.info("Case load complete: %s", filename)
+    logging.info("Processed %s of %s lines, %s loaded, %s duplicate IDs skipped", lines_processed, lines_read, lines_loaded, lines_skipped)
     return lines_read, lines_processed, lines_loaded, lines_skipped
 
 
