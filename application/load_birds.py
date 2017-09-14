@@ -21,6 +21,13 @@
 
 import dycast
 import optparse
+import logging
+
+import dycast
+from services import logging_service
+
+
+logging_service.init_logging()
 
 usage = "usage: %prog [options] datafile.tsv"
 required = "srid".split()
@@ -36,7 +43,7 @@ options, arguments = p.parse_args()
 
 for r in required:
     if options.__dict__[r] is None:
-        parser.error("parameter %s required"%r)
+        logging.error("Parameter %s required", r)
         sys.exit(1)
 
 config_file = options.config

@@ -3,10 +3,10 @@
 PGDBNAME=${PGDBNAME}
 PGUSER=${PGUSER:-postgres}
 
-ZIKAST_INBOX=${ZIKAST_INBOX:-$ZIKAST_PATH/inbox}
-ZIKAST_INBOX_COMPLETED=${ZIKAST_INBOX}/completed
-ZIKAST_OUTBOX=${ZIKAST_OUTBOX:-$ZIKAST_PATH/outbox}
-ZIKAST_INIT_PATH=${ZIKAST_APP_PATH}/init
+DYCAST_INBOX=${DYCAST_INBOX:-$DYCAST_PATH/inbox}
+DYCAST_INBOX_COMPLETED=${DYCAST_INBOX}/completed
+DYCAST_OUTBOX=${DYCAST_OUTBOX:-$DYCAST_PATH/outbox}
+DYCAST_INIT_PATH=${DYCAST_APP_PATH}/init
 
 PG_SHARE_PATH_2_0=/usr/share/postgresql/9.6/contrib/postgis-2.3
 
@@ -19,7 +19,27 @@ EXTENT_MIN_Y=${EXTENT_MIN_Y}
 EXTENT_MAX_X=${EXTENT_MAX_X}
 EXTENT_MAX_Y=${EXTENT_MAX_Y}
 
-init_zikast() {
+
+
+HELP_TEXT="
+
+Arguments:  
+	run_dycast: Default. Loads any .tsv files in ${DYCAST_INBOX}, generates risk and exports it to ${DYCAST_OUTBOX}  
+	setup_dycast: Delete any existing Dycast database and set up a fresh one  
+	load_cases: Load cases from specified (absolute) file path on the container, e.g. 'load_cases /dycast/inbox/cases.tsv'  
+	generate_risk: Generates risk from the cases currently in the database  
+	export_risk: Exports risk currently in the database  
+	run_tests: Run unit tests  
+	-h or help: Display help text  
+"
+
+display_help() {
+	echo "${HELP_TEXT}"
+}
+
+
+
+init_dycast() {
 	if [[ "${FORCE_DB_INIT}" == "True" ]]; then
 		echo ""
 		echo "*** Warning: FORCE_DB_INIT = True ***"
@@ -36,6 +56,26 @@ init_zikast() {
 }
 
 
+wait_for_db() {
+	echo "Testing database connection..."
+	tries=0
+	while true
+	do
+		psql -h ${PGHOST} -p ${PGPORT} -U postgres -c "select 1" >&/dev/null
+		return_code=$?
+		((tries++))
+		if [[ ${return_code} == 0 ]]; then
+	        break
+		elif [[ ${tries} == 6 ]]; then
+		    echo "Database server cannot be reached, exiting..."
+			exit 1
+		fi
+		sleep 1
+	done
+	echo "Connected."
+}
+
+
 db_exists() {
 	psql -lqt -h ${PGHOST} -U ${PGUSER} | cut -d \| -f 1 | grep -qw ${PGDBNAME}
 }
@@ -45,7 +85,7 @@ init_db() {
 	echo "" && echo ""
 	echo "*** Initializing database ***"
 	echo ""
-	echo "*** Any existing Zikast database will be deleted ***"
+	echo "*** Any existing Dycast database will be deleted ***"
 	echo "" && echo ""
 
 	echo "5" && sleep 1 && echo "4" && sleep 1 && echo "3" && sleep 1 && echo "2" && sleep 1 &&	echo "1" &&	sleep 1 && echo "0" && echo ""
@@ -63,23 +103,23 @@ init_db() {
 	psql -h ${PGHOST} -U ${PGUSER} -d ${PGDBNAME} -c "CREATE EXTENSION postgis;" 
 	echo ""
 
-	echo "Running ${ZIKAST_INIT_PATH}/postgres_init.sql"
-	psql -h ${PGHOST} -U ${PGUSER} -d ${PGDBNAME} -f ${ZIKAST_INIT_PATH}/postgres_init.sql
+	echo "Running ${DYCAST_INIT_PATH}/postgres_init.sql"
+	psql -h ${PGHOST} -U ${PGUSER} -d ${PGDBNAME} -f ${DYCAST_INIT_PATH}/postgres_init.sql
 	echo ""
 
 	echo "Importing Monte Carlo data"
-	psql -h ${PGHOST} -U ${PGUSER} -d ${PGDBNAME} -c "\COPY dist_margs FROM '${ZIKAST_INIT_PATH}/Dengue_2010-03-24.csv' delimiter ',';"
+	psql -h ${PGHOST} -U ${PGUSER} -d ${PGDBNAME} -c "\COPY dist_margs FROM '${DYCAST_INIT_PATH}/Dengue_min_75.csv' delimiter ',';"
 	echo "" 
 }
 
 
 init_directories() {
-	if [[ ! -d ${ZIKAST_INBOX_COMPLETED} ]]; then
-		mkdir -p ${ZIKAST_INBOX_COMPLETED}
+	if [[ ! -d ${DYCAST_INBOX_COMPLETED} ]]; then
+		mkdir -p ${DYCAST_INBOX_COMPLETED}
 	fi
 
-	if [[ ! -d ${ZIKAST_OUTBOX}/tmp ]]; then
-		mkdir -p ${ZIKAST_OUTBOX}/{tmp,cur,new}
+	if [[ ! -d ${DYCAST_OUTBOX}/tmp ]]; then
+		mkdir -p ${DYCAST_OUTBOX}/{tmp,cur,new}
 	fi
 }
 
@@ -98,37 +138,19 @@ run_tests() {
 
 listen_for_input() {
 	echo ""
-	echo "*** Zikast is now listening for new .tsv files in ${ZIKAST_INBOX}... ***"
+	echo "*** Dycast is now listening for new .tsv files in ${DYCAST_INBOX}... ***"
 	echo ""
 
 	while true; do
-		for file in ${ZIKAST_INBOX}/*.tsv; do
+		for file in ${DYCAST_INBOX}/*.tsv; do
 			if [[ -f ${file} ]]; then
 
-				echo "Loading input file: ${file}..."
-				python ${ZIKAST_APP_PATH}/load_cases.py --srid ${USER_COORDINATE_SYSTEM} "${file}"
+				load_cases "${file}"
+				move_case_file "${filePath}"
 
-				exit_code=$?
-				if [[ ! "${exit_code}" == "0" ]]; then
-					echo "load_cases failed, exiting..."
-					exit ${exit_code}
-				fi
+				generate_risk
 
-				echo "Completed loading input file, moving it to ${ZIKAST_INBOX_COMPLETED}"
-				filename=$(basename "$file")
-				mv "${file}" "${ZIKAST_INBOX_COMPLETED}/${filename}_completed"
-
-
-				echo ""
-				echo "Generating risk..."
-				echo ""
-				python ${ZIKAST_APP_PATH}/daily_risk.py --startdate ${START_DATE} --enddate ${END_DATE} --srid ${USER_COORDINATE_SYSTEM} --extent_min_x ${EXTENT_MIN_X} --extent_min_y ${EXTENT_MIN_Y} --extent_max_x ${EXTENT_MAX_X} --extent_max_y ${EXTENT_MAX_Y}
-
-
-				echo ""
-				echo "Exporting risk..."
-				echo ""
-				python ${ZIKAST_APP_PATH}/export_risk.py --startdate ${START_DATE} --enddate ${END_DATE} --txt true
+				export_risk
 
 				echo "Done."
 			fi
@@ -160,7 +182,119 @@ check_all_variables() {
 	check_variable "${PGPORT}" PGPORT
 }
 
-check_all_variables
-init_zikast
-run_tests
-listen_for_input
+check_database_variables() {
+	check_variable "${PGPASSWORD}" PGPASSWORD
+	check_variable "${PGDBNAME}" PGDBNAME
+	check_variable "${PGHOST}" PGHOST
+	check_variable "${PGPORT}" PGPORT
+}
+
+
+move_case_file() {
+	local file="$1"
+	echo "Completed loading input file, moving it to ${DYCAST_INBOX_COMPLETED}"
+	filename=$(basename "$file")
+	mv "${file}" "${DYCAST_INBOX_COMPLETED}/${filename}_completed"
+}
+
+
+### Commands
+
+load_cases() {
+	local filePath="$1"
+	echo "Loading input file: ${filePath}..."
+	python ${DYCAST_APP_PATH}/load_cases.py --srid ${USER_COORDINATE_SYSTEM} "${filePath}"
+
+	exit_code=$?
+	if [[ ! "${exit_code}" == "0" ]]; then
+		echo "Command 'load_cases' failed, exiting..."
+		exit ${exit_code}
+	else 
+		echo "Done loading cases"
+	fi
+}
+
+
+generate_risk() {
+	echo ""
+	echo "Generating risk..."
+	echo ""
+	python ${DYCAST_APP_PATH}/daily_risk.py --startdate ${START_DATE} --enddate ${END_DATE} --srid ${USER_COORDINATE_SYSTEM} --extent_min_x ${EXTENT_MIN_X} --extent_min_y ${EXTENT_MIN_Y} --extent_max_x ${EXTENT_MAX_X} --extent_max_y ${EXTENT_MAX_Y}
+}
+
+
+export_risk() {
+	echo ""
+	echo "Exporting risk for ${START_DATE} to ${END_DATE}..."
+	echo ""
+	python ${DYCAST_APP_PATH}/export_risk.py --startdate ${START_DATE} --enddate ${END_DATE} --txt true	
+}
+
+### Starting point ###
+
+
+# Use -gt 1 to consume two arguments per pass in the loop (e.g. each
+# argument has a corresponding value to go with it).
+# Use -gt 0 to consume one or more arguments per pass in the loop (e.g.
+# some arguments don't have a corresponding value to go with it, such as --help ).
+
+# If no arguments are supplied, assume the server needs to be run
+if [[ $#  -eq 0 ]]; then
+	run_dycast
+fi
+
+# Else, process arguments
+echo "Full command: $@"
+while [[ $# -gt 0 ]]
+do
+	key="$1"
+	echo "Command: ${key}"
+
+	case ${key} in
+		run_dycast)
+			wait_for_db
+			check_all_variables
+			init_dycast
+			run_tests
+			listen_for_input
+		;;
+		setup_dycast)
+			wait_for_db
+			init_dycast
+		;;
+		load_cases)
+			filePath="$2"
+			if [[ -z ${filePath} ]] || [[ "${filePath}" == "" ]]; then
+				echo "Specify a file path after the `load_cases` command."
+				display_help
+				exit 1
+			fi
+			check_database_variables
+			wait_for_db
+			load_cases "${filePath}"
+			shift # next argument
+		;;
+		generate_risk)
+			check_all_variables
+			wait_for_db
+			generate_risk
+		;;
+		export_risk)
+			check_database_variables
+			wait_for_db
+			export_risk
+		;;
+		run_tests)
+			check_all_variables
+			wait_for_db
+			run_tests
+		;;
+		help|-h)
+			display_help
+		;;
+		*)
+			exec "$@"
+		;;
+	esac
+	shift # next argument or value
+done

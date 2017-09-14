@@ -13,22 +13,26 @@ RUN echo "deb http://apt.postgresql.org/pub/repos/apt/ trusty-pgdg main" >> /etc
 RUN apt-get update -y &&\
     apt-get install -y postgis
 
-# ptvsd = for debugging with Visual Studio Code
-RUN pip install psycopg2 ptvsd pyproj shapely nose
 
-ENV ZIKAST_PATH=/zikast
-ENV ZIKAST_APP_PATH=${ZIKAST_PATH}/application
+ENV DYCAST_PATH=/dycast
+ENV DYCAST_APP_PATH=${DYCAST_PATH}/application
 ENV PG_SHARE_PATH=/usr/local/pgsql/share
 ENV DOCKER_DIR=/docker
-ENV PYTHONPATH=${ZIKAST_PATH}:$PYTHONPATH
+ENV PYTHONPATH=${DYCAST_PATH}:$PYTHONPATH
 
-COPY ./application ${ZIKAST_APP_PATH}
+COPY ./application ${DYCAST_APP_PATH}
+
+RUN pip install -r ${DYCAST_APP_PATH}/init/requirements.txt
 
 # Tests cannot be executable
-RUN chmod -R -x ${ZIKAST_APP_PATH}/tests
+RUN chmod -R -x ${DYCAST_APP_PATH}/tests
 
 COPY docker/entrypoint.sh ${DOCKER_DIR}/entrypoint.sh
 RUN	chmod -R 700 ${DOCKER_DIR} &&\
 	dos2unix ${DOCKER_DIR}/*
 
-WORKDIR ${ZIKAST_APP_PATH}
+WORKDIR ${DYCAST_APP_PATH}
+
+# Set entrypoint
+ENTRYPOINT ["/docker/entrypoint.sh"]
+CMD ["run_dycast"]

@@ -16,6 +16,12 @@ import dycast
 import optparse
 import datetime
 import calendar
+import logging
+
+from services import logging_service
+
+
+logging_service.init_logging()
 
 usage = "usage: %prog [options]"
 required = "srid".split()
@@ -41,7 +47,7 @@ options, arguments = p.parse_args()
 
 for r in required:
     if options.__dict__[r] is None:
-        parser.error("parameter %s required"%r)
+        logging.error("Parameter %s required", r)
         sys.exit(1)
 
 config_file = options.config
@@ -49,7 +55,7 @@ config_file = options.config
 try:
     dycast.read_config(config_file)
 except:
-    print "could not read config file:", config_file
+    logging.error("Could not read config file: %s", config_file)
     sys.exit()
 
 user_coordinate_system = options.srid
@@ -58,7 +64,6 @@ extent_min_y = float(options.extent_min_y)
 extent_max_x = float(options.extent_max_x)
 extent_max_y = float(options.extent_max_y)
 
-dycast.init_logging()
 dycast.init_db()
 
 i = int(options.num_days)

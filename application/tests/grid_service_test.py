@@ -5,7 +5,7 @@ from application.services import config_service
 class TestGridService(unittest.TestCase):
 
     def test_generate_grid(self):
-        config = config_service.get_default_config()
+        config = config_service.get_config()
         system_coordinate_system = config.get("dycast", "system_coordinate_system")
 
         user_coordinate_system = "29193"

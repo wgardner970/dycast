@@ -5,6 +5,12 @@ import sys
 import dycast
 import datetime
 import optparse
+import logging
+
+from services import logging_service
+
+
+logging_service.init_logging()
 
 usage = "usage: %prog [options] YYYY-MM-DD"
 required = "srid".split()
@@ -30,7 +36,7 @@ options, arguments = p.parse_args()
 
 for r in required:
     if options.__dict__[r] is None:
-        parser.error("parameter %s required"%r)
+        logging.error("Parameter %s required", r)
         sys.exit(1)
 
 config_file = options.config
@@ -38,7 +44,7 @@ config_file = options.config
 try:
     dycast.read_config(config_file)
 except:
-    print "could not read config file:", config_file
+    logging.error("Could not read config file: %s", config_file)
     sys.exit()
 
 user_coordinate_system = options.srid
@@ -47,7 +53,6 @@ extent_min_y = float(options.extent_min_y)
 extent_max_x = float(options.extent_max_x)
 extent_max_y = float(options.extent_max_y)
 
-dycast.init_logging()
 dycast.init_db()
 
 
@@ -60,8 +65,8 @@ else:
         (y, m, d) = startdate_string.split('-')
         startdate = datetime.date(int(y), int(m), int(d))
     except Exception, inst:
-        print "couldn't parse", startdate_string
-        print inst
+        logging.error("Could not parse date: %s", startdate_string)
+        logging.error(inst)
         sys.exit()
 
 
@@ -76,8 +81,8 @@ else:
         (y, m, d) = enddate_string.split('-')
         enddate = datetime.date(int(y), int(m), int(d))
     except Exception, inst:
-        print "couldn't parse", enddate_string
-        print inst
+        logging.error("Could not parse date: %s", enddate_string)
+        logging.error(inst)
         sys.exit()
 
 dycast.daily_risk(startdate, enddate, user_coordinate_system, extent_min_x, extent_min_y, extent_max_x, extent_max_y)

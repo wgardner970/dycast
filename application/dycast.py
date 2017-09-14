@@ -1,4 +1,4 @@
-# Zikast functions
+# Dycast functions
 
 # dist_margs means "distribution marginals" and is the result of the
 # monte carlo simulations.  See Theophilides et al. for more information
@@ -12,11 +12,11 @@ import time
 import fileinput
 import ConfigParser
 import logging
-import inspect
 from services import debug_service
 from services import config_service
 from services import grid_service
 from services import conversion_service
+from services import file_service
 from models.enums import enums
 
 debug_service.enable_debugger()
@@ -31,13 +31,13 @@ sys.path.append(os.path.join(lib_dir, "dbfpy"))
 try:
     import dbf
 except ImportError:
-    print "couldn't import dbf library in path:", sys.path
+    logging.error("Couldn't import dbf library in path:", sys.path)
     sys.exit()
 
 try:
     import psycopg2
 except ImportError:
-    print "couldn't import psycopg2 library in path:", sys.path
+    logging.error("Couldn't import psycopg2 library in path:", sys.path)
     sys.exit()
 
 
@@ -84,7 +84,6 @@ def read_config(filename, config_object=None):
     global cs
     global ct
     global threshold
-    global logfile
     global system_coordinate_system
 
     if not config:
@@ -101,15 +100,11 @@ def read_config(filename, config_object=None):
         "' port='" + port + "'"
 
     if sys.platform == 'win32':
-        logfile = config.get("system", "windows_dycast_path") + \
-                             config.get("system", "logfile")
         dead_birds_dir = config.get(
             "system", "windows_dycast_path") + config.get("system", "dead_birds_subdir")
         risk_file_dir = config.get(
             "system", "windows_dycast_path") + config.get("system", "risk_file_subdir")
     else:
-        logfile = config.get("system", "unix_dycast_path") + \
-                             config.get("system", "logfile")
         dead_birds_dir = config.get(
             "system", "unix_dycast_path") + config.get("system", "dead_birds_subdir")
         risk_file_dir = config.get(
@@ -131,45 +126,6 @@ def read_config(filename, config_object=None):
 
     system_coordinate_system = config.get("dycast", "system_coordinate_system")
 
-
-def get_log_level():
-    debug = config_service.get_env_variable("DEBUG")
-    if debug:
-        return logging.DEBUG
-    else:
-        return logging.INFO
-
-
-def init_logging():
-    loglevel = get_log_level()
-
-    logging.basicConfig(format='%(asctime)s %(levelname)8s %(message)s',
-        filename=logfile, filemode='a')
-
-    root = logging.getLogger()
-    root.setLevel(loglevel)
-
-    handler = logging.StreamHandler(sys.stdout)
-    handler.setLevel(logging.DEBUG)
-    formatter = logging.Formatter('%(asctime)s %(levelname)8s %(message)s')
-    handler.setFormatter(formatter)
-    root.addHandler(handler)
-
-
-def debug(message):
-    logging.debug(message)
-
-
-def info(message):
-    logging.info(message)
-
-
-def warning(message):
-    logging.warning(message)
-
-
-def error(message):
-    logging.error(message)
 
 def init_db(config=None):
     global cur, conn
@@ -211,10 +167,10 @@ def load_case(line, location_type, user_coordinate_system):
     except Exception, inst:
         conn.rollback()
         if str(inst).startswith("duplicate key"):
-            logging.debug("couldn't insert duplicate case key %s, skipping...", case_id)
+            logging.debug("Couldn't insert duplicate case key %s, skipping...", case_id)
             return -1
         else:
-            logging.warning("couldn't insert case record")
+            logging.warning("Couldn't insert case record")
             logging.warning(inst)
             return 0
     conn.commit()
@@ -252,7 +208,6 @@ def export_risk(startdate, enddate, format = "dbf", path = None):
         txt_out = init_txt_out(filepath)
     else:   # dbf
         dbf_out = init_dbf_out(filepath)
-
 
     logging.info("Exporting risk for: %s - %s", (startdate_string, enddate_string))
     query = "SELECT risk_date, lat, long, num_birds, close_pairs, close_space, close_time, nmcm FROM risk WHERE risk_date >= %s AND risk_date <= %s"
@@ -352,15 +307,22 @@ def load_case_file(user_coordinate_system, filename = None):
     lines_loaded = 0
     lines_skipped = 0
     location_type = ""
-    for line in fileinput.input(filename):
-        if fileinput.filelineno() == 1:
+
+    try:
+        input_file = file_service.read_file(filename)
+    except Exception, e:
+        logging.error(e)
+        sys.exit(1)
+
+    for line_number, line in enumerate(input_file):
+        if line_number == 0:
             header_count = line.count("\t") + 1
             if header_count == 5:
                 location_type = enums.Location_type.LAT_LONG
             elif header_count == 4:
                 location_type = enums.Location_type.GEOMETRY
             else:
-                logging.error("Incorrect column count, exiting...")
+                logging.error("Incorrect column count: %s, exiting...", header_count)
                 sys.exit(1)
         else:
             lines_read += 1
@@ -375,10 +337,11 @@ def load_case_file(user_coordinate_system, filename = None):
                 else:
                     lines_loaded += 1
             else:
-                print "No result after loading case: "
-                print line
+                logging.error("No result after loading case: ")
+                logging.error(line)
 
-    logging.info("case load complete: %s processed %s of %s lines, %s loaded, %s duplicate IDs skipped", filename, lines_processed, lines_read, lines_loaded, lines_skipped)
+    logging.info("Case load complete: %s", filename)
+    logging.info("Processed %s of %s lines, %s loaded, %s duplicate IDs skipped", lines_processed, lines_read, lines_loaded, lines_skipped)
     return lines_read, lines_processed, lines_loaded, lines_skipped
 
 

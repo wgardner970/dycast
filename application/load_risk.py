@@ -16,6 +16,12 @@
 import dycast
 import optparse
 
+import dycast
+from services import logging_service
+
+
+logging_service.init_logging()
+
 usage = "usage: %prog [options] datafile.dbf"
 p = optparse.OptionParser(usage)
 p.add_option('--config', '-c', 
@@ -27,8 +33,6 @@ options, arguments = p.parse_args()
 config_file = options.config
 
 dycast.read_config(config_file)
-
-dycast.init_logging()
 
 dycast.init_db()
 

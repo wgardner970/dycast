@@ -5,6 +5,12 @@ import sys
 import dycast
 import datetime
 import optparse
+import logging
+
+from services import logging_service
+
+
+logging_service.init_logging()
 
 usage = "usage: %prog [options] YYYY-MM-DD"
 p = optparse.OptionParser(usage)
@@ -37,8 +43,8 @@ else:
         (y, m, d) = startdate_string.split('-')
         startdate = datetime.date(int(y), int(m), int(d))
     except Exception, inst:
-        print "couldn't parse", startdate_string
-        print inst
+        logging.error("Could not parse date: %s", startdate_string)
+        logging.error(inst)
         sys.exit()
 
 
@@ -53,8 +59,8 @@ else:
         (y, m, d) = enddate_string.split('-')
         enddate = datetime.date(int(y), int(m), int(d))
     except Exception, inst:
-        print "couldn't parse", enddate_string
-        print inst
+        logging.error("Could not parse date: %s", enddate_string)
+        logging.error(inst)
         sys.exit()
 
 if options.txt:

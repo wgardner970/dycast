@@ -2,7 +2,7 @@ import sys
 import os
 import inspect
 import ConfigParser
-import dycast
+import logging
 
 def get_env_variable(var_name):
     try:
@@ -10,18 +10,19 @@ def get_env_variable(var_name):
     except KeyError:
         return None
 
-def get_default_config():
+def get_config():
     current_dir = os.path.dirname(os.path.abspath(inspect.getfile(inspect.currentframe())))
     config_file = os.path.join(current_dir, "..", "dycast.config")
 
     config = ConfigParser.SafeConfigParser(os.environ)
 
     try:
-        print "Reading config file..."
+        logging.debug("Reading config file...")
         config.read(config_file)
-        print "Done reading config file."
-    except:
-        print "could not read config file:", config_file
+        logging.debug("Done reading config file.")
+    except Exception, e:
+        logging.error("Could not read config file: %s", config_file)
+        logging.error(e)
         sys.exit()
 
     return config

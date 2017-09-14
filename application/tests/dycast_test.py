@@ -12,7 +12,7 @@ class TestDycastFunctions(unittest.TestCase):
 
     def test_get_vector_count_for_point(self):
 
-        config = config_service.get_default_config()
+        config = config_service.get_config()
         dycast.read_config(None, config)
         dycast.init_db()
         system_coordinate_system = config.get("dycast", "system_coordinate_system")
