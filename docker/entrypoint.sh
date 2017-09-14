@@ -182,6 +182,13 @@ check_all_variables() {
 	check_variable "${PGPORT}" PGPORT
 }
 
+check_database_variables() {
+	check_variable "${PGPASSWORD}" PGPASSWORD
+	check_variable "${PGDBNAME}" PGDBNAME
+	check_variable "${PGHOST}" PGHOST
+	check_variable "${PGPORT}" PGPORT
+}
+
 
 move_case_file() {
 	local file="$1"
@@ -192,14 +199,6 @@ move_case_file() {
 
 
 ### Commands
-
-run_dycast() {
-	check_all_variables
-	init_dycast
-	run_tests
-	listen_for_input
-}
-
 
 load_cases() {
 	local filePath="$1"
@@ -226,7 +225,7 @@ generate_risk() {
 
 export_risk() {
 	echo ""
-	echo "Exporting risk..."
+	echo "Exporting risk for ${START_DATE} to ${END_DATE}..."
 	echo ""
 	python ${DYCAST_APP_PATH}/export_risk.py --startdate ${START_DATE} --enddate ${END_DATE} --txt true	
 }
@@ -254,7 +253,10 @@ do
 	case ${key} in
 		run_dycast)
 			wait_for_db
-			run_dycast
+			check_all_variables
+			init_dycast
+			run_tests
+			listen_for_input
 		;;
 		setup_dycast)
 			wait_for_db
@@ -267,19 +269,23 @@ do
 				display_help
 				exit 1
 			fi
+			check_database_variables
 			wait_for_db
 			load_cases "${filePath}"
 			shift # next argument
 		;;
 		generate_risk)
+			check_all_variables
 			wait_for_db
 			generate_risk
 		;;
 		export_risk)
+			check_database_variables
 			wait_for_db
 			export_risk
 		;;
 		run_tests)
+			check_all_variables
 			wait_for_db
 			run_tests
 		;;
