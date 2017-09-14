@@ -323,7 +323,7 @@ def load_case_file(user_coordinate_system, filename = None):
             elif header_count == 4:
                 location_type = enums.Location_type.GEOMETRY
             else:
-                logging.error("Incorrect column count, exiting...")
+                logging.error("Incorrect column count: %s, exiting...", header_count)
                 sys.exit(1)
         else:
             lines_read += 1
