@@ -1,6 +1,7 @@
 import logging
 import os
 import sys
+import ast
 import config_service
 
 
@@ -20,8 +21,8 @@ def init_logging():
 
 
 def get_log_level():
-    debug = config_service.get_env_variable("DEBUG")
-    if debug:
+    debug_setting = config_service.get_env_variable("DEBUG")
+    if ast.literal_eval(debug_setting):
         return logging.DEBUG
     else:
         return logging.INFO
