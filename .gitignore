@@ -3,3 +3,4 @@ inbox/
 zikast_log.txt
 outbox/
 data/
+application/dycast_log.txt
