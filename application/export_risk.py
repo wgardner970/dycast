@@ -5,6 +5,12 @@ import sys
 import dycast
 import datetime
 import optparse
+import logging
+
+from services import logging_service
+
+
+logging_service.init_logging()
 
 usage = "usage: %prog [options] YYYY-MM-DD"
 p = optparse.OptionParser(usage)
@@ -25,7 +31,6 @@ options, arguments = p.parse_args()
 config_file = options.config
 dycast.read_config(config_file)
 
-dycast.init_logging()
 dycast.init_db()
 
 

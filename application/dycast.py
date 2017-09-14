@@ -84,7 +84,6 @@ def read_config(filename, config_object=None):
     global cs
     global ct
     global threshold
-    global logfile
     global system_coordinate_system
 
     if not config:
@@ -101,15 +100,11 @@ def read_config(filename, config_object=None):
         "' port='" + port + "'"
 
     if sys.platform == 'win32':
-        logfile = config.get("system", "windows_dycast_path") + \
-                             config.get("system", "logfile")
         dead_birds_dir = config.get(
             "system", "windows_dycast_path") + config.get("system", "dead_birds_subdir")
         risk_file_dir = config.get(
             "system", "windows_dycast_path") + config.get("system", "risk_file_subdir")
     else:
-        logfile = config.get("system", "unix_dycast_path") + \
-                             config.get("system", "logfile")
         dead_birds_dir = config.get(
             "system", "unix_dycast_path") + config.get("system", "dead_birds_subdir")
         risk_file_dir = config.get(
@@ -130,32 +125,6 @@ def read_config(filename, config_object=None):
     threshold = int(config.get("dycast", "bird_threshold"))
 
     system_coordinate_system = config.get("dycast", "system_coordinate_system")
-
-
-def get_log_level():
-    debug = config_service.get_env_variable("DEBUG")
-    if debug:
-        return logging.DEBUG
-    else:
-        return logging.INFO
-
-
-def init_logging():
-    rootLogger = logging.getLogger()
-
-    loglevel = get_log_level()
-    rootLogger.setLevel(loglevel)
-
-    if not rootLogger.handlers:
-        logFormatter = logging.Formatter('%(asctime)s [%(threadName)-12.12s] [%(levelname)-5.5s]  %(message)s')
-
-        fileHandler = logging.FileHandler(logfile)
-        fileHandler.setFormatter(logFormatter)
-        rootLogger.addHandler(fileHandler)
-
-        consoleHandler = logging.StreamHandler(sys.stdout)
-        consoleHandler.setFormatter(logFormatter)
-        rootLogger.addHandler(consoleHandler)
 
 
 def init_db(config=None):

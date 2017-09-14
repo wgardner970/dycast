@@ -18,8 +18,15 @@
 # lat (decimal degrees)
 # species
 
-import dycast
+import sys
 import optparse
+import logging
+
+import dycast
+from services import logging_service
+
+
+logging_service.init_logging()
 
 usage = "usage: %prog [options] datafile.tsv"
 required = "srid".split()
@@ -40,7 +47,6 @@ for r in required:
 
 config_file = options.config
 dycast.read_config(config_file)
-dycast.init_logging()
 dycast.init_db()
 
 user_coordinate_system = options.srid

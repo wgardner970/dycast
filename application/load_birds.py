@@ -21,6 +21,13 @@
 
 import dycast
 import optparse
+import logging
+
+import dycast
+from services import logging_service
+
+
+logging_service.init_logging()
 
 usage = "usage: %prog [options] datafile.tsv"
 required = "srid".split()

@@ -5,6 +5,12 @@ import sys
 import dycast
 import datetime
 import optparse
+import logging
+
+from services import logging_service
+
+
+logging_service.init_logging()
 
 usage = "usage: %prog [options] YYYY-MM-DD"
 required = "srid".split()
@@ -47,7 +53,6 @@ extent_min_y = float(options.extent_min_y)
 extent_max_x = float(options.extent_max_x)
 extent_max_y = float(options.extent_max_y)
 
-dycast.init_logging()
 dycast.init_db()
 
 
