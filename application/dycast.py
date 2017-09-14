@@ -17,6 +17,7 @@ from services import debug_service
 from services import config_service
 from services import grid_service
 from services import conversion_service
+from services import file_service
 from models.enums import enums
 
 debug_service.enable_debugger()
@@ -307,8 +308,15 @@ def load_case_file(user_coordinate_system, filename = None):
     lines_loaded = 0
     lines_skipped = 0
     location_type = ""
-    for line in fileinput.input(filename):
-        if fileinput.filelineno() == 1:
+
+    try:
+        input_file = file_service.read_file(filename)
+    except Exception, e:
+        logging.error(e)
+        sys.exit(1)
+
+    for line_number, line in enumerate(input_file):
+        if line_number == 0:
             header_count = line.count("\t") + 1
             if header_count == 5:
                 location_type = enums.Location_type.LAT_LONG
