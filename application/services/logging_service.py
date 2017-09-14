@@ -7,23 +7,16 @@ import config_service
 
 def init_logging():
     root_logger = logging.getLogger()
-
-    # Remove default root log handler, as overwriting it  with below StreamHandler(sys.stdout) was giving trouble
-    for handler in root_logger.handlers[:]:
-        root_logger.removeHandler(handler)
-
+    log_format = "%(asctime)s [%(threadName)-12.12s] [%(levelname)-5.5s]  %(message)s"
     log_level = get_log_level()
     root_logger.setLevel(log_level)
 
-    log_formatter = logging.Formatter('%(asctime)s [%(threadName)-12.12s] [%(levelname)-5.5s]  %(message)s')
+    logging.basicConfig(level=log_level, format=log_format)
 
+    log_formatter = logging.Formatter(log_format)
     file_handler = logging.FileHandler(get_log_file_path())
     file_handler.setFormatter(log_formatter)
     root_logger.addHandler(file_handler)
-
-    console_handler = logging.StreamHandler(sys.stdout)
-    console_handler.setFormatter(log_formatter)
-    root_logger.addHandler(console_handler)
 
 
 def get_log_level():
