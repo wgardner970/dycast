@@ -20,8 +20,9 @@ def get_config():
         logging.debug("Reading config file...")
         config.read(config_file)
         logging.debug("Done reading config file.")
-    except:
-        logging.debug("Could not read config file: {0}".format(config_file))
+    except Exception, e:
+        logging.error("Could not read config file: %s", config_file)
+        logging.error(e)
         sys.exit()
 
     return config
