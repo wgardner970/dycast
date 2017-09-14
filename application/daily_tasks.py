@@ -47,7 +47,7 @@ options, arguments = p.parse_args()
 
 for r in required:
     if options.__dict__[r] is None:
-        parser.error("parameter %s required"%r)
+        logging.error("Parameter %s required", r)
         sys.exit(1)
 
 config_file = options.config
@@ -55,7 +55,7 @@ config_file = options.config
 try:
     dycast.read_config(config_file)
 except:
-    print "could not read config file:", config_file
+    logging.error("Could not read config file: %s", config_file)
     sys.exit()
 
 user_coordinate_system = options.srid

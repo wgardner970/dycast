@@ -42,7 +42,7 @@ options, arguments = p.parse_args()
 
 for r in required:
     if options.__dict__[r] is None:
-        parser.error("parameter %s required"%r)
+        logging.error("Parameter %s required", r)
         sys.exit(1)
 
 config_file = options.config
