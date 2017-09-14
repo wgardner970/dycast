@@ -12,7 +12,6 @@ import time
 import fileinput
 import ConfigParser
 import logging
-import inspect
 from services import debug_service
 from services import config_service
 from services import grid_service
