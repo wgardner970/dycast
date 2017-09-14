@@ -17,11 +17,11 @@ def get_config():
     config = ConfigParser.SafeConfigParser(os.environ)
 
     try:
-        logging.info("Reading config file...")
+        logging.debug("Reading config file...")
         config.read(config_file)
-        logging.info("Done reading config file.")
+        logging.debug("Done reading config file.")
     except:
-        logging.info("Could not read config file: {0}".format(config_file))
+        logging.debug("Could not read config file: {0}".format(config_file))
         sys.exit()
 
     return config
