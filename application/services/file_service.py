@@ -1,4 +1,5 @@
 import urllib
+import urlparse
 import fileinput
 import logging
 import boto3
@@ -7,6 +8,7 @@ import rfc3986
 import os
 
 def read_file(file_url):
+    logging.debug("Reading file from URL: %s", file_url)
     file_uri = get_file_uri(file_url)
 
     if file_uri.scheme == "s3":
@@ -14,7 +16,7 @@ def read_file(file_url):
     elif (file_uri.scheme == "http") or (file_uri.scheme == "https"):
         return read_file_http(file_url)
     elif (file_uri.scheme == "file") or (file_uri.scheme is None):
-        return read_file_local(file_uri)
+        return read_file_local(file_url)
     else:
         raise ValueError(
             "File location '{0}' not supported".format(file_uri.scheme)
@@ -55,25 +57,15 @@ def read_file_http(url):
         logging.error("There was a problem downloading requested file '%s'", url)
     raise IOError
 
-def read_file_local(uri):
+def read_file_local(url):
     logging.debug("Reading local file...")
-    file_path = get_file_path_from_uri(uri)
     try:
-        input_file = fileinput.input(file_path)
+        input_file = fileinput.input(url)
     except IOError, e:
-        logging.error("Failed to load file: %s", uri)
+        logging.error("Failed to load file: %s", url)
         raise e
     return input_file
 
 
 def get_file_uri(url):
     return rfc3986.urlparse(url)
-
-
-def get_file_path_from_uri(uri):
-    if uri.host is None:
-        return uri.path
-    elif uri.path is None:
-        return uri.host
-    else:
-        return os.path.join(uri.host, uri.path)
