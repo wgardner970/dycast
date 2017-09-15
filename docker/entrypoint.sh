@@ -25,7 +25,8 @@ HELP_TEXT="
 
 Arguments:  
 	run_dycast: Default. Loads any .tsv files in ${DYCAST_INBOX}, generates risk and exports it to ${DYCAST_OUTBOX}  
-	setup_dycast: Delete any existing Dycast database and set up a fresh one  
+	setup_dycast: Initializes Dycast: creates the database if it does not exist and sets up necessary folders  
+	setup_db: Delete any existing Dycast database and set up a fresh one  
 	load_cases: Load cases from specified (absolute) file path on the container, e.g. 'load_cases /dycast/inbox/cases.tsv'  
 	generate_risk: Generates risk from the cases currently in the database  
 	export_risk: Exports risk currently in the database  
