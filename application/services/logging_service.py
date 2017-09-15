@@ -20,6 +20,20 @@ def init_logging():
     root_logger.addHandler(file_handler)
 
 
+def show_current_parameter_set():
+    config = config_service.get_config()
+    logging.info("")
+    logging.info("Using parameter set:")
+    logging.info("Spatial domain: %s", config.get("dycast", "spatial_domain"))
+    logging.info("Temporal domain: %s", config.get("dycast", "temporal_domain"))
+    logging.info("Close in space: %s", config.get("dycast", "close_in_space"))
+    logging.info("Close in time: %s", config.get("dycast", "close_in_time"))
+    logging.info("")
+
+
+
+# 'Private' methods
+
 def get_log_level():
     debug_setting = config_service.get_env_variable("DEBUG")
     if ast.literal_eval(debug_setting):

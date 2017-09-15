@@ -13,6 +13,7 @@ import fileinput
 import ConfigParser
 import logging
 from services import debug_service
+from services import logging_service
 from services import config_service
 from services import grid_service
 from services import conversion_service
@@ -444,6 +445,7 @@ def insert_result(riskdate, latitude, longitude, num_birds, close_pairs, close_t
 
 
 def daily_risk(startdate, enddate, user_coordinate_system, extent_min_x, extent_min_y, extent_max_x, extent_max_y):
+    logging_service.show_current_parameter_set()
     
     gridpoints = grid_service.generate_grid(user_coordinate_system, system_coordinate_system, extent_min_x, extent_min_y, extent_max_x, extent_max_y)
 
