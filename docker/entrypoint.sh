@@ -103,8 +103,8 @@ init_db() {
 	psql -h ${PGHOST} -U ${PGUSER} -d ${PGDBNAME} -f ${DYCAST_INIT_PATH}/postgres_init.sql
 	echo ""
 
-	echo "Importing Monte Carlo data"
-	psql -h ${PGHOST} -U ${PGUSER} -d ${PGDBNAME} -c "\COPY dist_margs FROM '${DYCAST_INIT_PATH}/Dengue_min_75.csv' delimiter ',';"
+	echo "Importing Monte Carlo data: ${MONTE_CARLO_FILE}"
+	psql -h ${PGHOST} -U ${PGUSER} -d ${PGDBNAME} -c "\COPY dist_margs FROM '${MONTE_CARLO_FILE}' delimiter ',';"
 	echo "" 
 }
 

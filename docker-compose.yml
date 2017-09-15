@@ -10,6 +10,12 @@ services:
         dockerfile: ./Dockerfile
       command: bash -c  "sleep 10 && /docker/entrypoint.sh"
       environment:
+        - MONTE_CARLO_FILE=/dycast/application/init/Zika_max_75.csv
+        - SPATIAL_DOMAIN=
+        - TEMPORAL_DOMAIN=
+        - CLOSE_SPACE=
+        - CLOSE_TIME=
+        - BIRD_THRESHOLD=
         - START_DATE=
         - END_DATE=
         - USER_COORDINATE_SYSTEM=
