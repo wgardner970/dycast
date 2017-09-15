@@ -40,12 +40,7 @@ display_help() {
 
 
 init_dycast() {
-	if [[ "${FORCE_DB_INIT}" == "True" ]]; then
-		echo ""
-		echo "*** Warning: FORCE_DB_INIT = True ***"
-		echo ""
-		init_db
-	elif db_exists; then
+	if db_exists; then
 		echo "Database ${PGDBNAME} already exists, skipping initialization."
 	else
 		echo "Database ${PGDBNAME} does not exists."
@@ -262,10 +257,14 @@ do
 			wait_for_db
 			init_dycast
 		;;
+		setup_db)
+			wait_for_db
+			init_db
+		;;
 		load_cases)
 			filePath="$2"
 			if [[ -z ${filePath} ]] || [[ "${filePath}" == "" ]]; then
-				echo "Specify a file path after the `load_cases` command."
+				echo "Specify a file path after the 'load_cases' command."
 				display_help
 				exit 1
 			fi

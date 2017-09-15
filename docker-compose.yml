@@ -10,7 +10,6 @@ services:
         dockerfile: ./Dockerfile
       command: bash -c  "sleep 10 && /docker/entrypoint.sh"
       environment:
-        - FORCE_DB_INIT=False
         - START_DATE=
         - END_DATE=
         - USER_COORDINATE_SYSTEM=
