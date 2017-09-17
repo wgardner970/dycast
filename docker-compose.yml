@@ -24,7 +24,7 @@ services:
         - EXTENT_MAX_X=
         - EXTENT_MAX_Y=
         - DEBUG=False
-        - REMOTE_DEBUG=False
+        - WAIT_FOR_ATTACH=False
         - PGPASSWORD=postgres
         - PGDBNAME=dycast
         - PGHOST=dycast-db

@@ -1,5 +1,6 @@
 import os
 import logging
+import time
 import config_service
 
 
@@ -14,9 +15,10 @@ def enable_debugger():
         except:
             pass
 
-        if config_service.get_env_variable("REMOTE_DEBUG") == "True":
-            print "Waiting for debugger to attach..."
-            ptvsd.wait_for_attach()
+
+        if config_service.get_env_variable("WAIT_FOR_ATTACH") == "True":
+            print "Waiting 10 seconds for debugger to attach..."
+            time.sleep(10)
             if ptvsd.is_attached:
                 print "Attached debugger"
             else:
