@@ -210,7 +210,7 @@ def export_risk(startdate, enddate, format = "dbf", path = None):
     else:   # dbf
         dbf_out = init_dbf_out(filepath)
 
-    logging.info("Exporting risk for: %s - %s", (startdate_string, enddate_string))
+    logging.info("Exporting risk for: %s - %s", startdate_string, enddate_string)
     query = "SELECT risk_date, lat, long, num_birds, close_pairs, close_space, close_time, nmcm FROM risk WHERE risk_date >= %s AND risk_date <= %s"
 
     try:
