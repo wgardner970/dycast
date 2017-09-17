@@ -23,15 +23,31 @@ EXTENT_MAX_Y=${EXTENT_MAX_Y}
 
 HELP_TEXT="
 
-Arguments:  
-	run_dycast: Default. Loads any .tsv files in ${DYCAST_INBOX}, generates risk and exports it to ${DYCAST_OUTBOX}  
-	setup_dycast: Initializes Dycast: creates the database if it does not exist and sets up necessary folders  
-	setup_db: Delete any existing Dycast database and set up a fresh one  
-	load_cases: Load cases from specified (absolute) file path on the container, e.g. 'load_cases /dycast/inbox/cases.tsv'  
-	generate_risk: Generates risk from the cases currently in the database  
-	export_risk: Exports risk currently in the database  
-	run_tests: Run unit tests  
-	-h or help: Display help text  
+Commands:  
+	[run_dycast]		Default. Loads any .tsv files in ${DYCAST_INBOX}, generates risk and 
+				exports it to ${DYCAST_OUTBOX}  
+				Optional parameters:
+				-f | --file <file path>
+				Loads the specified file instead of listening in ${DYCAST_INBOX}  
+
+	[setup_dycast] 		Initializes Dycast: creates the database if it does not exist and 
+				sets up necessary folders  
+
+	[setup_db] 		Deletes any existing Dycast database and sets up a fresh one  
+
+	[load_cases]		Loads cases from specified (absolute) file path on the container web or AWS S3,
+				e.g. 'load_cases /dycast/inbox/cases.tsv'  
+				Parameters:
+				-f | --file <file path>
+				Loads the specified file instead of listening in ${DYCAST_INBOX} 
+
+	[generate_risk] 	Generates risk from the cases currently in the database  
+
+	[export_risk] 		Exports risk currently in the database  
+
+	[run_tests] 		Run unit tests  
+
+	[help] or [-h]		Display help text  
 "
 
 display_help() {
@@ -53,16 +69,17 @@ init_dycast() {
 
 
 wait_for_db() {
-	echo "Testing database connection..."
+	echo "Testing database connection: ${PGHOST}:${PGPORT}..."
 	tries=0
-	while true
+	connected="False"
+	while [[ ${connected} == "False" ]]
 	do
 		psql -h ${PGHOST} -p ${PGPORT} -U postgres -c "select 1" >&/dev/null
 		return_code=$?
 		((tries++))
 		if [[ ${return_code} == 0 ]]; then
-	        break
-		elif [[ ${tries} == 6 ]]; then
+	        connected="True"
+		elif [[ ${tries} == 45 ]]; then
 		    echo "Database server cannot be reached, exiting..."
 			exit 1
 		fi
@@ -248,11 +265,34 @@ do
 
 	case ${key} in
 		run_dycast)
-			wait_for_db
+			if [[ "$2" == "-f" ]] || [[ "$2" == "--file" ]]; then
+				filePath="$3"
+				shift # next argument
+				shift # next argument
+
+				if [[ -z ${filePath} ]] || [[ "${filePath}" == "" ]]; then
+					echo "Specify a file path after the 'load_cases' command."
+					display_help
+					exit 1
+				else
+					echo "Loading cases from: ${filePath}"
+				fi				
+			fi
+
 			check_all_variables
+			wait_for_db
 			init_dycast
 			run_tests
-			listen_for_input
+
+			if [[ -z ${filePath} ]] || [[ "${filePath}" == "" ]]; then
+				echo "No file specified with '-f' or '--file', so running in 'listening mode'"
+				listen_for_input
+			else
+				load_cases "${filePath}"
+				generate_risk
+				export_risk
+			fi
+
 		;;
 		setup_dycast)
 			wait_for_db
@@ -263,11 +303,18 @@ do
 			init_db
 		;;
 		load_cases)
-			filePath="$2"
-			if [[ -z ${filePath} ]] || [[ "${filePath}" == "" ]]; then
-				echo "Specify a file path after the 'load_cases' command."
-				display_help
-				exit 1
+			if [[ "$2" == "-f" ]] || [[ "$2" == "--file" ]]; then
+				filePath="$3"
+				shift # next argument
+				shift # next argument
+
+				if [[ -z ${filePath} ]] || [[ "${filePath}" == "" ]]; then
+					echo "Specify a file path after the '-f' or '--file' parameter."
+					display_help
+					exit 1
+				else
+					echo "Loading cases from: ${filePath}"
+				fi
 			fi
 			check_database_variables
 			wait_for_db
