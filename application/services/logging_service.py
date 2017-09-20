@@ -42,5 +42,4 @@ def get_log_level():
         return logging.INFO
 
 def get_log_file_path():
-    config = config_service.get_config()
-    return os.path.join(config.get("system", "unix_dycast_path"), config.get("system", "logfile"))
+    return config.get("system", "logfile")

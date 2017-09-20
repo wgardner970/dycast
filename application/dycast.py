@@ -102,16 +102,8 @@ def read_config(filename, config_object=None):
         "' password='" + password + "' host='" + host + \
         "' port='" + port + "'"
 
-    if sys.platform == 'win32':
-        dead_birds_dir = config.get(
-            "system", "windows_dycast_path") + config.get("system", "dead_birds_subdir")
-        risk_file_dir = config.get(
-            "system", "windows_dycast_path") + config.get("system", "risk_file_subdir")
-    else:
-        dead_birds_dir = config.get(
-            "system", "unix_dycast_path") + config.get("system", "dead_birds_subdir")
-        risk_file_dir = config.get(
-            "system", "unix_dycast_path") + config.get("system", "risk_file_subdir")
+    dead_birds_dir = config.get("system", "dead_birds_subdir")
+    risk_file_dir = config.get("system", "risk_file_subdir")
 
     dead_birds_table_unprojected = config.get(
         "database", "dead_birds_table_unprojected")
