@@ -9,6 +9,7 @@ import inspect
 import shutil
 import datetime
 import time
+from time import gmtime, strftime
 import fileinput
 import ConfigParser
 import logging
@@ -186,23 +187,17 @@ def export_risk(startdate, enddate, format = "dbf", path = None):
         logging.error("Incorrect export format: %s", format)
         return 1
 
+    if path == None:
+        path = export_location = CONFIG.get("system", "risk_file_subdir")
+
     # dates are objects, not strings
     startdate_string = conversion_service.get_string_from_date_object(startdate)
     enddate_string = conversion_service.get_string_from_date_object(enddate)
 
-    if path == None:
-        path = risk_file_dir + "/tmp/"
-        using_tmp = True
-    else:
-        using_tmp = False
-
-    filename = "risk" + startdate_string + "--" + enddate_string + "." + format
+    export_time = strftime("%Y-%m-%d__%H-%M-%S", gmtime())
+    filename = export_time + "_risk" + startdate_string + "--" + enddate_string + "." + format
     filepath = os.path.join(path, filename)
 
-    if format == "txt":
-        txt_out = init_txt_out(filepath)
-    else:   # dbf
-        dbf_out = init_dbf_out(filepath)
 
     logging.info("Exporting risk for: %s - %s", startdate_string, enddate_string)
     query = "SELECT risk_date, lat, long, num_birds, close_pairs, close_space, close_time, nmcm FROM risk WHERE risk_date >= %s AND risk_date <= %s"
@@ -214,25 +209,40 @@ def export_risk(startdate, enddate, format = "dbf", path = None):
         logging.error(e)
         raise
 
+    if cur.rowcount == 0:
+        logging.info("No risk found for the provided dates: %s - %s", startdate_string, enddate_string)
+        logging.info("Exiting...")
+        sys.exit(0)
+
     rows = cur.fetchall()
 
+    table_content = file_service.TableContent()
+
     if format == "txt":
-        write_rows_to_txt(filepath, rows)
+        header = get_header_as_string()
+        table_content.set_header(header)
+
+        body = get_rows_as_string(rows)
+        table_content.set_body(body)
     else: # dbf
+        dbf_out = init_dbf_out(filepath)
         write_rows_to_dbf(dbf_out, rows)
-        dbf_close()
-        
-    if using_tmp:
-        outbox_tmp_to_new(risk_file_dir, filename)    # Move finished file to "new"
+        dbf_close(dbf_out)
 
 
-def init_txt_out(filepath):
-    dirname = os.path.dirname(filepath)
-    if not os.path.exists(dirname):
-        os.makedirs(dirname)
+    file_service.save_file(table_content.get_content(), filepath)
 
-    with open(filepath, "w") as text_file:
-        text_file.write("risk_date\tlat\tlong\tnumber_of_cases\tclose_pairs\tclose_time\tclose_space\tp_value\n")
+
+def get_header_as_string():
+    return "risk_date\tlat\tlong\tnumber_of_cases\tclose_pairs\tclose_time\tclose_space\tp_value"    
+
+def get_rows_as_string(rows):
+    string = ""
+    for row in rows:
+        [date, lat, long, num_birds, close_pairs, close_space, close_time, monte_carlo_p_value] = row
+        string = string + "{0}\t{1}\t{2}\t{3}\t{4}\t{5}\t{6}\t{7}\n".format(date, lat, long, num_birds, close_pairs, close_time, close_space, monte_carlo_p_value)
+    return string
+
 
 def init_dbf_out(filename):
     dbfn = dbf.Dbf(filename, new=True)
@@ -247,12 +257,6 @@ def init_dbf_out(filename):
 
     # TODO: make this an object
     return dbfn
-
-def write_rows_to_txt(filepath, rows):
-    with open(filepath, "a") as text_file:
-        for row in rows:
-            [date, lat, long, num_birds, close_pairs, close_space, close_time, monte_carlo_p_value] = row
-            text_file.write("%s\t%s\t%s\t%s\t%s\t%s\t%s\t%s\n" % (date, lat, long, num_birds, close_pairs, close_time, close_space, monte_carlo_p_value))
 
 def write_rows_to_dbf(dbfn, rows):
     for row in rows:
