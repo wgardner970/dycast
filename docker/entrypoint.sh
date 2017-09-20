@@ -315,6 +315,10 @@ do
 				else
 					echo "Loading cases from: ${filePath}"
 				fi
+			else
+				echo "load_cases expects the '-f' or '--file' parameter."
+				display_help
+				exit 1
 			fi
 			check_database_variables
 			wait_for_db

@@ -384,13 +384,13 @@ def get_daily_case_count(tmp_daily_case_table_name):
     result_count = cur.fetchone()
     return result_count[0]
 
-def get_vector_count_for_point(bird_tab, point):
-    querystring = "SELECT count(*) from \"" + bird_tab + "\" a where st_distance(a.location,ST_GeomFromText('POINT(%s %s)',%s)) < %s" 
+def get_vector_count_for_point(table_name, point):
+    querystring = "SELECT count(*) from \"" + table_name + "\" a where st_distance(a.location,ST_GeomFromText('POINT(%s %s)',%s)) < %s" 
     try:
         cur.execute(querystring, (point.x, point.y, system_coordinate_system, sd))
     except Exception as e:
         conn.rollback()
-        logging.error("can't select bird count")
+        logging.error("Can't select vector count")
         logging.error(e)
         sys.exit()
     new_row = cur.fetchone()
