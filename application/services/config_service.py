@@ -10,7 +10,7 @@ def get_env_variable(var_name):
     except KeyError:
         return None
 
-def get_config():
+def create_configparser():
     current_dir = os.path.dirname(os.path.abspath(inspect.getfile(inspect.currentframe())))
     config_file = os.path.join(current_dir, "..", "dycast.config")
 
@@ -26,3 +26,8 @@ def get_config():
         sys.exit()
 
     return config
+
+CONFIG = create_configparser()
+
+def get_config():
+    return CONFIG

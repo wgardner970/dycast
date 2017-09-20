@@ -42,6 +42,8 @@ except ImportError:
     sys.exit()
 
 
+CONFIG = config_service.get_config()
+
 conn = 0
 cur = 0
 
