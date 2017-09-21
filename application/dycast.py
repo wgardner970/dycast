@@ -103,8 +103,8 @@ def read_config(filename, config_object=None):
         "' password='" + password + "' host='" + host + \
         "' port='" + port + "'"
 
-    dead_birds_dir = config.get("system", "dead_birds_subdir")
-    risk_file_dir = config.get("system", "risk_file_subdir")
+    dead_birds_dir = config.get("system", "import_directory")
+    risk_file_dir = config.get("system", "export_directory")
 
     dead_birds_table_unprojected = config.get(
         "database", "dead_birds_table_unprojected")
@@ -118,7 +118,7 @@ def read_config(filename, config_object=None):
     cs = float(config.get("dycast", "close_in_space"))
     ct = int(config.get("dycast", "close_in_time"))
     td = int(config.get("dycast", "temporal_domain"))
-    threshold = int(config.get("dycast", "bird_threshold"))
+    threshold = int(config.get("dycast", "case_threshold"))
 
     system_coordinate_system = config.get("dycast", "system_coordinate_system")
 
@@ -188,7 +188,7 @@ def export_risk(startdate, enddate, format = "dbf", path = None):
         return 1
 
     if path == None:
-        path = export_location = CONFIG.get("system", "risk_file_subdir")
+        path = export_location = CONFIG.get("system", "export_directory")
 
     # dates are objects, not strings
     startdate_string = conversion_service.get_string_from_date_object(startdate)

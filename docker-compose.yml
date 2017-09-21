@@ -15,10 +15,10 @@ services:
         - TEMPORAL_DOMAIN=
         - CLOSE_SPACE=
         - CLOSE_TIME=
-        - BIRD_THRESHOLD=
+        - CASE_THRESHOLD=
         - START_DATE=
         - END_DATE=
-        - USER_COORDINATE_SYSTEM=
+        - SRID=
         - EXTENT_MIN_X=
         - EXTENT_MIN_Y=
         - EXTENT_MAX_X=
