@@ -1,7 +1,7 @@
 #!/bin/bash
 
-PGDBNAME=${PGDBNAME}
-PGUSER=${PGUSER:-postgres}
+DBNAME=${DBNAME}
+DBUSER=${DBUSER:-postgres}
 
 DYCAST_INBOX=${DYCAST_INBOX:-$DYCAST_PATH/inbox}
 DYCAST_INBOX_COMPLETED=${DYCAST_INBOX}/completed
@@ -58,9 +58,9 @@ display_help() {
 
 init_dycast() {
 	if db_exists; then
-		echo "Database ${PGDBNAME} already exists, skipping initialization."
+		echo "Database ${DBNAME} already exists, skipping initialization."
 	else
-		echo "Database ${PGDBNAME} does not exists."
+		echo "Database ${DBNAME} does not exists."
 		init_db
 	fi
 
@@ -69,12 +69,12 @@ init_dycast() {
 
 
 wait_for_db() {
-	echo "Testing database connection: ${PGHOST}:${PGPORT}..."
+	echo "Testing database connection: ${DBHOST}:${DBPORT}..."
 	tries=0
 	connected="False"
 	while [[ ${connected} == "False" ]]
 	do
-		psql -h ${PGHOST} -p ${PGPORT} -U postgres -c "select 1" >&/dev/null
+		psql -h ${DBHOST} -p ${DBPORT} -U postgres -c "select 1" >&/dev/null
 		return_code=$?
 		((tries++))
 		if [[ ${return_code} == 0 ]]; then
@@ -90,7 +90,7 @@ wait_for_db() {
 
 
 db_exists() {
-	psql -lqt -h ${PGHOST} -U ${PGUSER} | cut -d \| -f 1 | grep -qw ${PGDBNAME}
+	psql -lqt -h ${DBHOST} -U ${DBUSER} | cut -d \| -f 1 | grep -qw ${DBNAME}
 }
 
 
@@ -103,25 +103,25 @@ init_db() {
 
 	echo "5" && sleep 1 && echo "4" && sleep 1 && echo "3" && sleep 1 && echo "2" && sleep 1 &&	echo "1" &&	sleep 1 && echo "0" && echo ""
 
-	echo "Dropping existing database ${PGDBNAME}"
-	dropdb -h ${PGHOST} -U ${PGUSER} ${PGDBNAME} # if necessary
+	echo "Dropping existing database ${DBNAME}"
+	dropdb -h ${DBHOST} -U ${DBUSER} ${DBNAME} # if necessary
 	echo ""
 
-	echo "Creating database ${PGDBNAME}"
-	createdb -h ${PGHOST} -U ${PGUSER} --encoding=UTF8 ${PGDBNAME}
+	echo "Creating database ${DBNAME}"
+	createdb -h ${DBHOST} -U ${DBUSER} --encoding=UTF8 ${DBNAME}
 	echo ""
 
 	### Using the new 9.1+ extension method:
 	echo "Creating extension 'postgis'"
-	psql -h ${PGHOST} -U ${PGUSER} -d ${PGDBNAME} -c "CREATE EXTENSION postgis;" 
+	psql -h ${DBHOST} -U ${DBUSER} -d ${DBNAME} -c "CREATE EXTENSION postgis;" 
 	echo ""
 
 	echo "Running ${DYCAST_INIT_PATH}/postgres_init.sql"
-	psql -h ${PGHOST} -U ${PGUSER} -d ${PGDBNAME} -f ${DYCAST_INIT_PATH}/postgres_init.sql
+	psql -h ${DBHOST} -U ${DBUSER} -d ${DBNAME} -f ${DYCAST_INIT_PATH}/postgres_init.sql
 	echo ""
 
 	echo "Importing Monte Carlo data: ${MONTE_CARLO_FILE}"
-	psql -h ${PGHOST} -U ${PGUSER} -d ${PGDBNAME} -c "\COPY dist_margs FROM '${MONTE_CARLO_FILE}' delimiter ',';"
+	psql -h ${DBHOST} -U ${DBUSER} -d ${DBNAME} -c "\COPY dist_margs FROM '${MONTE_CARLO_FILE}' delimiter ',';"
 	echo "" 
 }
 
@@ -189,17 +189,17 @@ check_all_variables() {
 	check_variable "${EXTENT_MIN_Y}" EXTENT_MIN_Y
 	check_variable "${EXTENT_MAX_X}" EXTENT_MAX_X
 	check_variable "${EXTENT_MAX_Y}" EXTENT_MAX_Y
-	check_variable "${PGPASSWORD}" PGPASSWORD
-	check_variable "${PGDBNAME}" PGDBNAME
-	check_variable "${PGHOST}" PGHOST
-	check_variable "${PGPORT}" PGPORT
+	check_variable "${DBPASSWORD}" DBPASSWORD
+	check_variable "${DBNAME}" DBNAME
+	check_variable "${DBHOST}" DBHOST
+	check_variable "${DBPORT}" DBPORT
 }
 
 check_database_variables() {
-	check_variable "${PGPASSWORD}" PGPASSWORD
-	check_variable "${PGDBNAME}" PGDBNAME
-	check_variable "${PGHOST}" PGHOST
-	check_variable "${PGPORT}" PGPORT
+	check_variable "${DBPASSWORD}" DBPASSWORD
+	check_variable "${DBNAME}" DBNAME
+	check_variable "${DBHOST}" DBHOST
+	check_variable "${DBPORT}" DBPORT
 }
 
 

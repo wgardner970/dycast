@@ -25,10 +25,10 @@ services:
         - EXTENT_MAX_Y=
         - DEBUG=False
         - WAIT_FOR_ATTACH=False
-        - PGPASSWORD=postgres
-        - PGDBNAME=dycast
-        - PGHOST=dycast-db
-        - PGPORT=5432
+        - DBPASSWORD=postgres
+        - DBNAME=dycast
+        - DBHOST=dycast-db
+        - DBPORT=5432
         - TZ=EST
       depends_on:
         - dycast-db
