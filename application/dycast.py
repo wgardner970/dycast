@@ -344,15 +344,6 @@ def load_case_file(user_coordinate_system, filename = None):
     return lines_read, lines_processed, lines_loaded, lines_skipped
 
 
-def upload_new_risk(outboxpath = None):
-    if outboxpath == None:
-        outboxpath = risk_file_dir
-    newdir = outboxpath + "/new/"
-    for file in os.listdir(newdir):
-         if ((os.path.splitext(file))[1] == '.dbf'):
-            logging.debug("uploading %s and moving it from new/ to cur/", file)
-            upload_risk(newdir, file)
-            outbox_new_to_cur(outboxpath, file)
 
 
 ##########################################################################
