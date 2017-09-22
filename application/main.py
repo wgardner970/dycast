@@ -6,8 +6,6 @@ import dycast
 from services import logging_service
 from services import config_service
 
-logging_service.init_logging()
-
 
 def valid_date(date_string):
     if date_string == "today":
@@ -148,6 +146,8 @@ def main():
     dictionary_args = vars(args)
 
     config_service.init_config(dictionary_args.get('config'))
+    logging_service.init_logging()
+
 
     if args.func:
         args.func(**dictionary_args)
