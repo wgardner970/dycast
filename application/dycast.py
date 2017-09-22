@@ -51,9 +51,7 @@ class DycastImport(DycastBase):
     def __init__(self, **kwargs):
         super(DycastImport, self).__init__(**kwargs)
 
-        print kwargs
         self.srid_of_cases = kwargs.get('srid_cases')
-        print "srid: "
         print self.srid_of_cases             
         self.dead_birds_dir = kwargs.get('import_directory', CONFIG.get("system", "import_directory"))
 

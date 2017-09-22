@@ -6,3 +6,4 @@ shapely
 nose
 boto3
 rfc3986>=0.3.1
+configargparse
