@@ -6,6 +6,14 @@
 import sys
 import os
 import inspect
+
+APPLICATION_ROOT = os.path.dirname(
+    os.path.abspath(inspect.getfile(inspect.currentframe())))
+lib_dir = os.path.join(APPLICATION_ROOT, 'libs')
+sys.path.append(lib_dir)
+sys.path.append(os.path.join(lib_dir, "psycopg2"))
+sys.path.append(os.path.join(lib_dir, "dbfpy"))
+
 import shutil
 import datetime
 import time
@@ -19,457 +27,113 @@ from services import config_service
 from services import grid_service
 from services import conversion_service
 from services import file_service
+from services import database_service
+from services import import_service
+# from services import export_service
 from models.enums import enums
 
 debug_service.enable_debugger()
 
-APPLICATION_ROOT = os.path.dirname(
-    os.path.abspath(inspect.getfile(inspect.currentframe())))
-lib_dir = os.path.join(APPLICATION_ROOT, 'libs')
-sys.path.append(lib_dir)
-sys.path.append(os.path.join(lib_dir, "psycopg2"))
-sys.path.append(os.path.join(lib_dir, "dbfpy"))
-
-try:
-    import dbf
-except ImportError:
-    logging.error("Couldn't import dbf library in path:", sys.path)
-    sys.exit()
-
-try:
-    import psycopg2
-except ImportError:
-    logging.error("Couldn't import psycopg2 library in path:", sys.path)
-    sys.exit()
-
 
 CONFIG = config_service.get_config()
 
-conn = 0
-cur = 0
 
-# TODO: find a more appropriate way to initialize these
-sd = 1
-cs = 1
-ct = 1
-td = 1
-threshold = 1
+class DycastBase(object):
 
-# postgresql database connection information and table names
-dsn = "x"
-dead_birds_table_unprojected = "x"
-dead_birds_table_projected = "x"
+    def __init__(self, **args):
+        self.cur, self.conn = database_service.init_db()
+
+        self.case_table_name = database_service.get_case_table_name()
 
 
+class DycastImport(DycastBase):
 
+    def __init__(self, **kwargs):
+        super(DycastImport, self).__init__(**kwargs)
 
-def read_config(filename, config_object=None):
-    # All dycast objects must be initialized from a config file, therefore,
-    # all dycast applications must include the name of a config file, or they
-    # must use the default, which is dycast.config in the current directory
+        print kwargs
+        self.srid_of_cases = kwargs.get('srid_cases')
+        print "srid: "
+        print self.srid_of_cases             
+        self.dead_birds_dir = kwargs.get('import_directory', CONFIG.get("system", "import_directory"))
 
-    config = config_object
+        self.files_to_import = kwargs.get('files')
 
-    global dbname
-    global user
-    global password
-    global host
-    global dsn
-    global dead_birds_filename
-    global dead_birds_dir
-    global risk_file_dir
-    global lib_dir
-    global dead_birds_table_unprojected
-    global dead_birds_table_projected
-    global tmp_daily_case_table
-    global tmp_cluster_per_point_selection_table
-    global sd
-    global td
-    global cs
-    global ct
-    global threshold
-    global system_coordinate_system
-
-    if not config:
-        config = ConfigParser.SafeConfigParser(os.environ)
-        config.read(filename)
-
-    dbname = config.get("database", "dbname")
-    user = config.get("database", "user")
-    password = config.get("database", "password")
-    host = config.get("database", "host")
-    port = config.get("database", "port")
-    dsn = "dbname='" + dbname + "' user='" + user + \
-        "' password='" + password + "' host='" + host + \
-        "' port='" + port + "'"
-
-    dead_birds_dir = config.get("system", "import_directory")
-    risk_file_dir = config.get("system", "export_directory")
-
-    dead_birds_table_unprojected = config.get(
-        "database", "dead_birds_table_unprojected")
-    dead_birds_table_projected = config.get(
-        "database", "dead_birds_table_projected")
-    tmp_daily_case_table = config.get("database", "tmp_daily_case_table")
-    tmp_cluster_per_point_selection_table = config.get(
-        "database", "tmp_cluster_per_point_selection_table")
-
-    sd = float(config.get("dycast", "spatial_domain"))
-    cs = float(config.get("dycast", "close_in_space"))
-    ct = int(config.get("dycast", "close_in_time"))
-    td = int(config.get("dycast", "temporal_domain"))
-    threshold = int(config.get("dycast", "case_threshold"))
-
-    system_coordinate_system = config.get("dycast", "system_coordinate_system")
-
-
-def init_db(config=None):
-    global cur, conn
-    try:
-        conn = psycopg2.connect(dsn)
-    except Exception, inst:
-        logging.error("Unable to connect to database")
-        logging.error(inst)
-        sys.exit()
-    cur = conn.cursor()
-
-
-##########################################################################
-# functions for loading data:
-##########################################################################
-
-
-def load_case(line, location_type, user_coordinate_system):
-    if location_type not in (enums.Location_type.LAT_LONG, enums.Location_type.GEOMETRY):
-        logging.error("Wrong value for 'location_type', exiting...")
-        sys.exit(1)
-
-    if location_type == enums.Location_type.LAT_LONG:
-        try:
-            (case_id, report_date_string, lon, lat, species) = line.split("\t")
-        except ValueError:
-            fail_on_incorrect_count()
-        querystring = "INSERT INTO " + dead_birds_table_projected + " VALUES (%s, %s, %s, ST_Transform(ST_GeomFromText('POINT(" + lon + " " + lat + ")', " + user_coordinate_system + "), CAST (%s AS integer)))"
-
-    else:
-        try:
-            (case_id, report_date_string, geometry, species) = line.split("\t")
-        except ValueError:
-            fail_on_incorrect_count()
-        querystring = "INSERT INTO " + dead_birds_table_projected + " VALUES (%s, %s, %s, ST_Transform(Geometry('" + geometry + "'), CAST (%s AS integer)))"
-
-    try:
-        cur.execute(querystring, (case_id, report_date_string, species, system_coordinate_system))
-    except Exception, inst:
-        conn.rollback()
-        if str(inst).startswith("duplicate key"):
-            logging.debug("Couldn't insert duplicate case key %s, skipping...", case_id)
-            return -1
+    def import_cases(self):
+        if self.files_to_import:
+            logging.info("Loading files: %s", self.files_to_import)
+            import_service.load_case_files(self)
         else:
-            logging.warning("Couldn't insert case record")
-            logging.warning(inst)
-            return 0
-    conn.commit()
-    return case_id
+            logging.info("Loading files from import path: %s", self.dead_birds_dir)
+            raise NotImplementedError
 
-def fail_on_incorrect_count(location_type, line):
-    logging.error("Incorrect number of fields for 'location_type' %s: %s, exiting...", (location_type, line.rstrip()))
-    sys.exit(1)    
+        logging.info("Done loading cases")
+
+    def listen_for_files(self):
+        raise NotImplementedError
 
 
-##########################################################################
-# functions for exporting results:
-##########################################################################
+class DycastExport(DycastBase):
 
-def export_risk(startdate, enddate, format = "dbf", path = None):
-    # Quick and dirty solution
-    if (format != "dbf" and format != "txt"):
-        logging.error("Incorrect export format: %s", format)
-        return 1
+    def __init__(self, args):
+        super(DycastExport, self).__init__()
+        self._risk_file_dir = args.export_directory or CONFIG.get(
+            "system", "export_directory")
 
-    if path == None:
-        path = export_location = CONFIG.get("system", "export_directory")
-
-    # dates are objects, not strings
-    startdate_string = conversion_service.get_string_from_date_object(startdate)
-    enddate_string = conversion_service.get_string_from_date_object(enddate)
-
-    export_time = strftime("%Y-%m-%d__%H-%M-%S", gmtime())
-    filename = export_time + "_risk" + startdate_string + "--" + enddate_string + "." + format
-    filepath = os.path.join(path, filename)
+    def export_risk(self):
+        raise NotImplementedError
 
 
-    logging.info("Exporting risk for: %s - %s", startdate_string, enddate_string)
-    query = "SELECT risk_date, lat, long, num_birds, close_pairs, close_space, close_time, nmcm FROM risk WHERE risk_date >= %s AND risk_date <= %s"
+class DycastRisk(DycastBase):
 
-    try:
-        cur.execute(query, (startdate, enddate))
-    except Exception, e:
-        conn.rollback()
-        logging.error(e)
-        raise
+    def __init__(self, args):
+        super(DycastRisk, self).__init__()
+        self._sd = float(args.spatial_domain)
+        self._cs = float(args.close_in_space)
+        self._ct = int(args.close_in_time)
+        self._td = int(args.temporal_domain)
+        self._threshold = int(args.case_threshold)
 
-    if cur.rowcount == 0:
-        logging.info("No risk found for the provided dates: %s - %s", startdate_string, enddate_string)
-        logging.info("Exiting...")
-        sys.exit(0)
+        self._tmp_daily_case_table = database_service.get_tmp_daily_case_table_name()
+        self._tmp_cluster_per_point_selection_table = database_service.get_tmp_cluster_per_point_table_name()
 
-    rows = cur.fetchall()
-
-    table_content = file_service.TableContent()
-
-    if format == "txt":
-        header = get_header_as_string()
-        table_content.set_header(header)
-
-        body = get_rows_as_string(rows)
-        table_content.set_body(body)
-    else: # dbf
-        dbf_out = init_dbf_out(filepath)
-        write_rows_to_dbf(dbf_out, rows)
-        dbf_close(dbf_out)
+    def generate_risk(self):
+        raise NotImplementedError
 
 
-    file_service.save_file(table_content.get_content(), filepath)
-
-
-def get_header_as_string():
-    return "risk_date\tlat\tlong\tnumber_of_cases\tclose_pairs\tclose_time\tclose_space\tp_value"    
-
-def get_rows_as_string(rows):
-    string = ""
-    for row in rows:
-        [date, lat, long, num_birds, close_pairs, close_space, close_time, monte_carlo_p_value] = row
-        string = string + "{0}\t{1}\t{2}\t{3}\t{4}\t{5}\t{6}\t{7}\n".format(date, lat, long, num_birds, close_pairs, close_time, close_space, monte_carlo_p_value)
-    return string
-
-
-def init_dbf_out(filename):
-    dbfn = dbf.Dbf(filename, new=True)
-    dbfn.addField(
-        ("LAT",'N',8,0),
-        ("LONG",'N',8,0),
-        ("COUNTY",'N',3,0),
-        ("RISK",'N',1,0),
-        ("DISP_VAL",'N',8,6),
-        ("RISK_DATE",'D',8)
-    )
-
-    # TODO: make this an object
-    return dbfn
-
-def write_rows_to_dbf(dbfn, rows):
-    for row in rows:
-        [date, lat, long, num_birds, close_pairs, close_space, close_time, monte_carlo_p_value] = row
-        rec = dbfn.newRecord()
-        
-        rec['LAT'] = lat
-        rec['LONG'] = long
-        if nmcm > 0:
-            rec['RISK'] = 1
-        else:
-            rec['RISK'] = 0
-        rec['DISP_VAL'] = nmcm
-        rec['DATE'] = (int(date.strftime("%Y")), int(date.strftime("%m")), int(date.strftime("%d")))
-
-        rec.store()
-
-def dbf_close(dbfn):
-    dbfn.close()
-
-##########################################################################
-# functions for uploading and downloading files:
-##########################################################################
-
-# The outbox functions are based on the Maildir directory structure.
-# The use of /tmp/ allows to spend a lot of time writing to the file,
-# if necessary, and then atomically move it to a /new/ directory, where
-# other scripts can find it.  In this way, the /new/ directory will never
-# include incomplete files that are still being written.
-
-def outbox_tmp_to_new(outboxpath, filename):
-    shutil.move(outboxpath + "/tmp/" + filename, outboxpath + "/new/" + filename)
-
-def outbox_new_to_cur(outboxpath, filename):
-    shutil.move(outboxpath + "/new/" + filename, outboxpath + "/cur/" + filename)
-
-def backup_birds():
-    (stripped_file, ext) = os.path.splitext(dead_birds_filename)
-    new_file = stripped_file + "_" + datetime.date.today().strftime("%Y-%m-%d") + ".tsv"
-    shutil.copyfile(dead_birds_dir + dead_birds_filename, dead_birds_dir + new_file)
-
-def load_case_file(user_coordinate_system, filename = None):
-    if filename == None:
-        filename = dead_birds_dir + os.sep + dead_birds_filename
-    lines_read = 0
-    lines_processed = 0
-    lines_loaded = 0
-    lines_skipped = 0
-    location_type = ""
-
-    try:
-        input_file = file_service.read_file(filename)
-    except Exception, e:
-        logging.error(e)
-        sys.exit(1)
-
-    for line_number, line in enumerate(input_file):
-        if line_number == 0:
-            header_count = line.count("\t") + 1
-            if header_count == 5:
-                location_type = enums.Location_type.LAT_LONG
-            elif header_count == 4:
-                location_type = enums.Location_type.GEOMETRY
-            else:
-                logging.error("Incorrect column count: %s, exiting...", header_count)
-                sys.exit(1)
-        else:
-            lines_read += 1
-            result = 0
-            result = load_case(line, location_type, user_coordinate_system)
-
-            # If result is a bird ID or -1 (meaning duplicate) then:
-            if result:
-                lines_processed += 1
-                if result == -1:
-                    lines_skipped += 1
-                else:
-                    lines_loaded += 1
-            else:
-                logging.error("No result after loading case: ")
-                logging.error(line)
-
-    logging.info("Case load complete: %s", filename)
-    logging.info("Processed %s of %s lines, %s loaded, %s duplicate IDs skipped", lines_processed, lines_read, lines_loaded, lines_skipped)
-    return lines_read, lines_processed, lines_loaded, lines_skipped
-
-
+class Dycast(DycastImport, DycastExport):
+    def __init__(self, args):
+        super(Dycast, self).__init__()
 
 
 ##########################################################################
-# functions for generating risk:
+# Main functions:
 ##########################################################################
 
-def setup_tmp_daily_case_table_for_date(tmp_daily_case_table_name, riskdate, days_prev):
-    enddate = riskdate
-    startdate = riskdate - datetime.timedelta(days=(days_prev))
-    querystring = "TRUNCATE " + tmp_daily_case_table_name + "; INSERT INTO " + tmp_daily_case_table_name + " SELECT * from " + dead_birds_table_projected + " where report_date >= %s and report_date <= %s"
-    try:
-        cur.execute(querystring, (startdate, enddate))
-    except Exception as e:
-        conn.rollback()
-        logging.error("Something went wrong when setting up tmp_daily_case_selection table: " + str(riskdate))
-        logging.error(e)
-        raise
-    conn.commit()
-
-def get_daily_case_count(tmp_daily_case_table_name):
-    query = "SELECT COUNT(*) FROM {0}".format(tmp_daily_case_table_name)
-    try:
-        cur.execute(query)
-    except Exception as e:
-        conn.rollback()
-        logging.error("Something went wrong when getting count from tmp_daily_case_selection table: " + str(riskdate))
-        logging.error(e)
-        raise
-    result_count = cur.fetchone()
-    return result_count[0]
-
-def get_vector_count_for_point(table_name, point):
-    querystring = "SELECT count(*) from \"" + table_name + "\" a where st_distance(a.location,ST_GeomFromText('POINT(%s %s)',%s)) < %s" 
-    try:
-        cur.execute(querystring, (point.x, point.y, system_coordinate_system, sd))
-    except Exception as e:
-        conn.rollback()
-        logging.error("Can't select vector count")
-        logging.error(e)
-        sys.exit()
-    new_row = cur.fetchone()
-    return new_row[0]
-
-def insert_cases_in_cluster_table(tmp_cluster_table_name, tmp_daily_case_table_name, point):
-    querystring = "TRUNCATE " + tmp_cluster_table_name + "; INSERT INTO " + tmp_cluster_table_name + " SELECT * from " + tmp_daily_case_table_name + " a where st_distance(a.location,ST_GeomFromText('POINT(%s %s)',%s)) < %s"
-    try:
-        cur.execute(querystring, (point.x, point.y, system_coordinate_system, sd))
-    except Exception, inst:
-        conn.rollback()
-        logging.error("Something went wrong at point: " + str(point))
-        logging.error(inst)
-        sys.exit(1)
-    conn.commit()
-
-def cst_cs_ct_wrapper():
-    querystring = "SELECT * FROM cst_cs_ct(%s, %s)"
-    try:
-        cur.execute(querystring, (cs, ct))
-    except Exception, inst:
-        conn.rollback()
-        logging.error("can't select cst_cs_ct function")
-        logging.error(inst)
-        sys.exit()
-    return cur.fetchall()
-
-def nmcm_wrapper(num_birds, close_pairs, close_space, close_time):
-    querystring = "SELECT * FROM nmcm(%s, %s, %s, %s)"
-    try:
-        cur.execute(querystring, (num_birds, close_pairs, close_space, close_time))
-    except Exception, inst:
-        conn.rollback()
-        logging.error("can't select nmcm function")
-        logging.error(inst)
-        sys.exit()
-    return cur.fetchall()
-
-def insert_result(riskdate, latitude, longitude, num_birds, close_pairs, close_time, close_space, nmcm):
-    querystring = "INSERT INTO risk (risk_date, lat, long, num_birds, close_pairs, close_space, close_time, nmcm) VALUES (%s, %s, %s, %s, %s, %s, %s, %s)"
-    try:
-        # Be careful of the ordering of space and time in the db vs the txt file
-        cur.execute(querystring, (riskdate, latitude, longitude, num_birds, close_pairs, close_space, close_time, nmcm))
-    except Exception, inst:
-        conn.rollback()
-        logging.error("couldn't insert effects_poly risk")
-        logging.error(inst)
-        return 0
-    conn.commit()
+def run_dycast(**kwargs):
+    raise NotImplementedError
+#     load_case_files()
+#     daily_risk()
+#     export_risk()
 
 
-def daily_risk(startdate, enddate, user_coordinate_system, extent_min_x, extent_min_y, extent_max_x, extent_max_y):
-    logging_service.show_current_parameter_set()
+def import_cases(**kwargs):
     
-    gridpoints = grid_service.generate_grid(user_coordinate_system, system_coordinate_system, extent_min_x, extent_min_y, extent_max_x, extent_max_y)
+    dycast_import = DycastImport(**kwargs)
+    dycast_import.import_cases()
 
-    day = startdate
-    delta = datetime.timedelta(days=1)
 
-    while day <= enddate:
+def generate_risk(**kwargs):
 
-        setup_tmp_daily_case_table_for_date(tmp_daily_case_table, day, td)
-        daily_case_count = get_daily_case_count(tmp_daily_case_table)
+    dycast_risk = DycastRisk(**kwargs)
+    dycast_risk.generate_risk()
 
-        if daily_case_count >= threshold:
-            st = time.time()
-            logging.info("Starting daily_risk for {0}".format(day))
-            points_above_threshold = 0
 
-            for point in gridpoints:
-                vector_count = get_vector_count_for_point(tmp_daily_case_table, point)
-                if vector_count >= threshold:
-                    points_above_threshold += 1
-                    insert_cases_in_cluster_table(tmp_cluster_per_point_selection_table, tmp_daily_case_table, point)
-                    results = cst_cs_ct_wrapper()
-                    close_pairs = results[0][0]
-                    close_space = results[1][0] - close_pairs
-                    close_time = results[2][0] - close_pairs
-                    result2 = nmcm_wrapper(vector_count, close_pairs, close_space, close_time)
-                    insert_result(day, point.x, point.y, vector_count, close_pairs, close_time, close_space, result2[0][0])
+def export_risk(**kwargs):
 
-            logging.info("Finished daily_risk for {0}: done {1} points".format(day, len(gridpoints)))
-            logging.info("Total points above threshold of {0}: {1}".format(threshold, points_above_threshold))
-            logging.info("Time elapsed: {:.0f} seconds".format(time.time() - st))
-        else:
-            logging.info("Amount of cases for {0} lower than threshold {1}: {2}, skipping.".format(day, threshold, daily_case_count))
+    dycast_export = DycastExport(**kwargs)
+    dycast_export.export_risk()
 
-        day += delta
-    
-##########################################################################
-##########################################################################
+
+def listen_for_input(**kwargs):
+    raise NotImplementedError
