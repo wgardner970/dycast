@@ -7,6 +7,7 @@ import sys
 import os
 import inspect
 import logging
+import datetime
 
 from services import debug_service
 from services import logging_service
@@ -48,8 +49,9 @@ class DycastImport(DycastBase):
         super(DycastImport, self).__init__(**kwargs)
 
         self.srid_of_cases = kwargs.get('srid_cases')
-        print self.srid_of_cases             
-        self.dead_birds_dir = kwargs.get('import_directory', CONFIG.get("system", "import_directory"))
+        print self.srid_of_cases
+        self.dead_birds_dir = kwargs.get(
+            'import_directory', CONFIG.get("system", "import_directory"))
 
         self.files_to_import = kwargs.get('files')
 
@@ -58,7 +60,8 @@ class DycastImport(DycastBase):
             logging.info("Loading files: %s", self.files_to_import)
             import_service.load_case_files(self)
         else:
-            logging.info("Loading files from import path: %s", self.dead_birds_dir)
+            logging.info("Loading files from import path: %s",
+                         self.dead_birds_dir)
             raise NotImplementedError
 
         logging.info("Done loading cases")
@@ -69,10 +72,10 @@ class DycastImport(DycastBase):
 
 class DycastExport(DycastBase):
 
-    def __init__(self, args):
-        super(DycastExport, self).__init__()
-        self._risk_file_dir = args.export_directory or CONFIG.get(
-            "system", "export_directory")
+    def __init__(self, **kwargs):
+        super(DycastExport, self).__init__(**kwargs)
+        self._risk_file_dir = kwargs.get(
+            'export_directory', CONFIG.get("system", "export_directory"))
 
     def export_risk(self):
         raise NotImplementedError
@@ -80,16 +83,25 @@ class DycastExport(DycastBase):
 
 class DycastRisk(DycastBase):
 
-    def __init__(self, args):
-        super(DycastRisk, self).__init__()
-        self._sd = float(args.spatial_domain)
-        self._cs = float(args.close_in_space)
-        self._ct = int(args.close_in_time)
-        self._td = int(args.temporal_domain)
-        self._threshold = int(args.case_threshold)
+    def __init__(self, **kwargs):
+        super(DycastRisk, self).__init__(**kwargs)
+        self.spatial_domain = float(kwargs.get('spatial_domain'))
+        self.temporal_domain = int(kwargs.get('temporal_domain'))
+        self.close_in_space = float(kwargs.get('close_in_space'))
+        self.close_in_time = int(kwargs.get('close_in_time'))
+        self.case_threshold = int(kwargs.get('case_threshold'))
 
-        self._tmp_daily_case_table = database_service.get_tmp_daily_case_table_name()
-        self._tmp_cluster_per_point_selection_table = database_service.get_tmp_cluster_per_point_table_name()
+        self.startdate = kwargs.get('startdate', datetime.date.today())
+        self.enddate = kwargs.get('enddate', self.startdate)
+
+        self.extent_min_x = kwargs.get('extent-min-x')
+        self.extent_min_y = kwargs.get('extent-min-y')
+        self.extent_max_x = kwargs.get('extent-max-x')
+        self.extent_max_y = kwargs.get('extent-max-y')
+        self.srid_extent = kwargs.get('srid-extent')
+
+        self.tmp_daily_case_table = database_service.get_tmp_daily_case_table_name()
+        self.tmp_cluster_per_point_selection_table = database_service.get_tmp_cluster_per_point_table_name()
 
     def generate_risk(self):
         raise NotImplementedError
@@ -112,7 +124,7 @@ def run_dycast(**kwargs):
 
 
 def import_cases(**kwargs):
-    
+
     dycast_import = DycastImport(**kwargs)
     dycast_import.import_cases()
 

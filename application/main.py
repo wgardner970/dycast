@@ -1,9 +1,23 @@
+import logging
+import sys
+import datetime
 import configargparse
 import dycast
 from services import logging_service
 from services import config_service
 
 logging_service.init_logging()
+
+
+def valid_date(date_string):
+    if date_string == "today":
+        return datetime.date.today().strptime(date_string, "%Y-%m-%d")
+    try:
+        return datetime.datetime.strptime(date_string, "%Y-%m-%d")
+    except ValueError, e:
+        logging.error("Invalid date format: {0}".format(date_string))
+        logging.error(e)
+        sys.exit(1)
 
 
 def create_parser():
@@ -64,44 +78,65 @@ def create_parser():
     for subparser in [generate_risk_parser, run_dycast_parser]:
         subparser.add('--startdate', '-s',
                       env_var='START_DATE',
-                      help='The start date from which to generate risk')
+                      type=valid_date,
+                      default='today',
+                      help='Default: today. The start date from which to generate risk. Format: YYYY-MM-DD. Also accepts "today" as input')
         subparser.add('--enddate', '-e',
                       env_var='END_DATE',
-                      help='The end date to which to generate risk')
+                      type=valid_date,
+                      help='Default: same as start date. The end date to which to generate risk. Format: YYYY-MM-DD')
         subparser.add('--extent-min-x',
                       env_var='EXTENT_MIN_X',
+                      required=True,
                       help='The minimum point on the X axis (north-west)')
         subparser.add('--extent-min-y',
                       env_var='EXTENT_MIN_Y',
+                      required=True,
                       help='The minimum point on the Y axis (north-west)')
         subparser.add('--extent-max-x',
                       env_var='EXTENT_MAX_X',
+                      required=True,
                       help='The maximum point on the X axis (south-east)')
         subparser.add('--extent-max-y',
                       env_var='EXTENT_MAX_Y',
+                      required=True,
                       help='The maximum point on the Y axis (south-east)')
         subparser.add('--srid-extent',
                       env_var='SRID_EXTENT',
+                      required=True,
                       help='The SRID (projection) of the specified extent.')
-        subparser.add('--spatial-domain', env_var='SPATIAL_DOMAIN',
+        subparser.add('--spatial-domain',
+                      env_var='SPATIAL_DOMAIN',
+                      default='800',
                       help='Spatial domain used in Dycast risk generation and statistical analysis')
-        subparser.add('--temporal-domain', env_var='TEMPORAL_DOMAIN',
+        subparser.add('--temporal-domain',
+                      env_var='TEMPORAL_DOMAIN',
+                      default='28',
                       help='Temporal domain used in Dycast risk generation and statistical analysis')
-        subparser.add('--close-in-space', env_var='CLOSE_SPACE',
+        subparser.add('--close-in-space',
+                      env_var='CLOSE_SPACE',
+                      default='200',
                       help='The amount of meters between two cases that is considered "close in space" in Dycast risk generation and statistical analysis')
-        subparser.add('--close-in-time', env_var='CLOSE_TIME',
+        subparser.add('--close-in-time',
+                      env_var='CLOSE_TIME',
+                      default='4',
                       help='The amount of days between two cases that is considered "close in time" in Dycast risk generation and statistical analysis')
-        subparser.add('--case-threshold', env_var='CASE_THRESHOLD',
+        subparser.add('--case-threshold',
+                      env_var='CASE_THRESHOLD',
+                      default='10',
                       help='Spatial domain used in Dycast risk generation and statistical analysis')
 
     # Common arguments: export_risk & run_dycast
     for subparser in [export_risk_parser, run_dycast_parser]:
-        subparser.add('--export-directory', env_var='EXPORT_DIRECTORY',
+        subparser.add('--export-directory',
+                      env_var='EXPORT_DIRECTORY',
                       help='Optional. Default is defined in dycast.config')
         subparser.add('--export-format',
-                      env_var='EXPORT_FORMAT', default='txt')
+                      env_var='EXPORT_FORMAT',
+                      default='txt')
         subparser.add('--export-prefix',
-                      env_var='EXPORT_PREFIX', help='Set a prefix for the output file so that it is easy to recognize')
+                      env_var='EXPORT_PREFIX',
+                      help='Set a prefix for the output file so that it is easy to recognize')
 
     return main_parser
 
@@ -111,6 +146,8 @@ def main():
     args = parser.parse_args()
 
     dictionary_args = vars(args)
+
+    config_service.init_config(dictionary_args.get('config'))
 
     if args.func:
         args.func(**dictionary_args)
