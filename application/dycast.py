@@ -6,21 +6,8 @@
 import sys
 import os
 import inspect
-
-APPLICATION_ROOT = os.path.dirname(
-    os.path.abspath(inspect.getfile(inspect.currentframe())))
-lib_dir = os.path.join(APPLICATION_ROOT, 'libs')
-sys.path.append(lib_dir)
-sys.path.append(os.path.join(lib_dir, "psycopg2"))
-sys.path.append(os.path.join(lib_dir, "dbfpy"))
-
-import shutil
-import datetime
-import time
-from time import gmtime, strftime
-import fileinput
-import ConfigParser
 import logging
+
 from services import debug_service
 from services import logging_service
 from services import config_service
@@ -31,6 +18,15 @@ from services import database_service
 from services import import_service
 # from services import export_service
 from models.enums import enums
+
+
+APPLICATION_ROOT = os.path.dirname(
+    os.path.abspath(inspect.getfile(inspect.currentframe())))
+lib_dir = os.path.join(APPLICATION_ROOT, 'libs')
+sys.path.append(lib_dir)
+sys.path.append(os.path.join(lib_dir, "psycopg2"))
+sys.path.append(os.path.join(lib_dir, "dbfpy"))
+
 
 debug_service.enable_debugger()
 

@@ -18,7 +18,8 @@ services:
         - CASE_THRESHOLD=
         - START_DATE=
         - END_DATE=
-        - SRID=
+        - SRID_CASES=3857
+        - SRID_EXTENT=3857
         - EXTENT_MIN_X=
         - EXTENT_MIN_Y=
         - EXTENT_MAX_X=

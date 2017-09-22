@@ -1,8 +1,49 @@
-
+import logging_service
+import datetime
+import time
 
 ##########################################################################
 # functions for generating risk:
 ##########################################################################
+
+def generate_risk(startdate, enddate, user_coordinate_system, extent_min_x, extent_min_y, extent_max_x, extent_max_y):
+    logging_service.show_current_parameter_set()
+    
+    gridpoints = grid_service.generate_grid(user_coordinate_system, system_coordinate_system, extent_min_x, extent_min_y, extent_max_x, extent_max_y)
+
+    day = startdate
+    delta = datetime.timedelta(days=1)
+
+    while day <= enddate:
+
+        setup_tmp_daily_case_table_for_date(tmp_daily_case_table, day, td)
+        daily_case_count = get_daily_case_count(tmp_daily_case_table)
+
+        if daily_case_count >= threshold:
+            st = time.time()
+            logging.info("Starting daily_risk for {0}".format(day))
+            points_above_threshold = 0
+
+            for point in gridpoints:
+                vector_count = get_vector_count_for_point(tmp_daily_case_table, point)
+                if vector_count >= threshold:
+                    points_above_threshold += 1
+                    insert_cases_in_cluster_table(tmp_cluster_per_point_selection_table, tmp_daily_case_table, point)
+                    results = cst_cs_ct_wrapper()
+                    close_pairs = results[0][0]
+                    close_space = results[1][0] - close_pairs
+                    close_time = results[2][0] - close_pairs
+                    result2 = nmcm_wrapper(vector_count, close_pairs, close_space, close_time)
+                    insert_result(day, point.x, point.y, vector_count, close_pairs, close_time, close_space, result2[0][0])
+
+            logging.info("Finished daily_risk for {0}: done {1} points".format(day, len(gridpoints)))
+            logging.info("Total points above threshold of {0}: {1}".format(threshold, points_above_threshold))
+            logging.info("Time elapsed: {:.0f} seconds".format(time.time() - st))
+        else:
+            logging.info("Amount of cases for {0} lower than threshold {1}: {2}, skipping.".format(day, threshold, daily_case_count))
+
+        day += delta
+
 
 def setup_tmp_daily_case_table_for_date(tmp_daily_case_table_name, riskdate, days_prev):
     enddate = riskdate
@@ -87,43 +128,7 @@ def insert_result(riskdate, latitude, longitude, num_birds, close_pairs, close_t
     conn.commit()
 
 
-def daily_risk(startdate, enddate, user_coordinate_system, extent_min_x, extent_min_y, extent_max_x, extent_max_y):
-    logging_service.show_current_parameter_set()
-    
-    gridpoints = grid_service.generate_grid(user_coordinate_system, system_coordinate_system, extent_min_x, extent_min_y, extent_max_x, extent_max_y)
 
-    day = startdate
-    delta = datetime.timedelta(days=1)
-
-    while day <= enddate:
-
-        setup_tmp_daily_case_table_for_date(tmp_daily_case_table, day, td)
-        daily_case_count = get_daily_case_count(tmp_daily_case_table)
-
-        if daily_case_count >= threshold:
-            st = time.time()
-            logging.info("Starting daily_risk for {0}".format(day))
-            points_above_threshold = 0
-
-            for point in gridpoints:
-                vector_count = get_vector_count_for_point(tmp_daily_case_table, point)
-                if vector_count >= threshold:
-                    points_above_threshold += 1
-                    insert_cases_in_cluster_table(tmp_cluster_per_point_selection_table, tmp_daily_case_table, point)
-                    results = cst_cs_ct_wrapper()
-                    close_pairs = results[0][0]
-                    close_space = results[1][0] - close_pairs
-                    close_time = results[2][0] - close_pairs
-                    result2 = nmcm_wrapper(vector_count, close_pairs, close_space, close_time)
-                    insert_result(day, point.x, point.y, vector_count, close_pairs, close_time, close_space, result2[0][0])
-
-            logging.info("Finished daily_risk for {0}: done {1} points".format(day, len(gridpoints)))
-            logging.info("Total points above threshold of {0}: {1}".format(threshold, points_above_threshold))
-            logging.info("Time elapsed: {:.0f} seconds".format(time.time() - st))
-        else:
-            logging.info("Amount of cases for {0} lower than threshold {1}: {2}, skipping.".format(day, threshold, daily_case_count))
-
-        day += delta
 
 ##########################################################################
 ##########################################################################
