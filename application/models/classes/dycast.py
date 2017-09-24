@@ -36,7 +36,6 @@ class Dycast(object):
     def __init__(self, **kwargs):
         self.cur = None
         self.conn = None
-        self.case_table_name = None
 
         self.srid_of_cases = None
         self.dead_birds_dir = None
@@ -58,9 +57,6 @@ class Dycast(object):
         self.extent_max_x = None
         self.extent_max_y = None
         self.srid_of_extent = None
-
-        self.tmp_daily_case_table = None
-        self.tmp_cluster_per_point_selection_table = None
 
         for (key, value) in kwargs.iteritems():
             if hasattr(self, key):

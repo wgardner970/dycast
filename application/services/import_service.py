@@ -13,19 +13,19 @@ CONFIG = config_service.get_config()
 ##########################################################################
 
 
-def load_case_files(dycast_import):
+def load_case_files(dycast):
     system_coordinate_system = CONFIG.get("dycast", "system_coordinate_system")
-    for filepath in dycast_import.files_to_import:
+    for filepath in dycast.files_to_import:
         try:
             logging.info("Loading file: %s", filepath)
-            load_case_file(filepath, dycast_import, system_coordinate_system)
+            load_case_file(filepath, dycast, system_coordinate_system)
         except Exception, e:
             logging.error("Could not load file: %s", filepath)
             logging.error(e)
             logging.error("Continuing...")
 
 
-def load_case_file(filename, dycast_import, system_coordinate_system):
+def load_case_file(filename, dycast, system_coordinate_system):
     lines_read = 0
     lines_processed = 0
     lines_loaded = 0
@@ -53,7 +53,7 @@ def load_case_file(filename, dycast_import, system_coordinate_system):
             lines_read += 1
             result = 0
             try:
-                result = load_case(line, location_type, dycast_import, system_coordinate_system)
+                result = load_case(line, location_type, dycast, system_coordinate_system)
             except Exception, e:
                 raise
 
@@ -74,11 +74,11 @@ def load_case_file(filename, dycast_import, system_coordinate_system):
     return lines_read, lines_processed, lines_loaded, lines_skipped
 
 
-def load_case(line, location_type, dycast_import, system_coordinate_system):
-    dead_birds_table_projected = dycast_import.case_table_name
-    user_coordinate_system = dycast_import.srid_of_cases
-    cur = dycast_import.cur
-    conn = dycast_import.conn
+def load_case(line, location_type, dycast, system_coordinate_system):
+    dead_birds_table_projected = CONFIG.get("database", "dead_birds_table_projected")
+    user_coordinate_system = dycast.srid_of_cases
+    cur = dycast.cur
+    conn = dycast.conn
 
     if location_type not in (enums.Location_type.LAT_LONG, enums.Location_type.GEOMETRY):
         logging.error("Wrong value for 'location_type', exiting...")

@@ -2,19 +2,28 @@ import logging_service
 import datetime
 import time
 
+from application.services import grid_service
+
+
+CONFIG = config_service.get_config()
+
+
 ##########################################################################
 # functions for generating risk:
 ##########################################################################
 
-def generate_risk(startdate, enddate, user_coordinate_system, extent_min_x, extent_min_y, extent_max_x, extent_max_y):
+def generate_risk(dycast):
+    tmp_daily_case_table = CONFIG.get("database", "tmp_daily_case_table")
+    tmp_cluster_per_point_selection_table = CONFIG.get("database", "tmp_cluster_per_point_selection_table")
+    
     logging_service.show_current_parameter_set()
     
-    gridpoints = grid_service.generate_grid(user_coordinate_system, system_coordinate_system, extent_min_x, extent_min_y, extent_max_x, extent_max_y)
+    gridpoints = grid_service.generate_grid(dycast.user_coordinate_system, dycast.extent_min_x, dycast.extent_min_y, dycast.extent_max_x, dycast.extent_max_y)
 
-    day = startdate
+    day = dycast.startdate
     delta = datetime.timedelta(days=1)
 
-    while day <= enddate:
+    while day <= dycast.enddate:
 
         setup_tmp_daily_case_table_for_date(tmp_daily_case_table, day, td)
         daily_case_count = get_daily_case_count(tmp_daily_case_table)

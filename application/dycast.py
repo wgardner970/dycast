@@ -165,7 +165,6 @@ def import_cases(**kwargs):
     dycast = dycast_class.Dycast()
 
     dycast.cur, dycast.conn = database_service.init_db()
-    dycast.case_table_name = database_service.get_case_table_name()
     dycast.srid_of_cases = kwargs.get('srid_cases')
     dycast.dead_birds_dir = kwargs.get(
         'import_directory', CONFIG.get("system", "import_directory"))
@@ -194,9 +193,6 @@ def generate_risk(**kwargs):
     dycast.extent_max_x = kwargs.get('extent-max-x')
     dycast.extent_max_y = kwargs.get('extent-max-y')
     dycast.srid_of_extent = kwargs.get('srid-extent')
-
-    dycast.tmp_daily_case_table = database_service.get_tmp_daily_case_table_name()
-    dycast.tmp_cluster_per_point_selection_table = database_service.get_tmp_cluster_per_point_table_name()
 
     dycast.generate_risk()
 

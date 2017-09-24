@@ -2,8 +2,14 @@ import shapely.geometry
 import pyproj
 import logging
 
+from application.services import config_service
+
+CONFIG = config_service.get_config()
+
+
 # Returns a raster grid with points in the coordinate system specified in global setting 'system_coordinate_system'
-def generate_grid(user_coordinate_system, system_coordinate_system, extent_min_x, extent_min_y, extent_max_x, extent_max_y):
+def generate_grid(user_coordinate_system, extent_min_x, extent_min_y, extent_max_x, extent_max_y):
+    system_coordinate_system = CONFIG.get("dycast", "system_coordinate_system")
     # Set up projections
     projection_user_defined = pyproj.Proj(init="epsg:%s" % user_coordinate_system)
     projection_metric = pyproj.Proj(init='epsg:3857')  # metric; same as EPSG:900913
