@@ -37,23 +37,24 @@ CONFIG = config_service.get_config()
 
 class DycastBase(object):
 
-    def __init__(self, **args):
-        self.cur, self.conn = database_service.init_db()
+    def __init__(self, **kwargs):
+        self.cur = None
+        self.conn = None
+        self.case_table_name = None
 
-        self.case_table_name = database_service.get_case_table_name()
+        for (key, value) in kwargs.iteritems():
+            if hasattr(self, key):
+                setattr(self, key, value)
 
 
 class DycastImport(DycastBase):
 
     def __init__(self, **kwargs):
+        self.srid_of_cases = None
+        self.dead_birds_dir = None
+        self.files_to_import = None
+
         super(DycastImport, self).__init__(**kwargs)
-
-        self.srid_of_cases = kwargs.get('srid_cases')
-        print self.srid_of_cases
-        self.dead_birds_dir = kwargs.get(
-            'import_directory', CONFIG.get("system", "import_directory"))
-
-        self.files_to_import = kwargs.get('files')
 
     def import_cases(self):
         if self.files_to_import:
@@ -73,9 +74,11 @@ class DycastImport(DycastBase):
 class DycastExport(DycastBase):
 
     def __init__(self, **kwargs):
+        self.risk_file_dir = None
+        self.startdate = None
+        self.enddate = None
+
         super(DycastExport, self).__init__(**kwargs)
-        self._risk_file_dir = kwargs.get(
-            'export_directory', CONFIG.get("system", "export_directory"))
 
     def export_risk(self):
         raise NotImplementedError
@@ -84,31 +87,32 @@ class DycastExport(DycastBase):
 class DycastRisk(DycastBase):
 
     def __init__(self, **kwargs):
+        self.spatial_domain = None
+        self.temporal_domain = None
+        self.close_in_space = None
+        self.close_in_time = None
+        self.case_threshold = None
+
+        self.startdate = None
+        self.enddate = None
+
+        self.extent_min_x = None
+        self.extent_min_y = None
+        self.extent_max_x = None
+        self.extent_max_y = None
+        self.srid_of_extent = None
+
+        self.tmp_daily_case_table = None
+        self.tmp_cluster_per_point_selection_table = None
+
         super(DycastRisk, self).__init__(**kwargs)
-        self.spatial_domain = float(kwargs.get('spatial_domain'))
-        self.temporal_domain = int(kwargs.get('temporal_domain'))
-        self.close_in_space = float(kwargs.get('close_in_space'))
-        self.close_in_time = int(kwargs.get('close_in_time'))
-        self.case_threshold = int(kwargs.get('case_threshold'))
-
-        self.startdate = kwargs.get('startdate', datetime.date.today())
-        self.enddate = kwargs.get('enddate', self.startdate)
-
-        self.extent_min_x = kwargs.get('extent-min-x')
-        self.extent_min_y = kwargs.get('extent-min-y')
-        self.extent_max_x = kwargs.get('extent-max-x')
-        self.extent_max_y = kwargs.get('extent-max-y')
-        self.srid_extent = kwargs.get('srid-extent')
-
-        self.tmp_daily_case_table = database_service.get_tmp_daily_case_table_name()
-        self.tmp_cluster_per_point_selection_table = database_service.get_tmp_cluster_per_point_table_name()
 
     def generate_risk(self):
         raise NotImplementedError
 
 
 class Dycast(DycastImport, DycastExport):
-    def __init__(self, args):
+    def __init__(self, **kwargs):
         super(Dycast, self).__init__()
 
 
@@ -125,19 +129,56 @@ def run_dycast(**kwargs):
 
 def import_cases(**kwargs):
 
-    dycast_import = DycastImport(**kwargs)
+    dycast_import = DycastImport()
+
+    dycast_import.cur, dycast_import.conn = database_service.init_db()
+    dycast_import.case_table_name = database_service.get_case_table_name()
+    dycast_import.srid_of_cases = kwargs.get('srid_cases')
+    dycast_import.dead_birds_dir = kwargs.get(
+        'import_directory', CONFIG.get("system", "import_directory"))
+    dycast_import.files_to_import = kwargs.get('files')
+
     dycast_import.import_cases()
 
 
 def generate_risk(**kwargs):
 
-    dycast_risk = DycastRisk(**kwargs)
+    dycast_risk = DycastRisk()
+
+    dycast_risk.cur, dycast_risk.conn = database_service.init_db()
+
+    dycast_risk.spatial_domain = float(kwargs.get('spatial_domain'))
+    dycast_risk.temporal_domain = int(kwargs.get('temporal_domain'))
+    dycast_risk.close_in_space = float(kwargs.get('close_in_space'))
+    dycast_risk.close_in_time = int(kwargs.get('close_in_time'))
+    dycast_risk.case_threshold = int(kwargs.get('case_threshold'))
+
+    dycast_risk.startdate = kwargs.get('startdate', datetime.date.today())
+    dycast_risk.enddate = kwargs.get('enddate', dycast_risk.startdate)
+
+    dycast_risk.extent_min_x = kwargs.get('extent-min-x')
+    dycast_risk.extent_min_y = kwargs.get('extent-min-y')
+    dycast_risk.extent_max_x = kwargs.get('extent-max-x')
+    dycast_risk.extent_max_y = kwargs.get('extent-max-y')
+    dycast_risk.srid_of_extent = kwargs.get('srid-extent')
+
+    dycast_risk.tmp_daily_case_table = database_service.get_tmp_daily_case_table_name()
+    dycast_risk.tmp_cluster_per_point_selection_table = database_service.get_tmp_cluster_per_point_table_name()
+
     dycast_risk.generate_risk()
 
 
 def export_risk(**kwargs):
 
-    dycast_export = DycastExport(**kwargs)
+    dycast_export = DycastExport()
+
+    dycast_export.cur, dycast_export.conn = database_service.init_db()
+
+    dycast_export.risk_file_dir = kwargs.get(
+        'export_directory', CONFIG.get("system", "export_directory"))
+    dycast_export.startdate = kwargs.get('startdate', datetime.date.today())
+    dycast_export.enddate = kwargs.get('enddate', dycast_export.startdate)
+
     dycast_export.export_risk()
 
 
