@@ -2,11 +2,11 @@ import logging
 import sys
 import datetime
 import configargparse
-from models.classes import dycast
-from services import logging_service
-from services import config_service
-from services import database_service
-from services import debug_service
+from application.models.classes import dycast as dycast_class
+from application.services import logging_service
+from application.services import config_service
+from application.services import database_service
+from application.services import debug_service
 
 
 debug_service.enable_debugger()
@@ -162,57 +162,57 @@ def run_dycast(**kwargs):
 
 def import_cases(**kwargs):
 
-    dycast_import = dycast.Dycast()
+    dycast = dycast_class.Dycast()
 
-    dycast_import.cur, dycast_import.conn = database_service.init_db()
-    dycast_import.case_table_name = database_service.get_case_table_name()
-    dycast_import.srid_of_cases = kwargs.get('srid_cases')
-    dycast_import.dead_birds_dir = kwargs.get(
+    dycast.cur, dycast.conn = database_service.init_db()
+    dycast.case_table_name = database_service.get_case_table_name()
+    dycast.srid_of_cases = kwargs.get('srid_cases')
+    dycast.dead_birds_dir = kwargs.get(
         'import_directory', CONFIG.get("system", "import_directory"))
-    dycast_import.files_to_import = kwargs.get('files')
+    dycast.files_to_import = kwargs.get('files')
 
-    dycast_import.import_cases()
+    dycast.import_cases()
 
 
 def generate_risk(**kwargs):
 
-    dycast_risk = dycast.Dycast()
+    dycast = dycast_class.Dycast()
 
-    dycast_risk.cur, dycast_risk.conn = database_service.init_db()
+    dycast.cur, dycast.conn = database_service.init_db()
 
-    dycast_risk.spatial_domain = float(kwargs.get('spatial_domain'))
-    dycast_risk.temporal_domain = int(kwargs.get('temporal_domain'))
-    dycast_risk.close_in_space = float(kwargs.get('close_in_space'))
-    dycast_risk.close_in_time = int(kwargs.get('close_in_time'))
-    dycast_risk.case_threshold = int(kwargs.get('case_threshold'))
+    dycast.spatial_domain = float(kwargs.get('spatial_domain'))
+    dycast.temporal_domain = int(kwargs.get('temporal_domain'))
+    dycast.close_in_space = float(kwargs.get('close_in_space'))
+    dycast.close_in_time = int(kwargs.get('close_in_time'))
+    dycast.case_threshold = int(kwargs.get('case_threshold'))
 
-    dycast_risk.startdate = kwargs.get('startdate', datetime.date.today())
-    dycast_risk.enddate = kwargs.get('enddate', dycast_risk.startdate)
+    dycast.startdate = kwargs.get('startdate', datetime.date.today())
+    dycast.enddate = kwargs.get('enddate', dycast.startdate)
 
-    dycast_risk.extent_min_x = kwargs.get('extent-min-x')
-    dycast_risk.extent_min_y = kwargs.get('extent-min-y')
-    dycast_risk.extent_max_x = kwargs.get('extent-max-x')
-    dycast_risk.extent_max_y = kwargs.get('extent-max-y')
-    dycast_risk.srid_of_extent = kwargs.get('srid-extent')
+    dycast.extent_min_x = kwargs.get('extent-min-x')
+    dycast.extent_min_y = kwargs.get('extent-min-y')
+    dycast.extent_max_x = kwargs.get('extent-max-x')
+    dycast.extent_max_y = kwargs.get('extent-max-y')
+    dycast.srid_of_extent = kwargs.get('srid-extent')
 
-    dycast_risk.tmp_daily_case_table = database_service.get_tmp_daily_case_table_name()
-    dycast_risk.tmp_cluster_per_point_selection_table = database_service.get_tmp_cluster_per_point_table_name()
+    dycast.tmp_daily_case_table = database_service.get_tmp_daily_case_table_name()
+    dycast.tmp_cluster_per_point_selection_table = database_service.get_tmp_cluster_per_point_table_name()
 
-    dycast_risk.generate_risk()
+    dycast.generate_risk()
 
 
 def export_risk(**kwargs):
 
-    dycast_export = dycast.Dycast()
+    dycast = dycast_class.Dycast()
 
-    dycast_export.cur, dycast_export.conn = database_service.init_db()
+    dycast.cur, dycast.conn = database_service.init_db()
 
-    dycast_export.risk_file_dir = kwargs.get(
+    dycast.risk_file_dir = kwargs.get(
         'export_directory', CONFIG.get("system", "export_directory"))
-    dycast_export.startdate = kwargs.get('startdate', datetime.date.today())
-    dycast_export.enddate = kwargs.get('enddate', dycast_export.startdate)
+    dycast.startdate = kwargs.get('startdate', datetime.date.today())
+    dycast.enddate = kwargs.get('enddate', dycast.startdate)
 
-    dycast_export.export_risk()
+    dycast.export_risk()
 
 
 def listen_for_input(**kwargs):

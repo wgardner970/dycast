@@ -2,7 +2,7 @@ import logging
 import os
 import sys
 import ast
-import config_service
+from application.services import config_service
 
 
 CONFIG = config_service.get_config()

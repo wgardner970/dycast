@@ -1,9 +1,9 @@
 import logging
 import sys
-import config_service
+from application.services import config_service
+from application.services import file_service
 from application.models.enums import enums
 
-import file_service
 
 CONFIG = config_service.get_config()
 

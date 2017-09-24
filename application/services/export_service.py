@@ -3,8 +3,8 @@ import sys
 import os
 import logging
 from time import gmtime, strftime
-import conversion_service
-import config_service
+from application.services import conversion_service
+from application.services import config_service
 
 try:
     import dbf
