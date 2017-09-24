@@ -2,7 +2,7 @@ import logging
 import sys
 import datetime
 import configargparse
-from application.models.classes import dycast as dycast_class
+from application.models.classes import dycast_parameters
 from application.services import logging_service
 from application.services import config_service
 from application.services import database_service
@@ -162,7 +162,7 @@ def run_dycast(**kwargs):
 
 def import_cases(**kwargs):
 
-    dycast = dycast_class.Dycast()
+    dycast = dycast_parameters.DycastParameters()
 
     dycast.cur, dycast.conn = database_service.init_db()
     dycast.srid_of_cases = kwargs.get('srid_cases')
@@ -175,7 +175,7 @@ def import_cases(**kwargs):
 
 def generate_risk(**kwargs):
 
-    dycast = dycast_class.Dycast()
+    dycast = dycast_parameters.DycastParameters()
 
     dycast.spatial_domain = float(kwargs.get('spatial_domain'))
     dycast.temporal_domain = int(kwargs.get('temporal_domain'))
@@ -197,9 +197,8 @@ def generate_risk(**kwargs):
 
 def export_risk(**kwargs):
 
-    dycast = dycast_class.Dycast()
-
     dycast.cur, dycast.conn = database_service.init_db()
+    dycast = dycast_parameters.DycastParameters()
 
     dycast.risk_file_dir = kwargs.get(
         'export_directory', CONFIG.get("system", "export_directory"))

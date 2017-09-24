@@ -24,7 +24,7 @@ sys.path.append(os.path.join(lib_dir, "dbfpy"))
 
 
 
-class Dycast(object):
+class DycastParameters(object):
 
     def __init__(self, **kwargs):
         self.srid_of_cases = None

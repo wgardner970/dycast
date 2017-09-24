@@ -14,20 +14,20 @@ CONFIG = config_service.get_config()
 ##########################################################################
 
 
-def load_case_files(dycast):
+def load_case_files(dycast_parameters):
     cur, conn = database_service.init_db()
     system_coordinate_system = CONFIG.get("dycast", "system_coordinate_system")
-    for filepath in dycast.files_to_import:
+    for filepath in dycast_parameters.files_to_import:
         try:
             logging.info("Loading file: %s", filepath)
-            load_case_file(filepath, dycast, system_coordinate_system, cur, conn)
+            load_case_file(dycast_parameters, filepath, system_coordinate_system, cur, conn)
         except Exception, e:
             logging.error("Could not load file: %s", filepath)
             logging.error(e)
             logging.error("Continuing...")
 
 
-def load_case_file(filename, dycast, system_coordinate_system, cur, conn):
+def load_case_file(dycast_parameters, filename, system_coordinate_system, cur, conn):
     lines_read = 0
     lines_processed = 0
     lines_loaded = 0
@@ -55,7 +55,7 @@ def load_case_file(filename, dycast, system_coordinate_system, cur, conn):
             lines_read += 1
             result = 0
             try:
-                result = load_case(line, location_type, dycast, system_coordinate_system, cur, conn)
+                result = load_case(dycast_parameters, line, location_type, system_coordinate_system, cur, conn)
             except Exception, e:
                 raise
 
@@ -76,9 +76,9 @@ def load_case_file(filename, dycast, system_coordinate_system, cur, conn):
     return lines_read, lines_processed, lines_loaded, lines_skipped
 
 
-def load_case(line, location_type, dycast, system_coordinate_system, cur, conn):
+def load_case(dycast_parameters, line, location_type, system_coordinate_system, cur, conn):
     dead_birds_table_projected = CONFIG.get("database", "dead_birds_table_projected")
-    user_coordinate_system = dycast.srid_of_cases
+    user_coordinate_system = dycast_parameters.srid_of_cases
 
     if location_type not in (enums.Location_type.LAT_LONG, enums.Location_type.GEOMETRY):
         logging.error("Wrong value for 'location_type', exiting...")
