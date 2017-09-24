@@ -8,10 +8,17 @@ CONFIG = config_service.get_config()
 
 
 # Returns a raster grid with points in the coordinate system specified in global setting 'system_coordinate_system'
-def generate_grid(user_coordinate_system, extent_min_x, extent_min_y, extent_max_x, extent_max_y):
+def generate_grid(dycast_parameters):
+    srid_of_extent = dycast_parameters.srid_of_extent
+    extent_min_x = dycast_parameters.extent_min_x
+    extent_min_y = dycast_parameters.extent_min_y
+    extent_max_x = dycast_parameters.extent_max_x
+    extent_max_y = dycast_parameters.extent_max_y
+
     system_coordinate_system = CONFIG.get("dycast", "system_coordinate_system")
+    
     # Set up projections
-    projection_user_defined = pyproj.Proj(init="epsg:%s" % user_coordinate_system)
+    projection_user_defined = pyproj.Proj(init="epsg:%s" % srid_of_extent)
     projection_metric = pyproj.Proj(init='epsg:3857')  # metric; same as EPSG:900913
     projection_system_default = pyproj.Proj(init="epsg:%s" % system_coordinate_system)
 

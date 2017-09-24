@@ -177,8 +177,6 @@ def generate_risk(**kwargs):
 
     dycast = dycast_class.Dycast()
 
-    dycast.cur, dycast.conn = database_service.init_db()
-
     dycast.spatial_domain = float(kwargs.get('spatial_domain'))
     dycast.temporal_domain = int(kwargs.get('temporal_domain'))
     dycast.close_in_space = float(kwargs.get('close_in_space'))

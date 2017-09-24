@@ -2,6 +2,7 @@ import logging
 import sys
 from application.services import config_service
 from application.services import file_service
+from application.services import database_service
 from application.models.enums import enums
 
 
@@ -14,18 +15,19 @@ CONFIG = config_service.get_config()
 
 
 def load_case_files(dycast):
+    cur, conn = database_service.init_db()
     system_coordinate_system = CONFIG.get("dycast", "system_coordinate_system")
     for filepath in dycast.files_to_import:
         try:
             logging.info("Loading file: %s", filepath)
-            load_case_file(filepath, dycast, system_coordinate_system)
+            load_case_file(filepath, dycast, system_coordinate_system, cur, conn)
         except Exception, e:
             logging.error("Could not load file: %s", filepath)
             logging.error(e)
             logging.error("Continuing...")
 
 
-def load_case_file(filename, dycast, system_coordinate_system):
+def load_case_file(filename, dycast, system_coordinate_system, cur, conn):
     lines_read = 0
     lines_processed = 0
     lines_loaded = 0
@@ -53,7 +55,7 @@ def load_case_file(filename, dycast, system_coordinate_system):
             lines_read += 1
             result = 0
             try:
-                result = load_case(line, location_type, dycast, system_coordinate_system)
+                result = load_case(line, location_type, dycast, system_coordinate_system, cur, conn)
             except Exception, e:
                 raise
 
@@ -74,11 +76,9 @@ def load_case_file(filename, dycast, system_coordinate_system):
     return lines_read, lines_processed, lines_loaded, lines_skipped
 
 
-def load_case(line, location_type, dycast, system_coordinate_system):
+def load_case(line, location_type, dycast, system_coordinate_system, cur, conn):
     dead_birds_table_projected = CONFIG.get("database", "dead_birds_table_projected")
     user_coordinate_system = dycast.srid_of_cases
-    cur = dycast.cur
-    conn = dycast.conn
 
     if location_type not in (enums.Location_type.LAT_LONG, enums.Location_type.GEOMETRY):
         logging.error("Wrong value for 'location_type', exiting...")

@@ -27,9 +27,6 @@ sys.path.append(os.path.join(lib_dir, "dbfpy"))
 class Dycast(object):
 
     def __init__(self, **kwargs):
-        self.cur = None
-        self.conn = None
-
         self.srid_of_cases = None
         self.dead_birds_dir = None
         self.files_to_import = None
