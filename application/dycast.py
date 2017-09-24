@@ -35,58 +35,19 @@ debug_service.enable_debugger()
 CONFIG = config_service.get_config()
 
 
-class DycastBase(object):
+class Dycast(object):
 
     def __init__(self, **kwargs):
         self.cur = None
         self.conn = None
         self.case_table_name = None
 
-        for (key, value) in kwargs.iteritems():
-            if hasattr(self, key):
-                setattr(self, key, value)
-
-
-class DycastImport(DycastBase):
-
-    def __init__(self, **kwargs):
         self.srid_of_cases = None
         self.dead_birds_dir = None
         self.files_to_import = None
 
-        super(DycastImport, self).__init__(**kwargs)
-
-    def import_cases(self):
-        if self.files_to_import:
-            logging.info("Loading files: %s", self.files_to_import)
-            import_service.load_case_files(self)
-        else:
-            logging.info("Loading files from import path: %s",
-                         self.dead_birds_dir)
-            raise NotImplementedError
-
-        logging.info("Done loading cases")
-
-    def listen_for_files(self):
-        raise NotImplementedError
-
-
-class DycastExport(DycastBase):
-
-    def __init__(self, **kwargs):
         self.risk_file_dir = None
-        self.startdate = None
-        self.enddate = None
 
-        super(DycastExport, self).__init__(**kwargs)
-
-    def export_risk(self):
-        raise NotImplementedError
-
-
-class DycastRisk(DycastBase):
-
-    def __init__(self, **kwargs):
         self.spatial_domain = None
         self.temporal_domain = None
         self.close_in_space = None
@@ -105,15 +66,32 @@ class DycastRisk(DycastBase):
         self.tmp_daily_case_table = None
         self.tmp_cluster_per_point_selection_table = None
 
-        super(DycastRisk, self).__init__(**kwargs)
+        for (key, value) in kwargs.iteritems():
+            if hasattr(self, key):
+                setattr(self, key, value)
+
+
+    def import_cases(self):
+        if self.files_to_import:
+            logging.info("Loading files: %s", self.files_to_import)
+            import_service.load_case_files(self)
+        else:
+            logging.info("Loading files from import path: %s",
+                         self.dead_birds_dir)
+            raise NotImplementedError
+
+        logging.info("Done loading cases")
+
+    def listen_for_files(self):
+        raise NotImplementedError
+
+    def export_risk(self):
+        raise NotImplementedError
 
     def generate_risk(self):
         raise NotImplementedError
 
 
-class Dycast(DycastImport, DycastExport):
-    def __init__(self, **kwargs):
-        super(Dycast, self).__init__()
 
 
 ##########################################################################
@@ -129,7 +107,7 @@ def run_dycast(**kwargs):
 
 def import_cases(**kwargs):
 
-    dycast_import = DycastImport()
+    dycast_import = Dycast()
 
     dycast_import.cur, dycast_import.conn = database_service.init_db()
     dycast_import.case_table_name = database_service.get_case_table_name()
@@ -143,7 +121,7 @@ def import_cases(**kwargs):
 
 def generate_risk(**kwargs):
 
-    dycast_risk = DycastRisk()
+    dycast_risk = Dycast()
 
     dycast_risk.cur, dycast_risk.conn = database_service.init_db()
 
@@ -170,7 +148,7 @@ def generate_risk(**kwargs):
 
 def export_risk(**kwargs):
 
-    dycast_export = DycastExport()
+    dycast_export = Dycast()
 
     dycast_export.cur, dycast_export.conn = database_service.init_db()
 
