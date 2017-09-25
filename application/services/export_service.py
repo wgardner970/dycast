@@ -1,7 +1,7 @@
 import sys
 import os
 import logging
-from time import gmtime, strftime
+from time import strftime
 from application.services import conversion_service
 from application.services import config_service
 from application.services import database_service
@@ -38,8 +38,8 @@ def export_risk(dycast_parameters):
     startdate_string = conversion_service.get_string_from_date_object(startdate)
     enddate_string = conversion_service.get_string_from_date_object(enddate)
 
-    export_time = strftime("%Y-%m-%d__%H-%M-%S", gmtime())
-    filename = export_time + "_risk" + startdate_string + "--" + enddate_string + "." + export_format
+    export_time = strftime("%Y-%m-%d__%H-%M-%S")
+    filename = "exported_{0}__risk_{1}--{2}.{3}".format(export_time, startdate_string, enddate_string, export_format)
     if export_prefix:
         filename = export_prefix + filename
     filepath = os.path.join(export_directory, filename)
