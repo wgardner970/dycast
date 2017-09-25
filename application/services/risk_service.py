@@ -90,11 +90,11 @@ def get_daily_case_count(tmp_daily_case_table_name, riskdate, cur, conn):
     result_count = cur.fetchone()
     return result_count[0]
 
-def get_vector_count_for_point(dycast_parameters, table_name, point, system_coordinate_system, cur, conn):
-    sd = dycast_parameters.spatial_domain
-    querystring = "SELECT count(*) from \"" + table_name + "\" a where st_distance(a.location,ST_GeomFromText('POINT(%s %s)',%s)) < %s" 
+def get_vector_count_for_point(dycast_parameters, tmp_daily_case_table_name, point, system_coordinate_system, cur, conn):
+    spatial_domain = dycast_parameters.spatial_domain
+    querystring = "SELECT count(*) from \"" + tmp_daily_case_table_name + "\" a where st_distance(a.location,ST_GeomFromText('POINT(%s %s)',%s)) < %s" 
     try:
-        cur.execute(querystring, (point.x, point.y, system_coordinate_system, sd))
+        cur.execute(querystring, (point.x, point.y, system_coordinate_system, spatial_domain))
     except Exception as e:
         conn.rollback()
         logging.error("Can't select vector count")
