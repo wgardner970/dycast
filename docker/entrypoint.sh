@@ -202,7 +202,7 @@ move_case_file() {
 ### Commands
 
 run_dycast() {
-	local filePath="$1"
+	local arguments="$@"
 	echo "Running Dycast using arguments: ${arguments}..."
 	python ${DYCAST_APP_PATH}/dycast.py run_dycast ${arguments}
 
@@ -216,7 +216,7 @@ run_dycast() {
 }
 
 load_cases() {
-	local filePath="$1"
+	local arguments="$@"
 	echo "Loading cases using arguments: ${arguments}..."
 	python ${DYCAST_APP_PATH}/dycast.py load_cases ${arguments}
 
@@ -231,6 +231,7 @@ load_cases() {
 
 
 generate_risk() {
+	local arguments="$@"
 	echo ""
 	echo "Generating risk using arguments: ${arguments}..."
 	echo ""
@@ -247,11 +248,11 @@ generate_risk() {
 
 
 export_risk() {
-	local arguments = "$@"
+	local arguments="$@"
 	echo ""
-	echo "Exporting risk using arguments: export_risk ${arguments}..."
+	echo "Exporting risk using arguments: ${arguments}..."
 	echo ""
-	python ${DYCAST_APP_PATH}/dycast.py ${arguments}	
+	python ${DYCAST_APP_PATH}/dycast.py export_risk ${arguments}	
 
 	exit_code=$?
 	if [[ ! "${exit_code}" == "0" ]]; then

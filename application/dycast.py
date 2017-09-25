@@ -13,7 +13,6 @@ debug_service.enable_debugger()
 CONFIG = config_service.get_config()
 
 
-
 def valid_date(date_string):
     if date_string == "today":
         return datetime.date.today().strptime(date_string, "%Y-%m-%d")
@@ -138,14 +137,13 @@ def create_parser():
                       help='Optional. Default is defined in dycast.config')
         subparser.add('--export-format',
                       env_var='EXPORT_FORMAT',
-                      default='txt')
+                      default='txt',
+                      help='Options: txt ')
         subparser.add('--export-prefix',
                       env_var='EXPORT_PREFIX',
                       help='Set a prefix for the output file so that it is easy to recognize')
 
     return main_parser
-
-
 
 
 ##########################################################################
@@ -197,8 +195,9 @@ def export_risk(**kwargs):
 
     dycast = dycast_parameters.DycastParameters()
 
-    dycast.risk_file_dir = kwargs.get(
-        'export_directory', CONFIG.get("system", "export_directory"))
+    dycast.export_prefix = kwargs.get('export_prefix')
+    dycast.export_format = kwargs.get('export_format')
+    dycast.export_directory = kwargs.get('export_directory')
     dycast.startdate = kwargs.get('startdate', datetime.date.today())
     dycast.enddate = kwargs.get('enddate', dycast.startdate)
 
@@ -217,7 +216,6 @@ def main():
 
     config_service.init_config(dictionary_args.get('config'))
     logging_service.init_logging()
-
 
     if args.func:
         args.func(**dictionary_args)

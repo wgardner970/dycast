@@ -10,7 +10,7 @@ import logging
 import datetime
 
 from application.services import import_service
-# from services import export_service
+from application.services import export_service
 from application.models.enums import enums
 
 
@@ -31,7 +31,9 @@ class DycastParameters(object):
         self.dead_birds_dir = None
         self.files_to_import = None
 
-        self.risk_file_dir = None
+        self.export_directory = None
+        self.export_prefix = None
+        self.export_format = None
 
         self.spatial_domain = None
         self.temporal_domain = None
@@ -68,7 +70,7 @@ class DycastParameters(object):
         raise NotImplementedError
 
     def export_risk(self):
-        raise NotImplementedError
+        export_service.export_risk(self)
 
     def generate_risk(self):
         raise NotImplementedError
