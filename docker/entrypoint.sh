@@ -25,27 +25,26 @@ EXTENT_MAX_Y=${EXTENT_MAX_Y}
 
 HELP_TEXT="
 
-Commands:  
-	[run_dycast]		Default. Loads any .tsv files in ${DYCAST_INBOX}, generates risk and 
-				exports it to ${DYCAST_OUTBOX}  
-				Optional parameters:
-				-f | --file <file path>
-				Loads the specified file instead of listening in ${DYCAST_INBOX}  
+============== Dycast help ==============
+
+
+Dycast supports any of the following commands:
+
+$(python dycast.py --help)
+
+
+
+**** To get more help, use 'docker run cvast/cvast-dycast command --help' ****
+
+
+
+
+	Additional commands for Docker container:
 
 	[setup_dycast] 		Initializes Dycast: creates the database if it does not exist and 
 				sets up necessary folders  
 
 	[setup_db] 		Deletes any existing Dycast database and sets up a fresh one  
-
-	[load_cases]		Loads cases from specified (absolute) file path on the container web or AWS S3,
-				e.g. 'load_cases /dycast/inbox/cases.tsv'  
-				Parameters:
-				-f | --file <file path>
-				Loads the specified file instead of listening in ${DYCAST_INBOX} 
-
-	[generate_risk] 	Generates risk from the cases currently in the database  
-
-	[export_risk] 		Exports risk currently in the database  
 
 	[run_tests] 		Run unit tests  
 
@@ -183,20 +182,6 @@ check_variable() {
 	fi
 }
 
-check_all_variables() {
-	check_variable "${START_DATE}" START_DATE
-	check_variable "${END_DATE}" END_DATE
-	check_variable "${SRID_CASES}" SRID_CASES
-	check_variable "${SRID_EXTENT}" SRID_EXTENT
-	check_variable "${EXTENT_MIN_X}" EXTENT_MIN_X
-	check_variable "${EXTENT_MIN_Y}" EXTENT_MIN_Y
-	check_variable "${EXTENT_MAX_X}" EXTENT_MAX_X
-	check_variable "${EXTENT_MAX_Y}" EXTENT_MAX_Y
-	check_variable "${DBPASSWORD}" DBPASSWORD
-	check_variable "${DBNAME}" DBNAME
-	check_variable "${DBHOST}" DBHOST
-	check_variable "${DBPORT}" DBPORT
-}
 
 check_database_variables() {
 	check_variable "${DBPASSWORD}" DBPASSWORD
@@ -216,10 +201,24 @@ move_case_file() {
 
 ### Commands
 
+run_dycast() {
+	local filePath="$1"
+	echo "Running Dycast using arguments: ${arguments}..."
+	python ${DYCAST_APP_PATH}/dycast.py run_dycast ${arguments}
+
+	exit_code=$?
+	if [[ ! "${exit_code}" == "0" ]]; then
+		echo "Command 'run_dycast' failed, exiting..."
+		exit ${exit_code}
+	else 
+		echo "Done loading cases"
+	fi
+}
+
 load_cases() {
 	local filePath="$1"
-	echo "Loading input file: ${filePath}..."
-	python ${DYCAST_APP_PATH}/load_cases.py --srid ${SRID_CASES} "${filePath}"
+	echo "Loading cases using arguments: ${arguments}..."
+	python ${DYCAST_APP_PATH}/dycast.py load_cases ${arguments}
 
 	exit_code=$?
 	if [[ ! "${exit_code}" == "0" ]]; then
@@ -233,17 +232,34 @@ load_cases() {
 
 generate_risk() {
 	echo ""
-	echo "Generating risk..."
+	echo "Generating risk using arguments: ${arguments}..."
 	echo ""
-	python ${DYCAST_APP_PATH}/daily_risk.py --startdate ${START_DATE} --enddate ${END_DATE} --srid ${SRID_CASES} --extent_min_x ${EXTENT_MIN_X} --extent_min_y ${EXTENT_MIN_Y} --extent_max_x ${EXTENT_MAX_X} --extent_max_y ${EXTENT_MAX_Y}
+	python ${DYCAST_APP_PATH}/dycast.py generate_risk ${arguments}
+
+	exit_code=$?
+	if [[ ! "${exit_code}" == "0" ]]; then
+		echo "Command 'generate_risk' failed, exiting..."
+		exit ${exit_code}
+	else 
+		echo "Done generating risk"
+	fi
 }
 
 
 export_risk() {
+	local arguments = "$@"
 	echo ""
-	echo "Exporting risk for ${START_DATE} to ${END_DATE}..."
+	echo "Exporting risk using arguments: export_risk ${arguments}..."
 	echo ""
-	python ${DYCAST_APP_PATH}/export_risk.py --startdate ${START_DATE} --enddate ${END_DATE} --txt true	
+	python ${DYCAST_APP_PATH}/dycast.py ${arguments}	
+
+	exit_code=$?
+	if [[ ! "${exit_code}" == "0" ]]; then
+		echo "Command 'export_risk' failed, exiting..."
+		exit ${exit_code}
+	else 
+		echo "Done loading cases"
+	fi
 }
 
 ### Starting point ###
@@ -260,95 +276,66 @@ if [[ $#  -eq 0 ]]; then
 fi
 
 # Else, process arguments
-echo "Full command: $@"
-while [[ $# -gt 0 ]]
-do
-	key="$1"
-	echo "Command: ${key}"
+full_command="$@"
+arguments="${@:2}"
+command="$1"
+echo "Command: ${command}"
 
-	case ${key} in
-		run_dycast)
-			if [[ "$2" == "-f" ]] || [[ "$2" == "--file" ]]; then
-				filePath="$3"
-				shift # next argument
-				shift # next argument
+if [[ ! "${command}" == "help" ]] && 
+	[[ ! "${command}" == "-h" ]] && 
+	[[ ! "${command}" == "--help" ]] && 
+	[[ ! "${arguments}" == "-h" ]] && 
+	[[ ! "${arguments}" == "--help" ]]; then
+		check_database_variables
+else 
+	help=true
+fi
 
-				if [[ -z ${filePath} ]] || [[ "${filePath}" == "" ]]; then
-					echo "Specify a file path after the 'load_cases' command."
-					display_help
-					exit 1
-				else
-					echo "Loading cases from: ${filePath}"
-				fi				
-			fi
 
-			check_all_variables
+case ${command} in
+	### First list all commands built into Dycast, not into this Docker entrypoint
+	run_dycast)
+		if [[ ! ${help} == true ]]; then
 			wait_for_db
 			init_dycast
-			run_tests
-
-			if [[ -z ${filePath} ]] || [[ "${filePath}" == "" ]]; then
-				echo "No file specified with '-f' or '--file', so running in 'listening mode'"
-				listen_for_input
-			else
-				load_cases "${filePath}"
-				generate_risk
-				export_risk
-			fi
-
-		;;
-		setup_dycast)
+		fi
+		run_dycast arguments
+	;;
+	load_cases)
+		if [[ ! ${help} == true ]]; then
 			wait_for_db
-			init_dycast
-		;;
-		setup_db)
+		fi
+		load_cases ${arguments}
+	;;
+	generate_risk)
+		if [[ ! ${help} == true ]]; then
 			wait_for_db
-			init_db
-		;;
-		load_cases)
-			if [[ "$2" == "-f" ]] || [[ "$2" == "--file" ]]; then
-				filePath="$3"
-				shift # next argument
-				shift # next argument
-
-				if [[ -z ${filePath} ]] || [[ "${filePath}" == "" ]]; then
-					echo "Specify a file path after the '-f' or '--file' parameter."
-					display_help
-					exit 1
-				else
-					echo "Loading cases from: ${filePath}"
-				fi
-			else
-				echo "load_cases expects the '-f' or '--file' parameter."
-				display_help
-				exit 1
-			fi
-			check_database_variables
+		fi
+		generate_risk ${arguments}
+	;;
+	export_risk)
+		if [[ ! ${help} == true ]]; then
 			wait_for_db
-			load_cases "${filePath}"
-			shift # next argument
-		;;
-		generate_risk)
-			check_all_variables
-			wait_for_db
-			generate_risk
-		;;
-		export_risk)
-			check_database_variables
-			wait_for_db
-			export_risk
-		;;
-		run_tests)
-			check_all_variables
-			wait_for_db
-			run_tests
-		;;
-		help|-h)
-			display_help
-		;;
-		*)
-			exec "$@"
-		;;
-	esac
-	shift # next argument or value
-done
+		fi
+		export_risk ${arguments}
+	;;
+	### From here list only commands that are specific for this Docker entrypoint
+	run_tests)
+		wait_for_db
+		run_tests ${arguments}
+	;;
+	setup_dycast)
+		wait_for_db
+		init_dycast
+	;;
+	setup_db)
+		wait_for_db
+		init_db
+	;;	
+	help|-h|--help)
+		display_help
+	;;
+	*)
+		exec "$@"
+	;;
+esac
