@@ -1,7 +1,8 @@
 #!/bin/bash
 
-DBNAME=${DBNAME}
 DBUSER=${DBUSER:-postgres}
+# psql uses PGPASSWORD environment variable to login
+export PGPASSWORD=${DBPASSWORD}
 
 DYCAST_INBOX=${DYCAST_INBOX:-$DYCAST_PATH/inbox}
 DYCAST_INBOX_COMPLETED=${DYCAST_INBOX}/completed
@@ -12,8 +13,9 @@ PG_SHARE_PATH_2_0=/usr/share/postgresql/9.6/contrib/postgis-2.3
 
 START_DATE=$(date -I -d "${START_DATE}") || exit -1
 END_DATE=$(date -I -d "${END_DATE}") || exit -1
+SRID_CASES="${SRID_CASES}"
 
-USER_COORDINATE_SYSTEM="${USER_COORDINATE_SYSTEM}"
+SRID_EXTENT="${SRID_EXTENT}"
 EXTENT_MIN_X=${EXTENT_MIN_X}
 EXTENT_MIN_Y=${EXTENT_MIN_Y}
 EXTENT_MAX_X=${EXTENT_MAX_X}
@@ -184,7 +186,8 @@ check_variable() {
 check_all_variables() {
 	check_variable "${START_DATE}" START_DATE
 	check_variable "${END_DATE}" END_DATE
-	check_variable "${USER_COORDINATE_SYSTEM}" USER_COORDINATE_SYSTEM
+	check_variable "${SRID_CASES}" SRID_CASES
+	check_variable "${SRID_EXTENT}" SRID_EXTENT
 	check_variable "${EXTENT_MIN_X}" EXTENT_MIN_X
 	check_variable "${EXTENT_MIN_Y}" EXTENT_MIN_Y
 	check_variable "${EXTENT_MAX_X}" EXTENT_MAX_X
@@ -216,7 +219,7 @@ move_case_file() {
 load_cases() {
 	local filePath="$1"
 	echo "Loading input file: ${filePath}..."
-	python ${DYCAST_APP_PATH}/load_cases.py --srid ${USER_COORDINATE_SYSTEM} "${filePath}"
+	python ${DYCAST_APP_PATH}/load_cases.py --srid ${SRID_CASES} "${filePath}"
 
 	exit_code=$?
 	if [[ ! "${exit_code}" == "0" ]]; then
@@ -232,7 +235,7 @@ generate_risk() {
 	echo ""
 	echo "Generating risk..."
 	echo ""
-	python ${DYCAST_APP_PATH}/daily_risk.py --startdate ${START_DATE} --enddate ${END_DATE} --srid ${USER_COORDINATE_SYSTEM} --extent_min_x ${EXTENT_MIN_X} --extent_min_y ${EXTENT_MIN_Y} --extent_max_x ${EXTENT_MAX_X} --extent_max_y ${EXTENT_MAX_Y}
+	python ${DYCAST_APP_PATH}/daily_risk.py --startdate ${START_DATE} --enddate ${END_DATE} --srid ${SRID_CASES} --extent_min_x ${EXTENT_MIN_X} --extent_min_y ${EXTENT_MIN_Y} --extent_max_x ${EXTENT_MAX_X} --extent_max_y ${EXTENT_MAX_Y}
 }
 
 
