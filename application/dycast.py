@@ -5,7 +5,6 @@ import configargparse
 from application.models.classes import dycast_parameters
 from application.services import logging_service
 from application.services import config_service
-from application.services import database_service
 from application.services import debug_service
 
 
@@ -21,7 +20,7 @@ def valid_date(date_string):
     try:
         return datetime.datetime.strptime(date_string, "%Y-%m-%d")
     except ValueError, e:
-        logging.error("Invalid date format: {0}".format(date_string))
+        logging.error("Invalid date format: %s", date_string)
         logging.error(e)
         sys.exit(1)
 
@@ -164,7 +163,6 @@ def import_cases(**kwargs):
 
     dycast = dycast_parameters.DycastParameters()
 
-    dycast.cur, dycast.conn = database_service.init_db()
     dycast.srid_of_cases = kwargs.get('srid_cases')
     dycast.dead_birds_dir = kwargs.get(
         'import_directory', CONFIG.get("system", "import_directory"))
@@ -197,7 +195,6 @@ def generate_risk(**kwargs):
 
 def export_risk(**kwargs):
 
-    dycast.cur, dycast.conn = database_service.init_db()
     dycast = dycast_parameters.DycastParameters()
 
     dycast.risk_file_dir = kwargs.get(

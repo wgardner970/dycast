@@ -1,6 +1,4 @@
 import logging
-import os
-import sys
 import ast
 from application.services import config_service
 

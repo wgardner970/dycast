@@ -3,14 +3,14 @@ import sys
 try:
     import psycopg2
 except ImportError:
-    logging.error("Couldn't import psycopg2 library in path:", sys.path)
+    logging.error("Couldn't import psycopg2 library in path: %s", sys.path)
     sys.exit()
 from application.services import config_service
 
 CONFIG = config_service.get_config()
 
 
-def init_db(config=None):
+def init_db():
     dsn = get_dsn()
     try:
         conn = psycopg2.connect(dsn)
