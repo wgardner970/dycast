@@ -71,10 +71,9 @@ def setup_tmp_daily_case_table_for_date(dycast_parameters, case_table_name, tmp_
     querystring = "TRUNCATE " + tmp_daily_case_table_name + "; INSERT INTO " + tmp_daily_case_table_name + " SELECT * from " + case_table_name + " where report_date >= %s and report_date <= %s"
     try:
         cur.execute(querystring, (startdate, enddate))
-    except Exception as e:
+    except Exception:
         conn.rollback()
-        logging.error("Something went wrong when setting up tmp_daily_case_selection table: " + str(riskdate))
-        logging.error(e)
+        logging.exception("Something went wrong when setting up tmp_daily_case_selection table: " + str(riskdate))
         raise
     conn.commit()
 
@@ -82,10 +81,9 @@ def get_daily_case_count(tmp_daily_case_table_name, riskdate, cur, conn):
     query = "SELECT COUNT(*) FROM {0}".format(tmp_daily_case_table_name)
     try:
         cur.execute(query)
-    except Exception as e:
+    except Exception:
         conn.rollback()
-        logging.error("Something went wrong when getting count from tmp_daily_case_selection table: " + str(riskdate))
-        logging.error(e)
+        logging.exception("Something went wrong when getting count from tmp_daily_case_selection table: " + str(riskdate))
         raise
     result_count = cur.fetchone()
     return result_count[0]
@@ -95,10 +93,9 @@ def get_vector_count_for_point(dycast_parameters, tmp_daily_case_table_name, poi
     querystring = "SELECT count(*) from \"" + tmp_daily_case_table_name + "\" a where st_distance(a.location,ST_GeomFromText('POINT(%s %s)',%s)) < %s"
     try:
         cur.execute(querystring, (point.x, point.y, system_coordinate_system, spatial_domain))
-    except Exception as e:
+    except Exception:
         conn.rollback()
-        logging.error("Can't select vector count")
-        logging.error(e)
+        logging.exception("Can't select vector count, exiting...")
         sys.exit()
     new_row = cur.fetchone()
     return new_row[0]
@@ -108,10 +105,10 @@ def insert_cases_in_cluster_table(dycast_parameters, tmp_cluster_table_name, tmp
     querystring = "TRUNCATE " + tmp_cluster_table_name + "; INSERT INTO " + tmp_cluster_table_name + " SELECT * from " + tmp_daily_case_table_name + " a where st_distance(a.location,ST_GeomFromText('POINT(%s %s)',%s)) < %s"
     try:
         cur.execute(querystring, (point.x, point.y, system_coordinate_system, spatial_domain))
-    except Exception, inst:
+    except Exception:
         conn.rollback()
-        logging.error("Something went wrong at point: " + str(point))
-        logging.error(inst)
+        logging.exception("Something went wrong at point: " + str(point))
+        logging.info("Rolling back and exiting...")
         sys.exit(1)
     conn.commit()
 
@@ -122,10 +119,10 @@ def cst_cs_ct_wrapper(dycast_parameters, cur, conn):
     querystring = "SELECT * FROM cst_cs_ct(%s, %s)"
     try:
         cur.execute(querystring, (close_in_space, close_in_time))
-    except Exception, inst:
+    except Exception:
         conn.rollback()
-        logging.error("can't select cst_cs_ct function")
-        logging.error(inst)
+        logging.exception("Can't select cst_cs_ct function")
+        logging.info("Rolling back and exiting...")
         sys.exit()
     return cur.fetchall()
 
@@ -133,10 +130,10 @@ def nmcm_wrapper(num_birds, close_pairs, close_space, close_time, cur, conn):
     querystring = "SELECT * FROM nmcm(%s, %s, %s, %s)"
     try:
         cur.execute(querystring, (num_birds, close_pairs, close_space, close_time))
-    except Exception, inst:
+    except Exception:
         conn.rollback()
-        logging.error("can't select nmcm function")
-        logging.error(inst)
+        logging.exception("Can't select nmcm function")
+        logging.info("Rolling back and exiting...")
         sys.exit()
     return cur.fetchall()
 
@@ -145,10 +142,10 @@ def insert_result(riskdate, latitude, longitude, number_of_cases, close_pairs, c
     try:
         # Be careful of the ordering of space and time in the db vs the txt file
         cur.execute(querystring, (riskdate, latitude, longitude, number_of_cases, close_pairs, close_space, close_time, nmcm))
-    except Exception, inst:
+    except Exception:
         conn.rollback()
-        logging.error("couldn't insert effects_poly risk")
-        logging.error(inst)
+        logging.exception("Couldn't insert risk")
+        logging.info("Rolling back and exiting...")
         return 0
     conn.commit()
 

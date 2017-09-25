@@ -15,16 +15,17 @@ CONFIG = config_service.get_config()
 
 
 def load_case_files(dycast_parameters):
-    cur, conn = database_service.init_db()
+    logging.info("Loading files: %s", dycast_parameters.files_to_import)
     system_coordinate_system = CONFIG.get("dycast", "system_coordinate_system")
+    cur, conn = database_service.init_db()
+
     for filepath in dycast_parameters.files_to_import:
         try:
             logging.info("Loading file: %s", filepath)
             load_case_file(dycast_parameters, filepath, system_coordinate_system, cur, conn)
-        except Exception, e:
-            logging.error("Could not load file: %s", filepath)
-            logging.error(e)
-            logging.error("Continuing...")
+        except Exception:
+            logging.exception("Could not load file: %s", filepath)
+            logging.info("Continuing...")
 
 
 def load_case_file(dycast_parameters, filename, system_coordinate_system, cur, conn):
@@ -36,8 +37,8 @@ def load_case_file(dycast_parameters, filename, system_coordinate_system, cur, c
 
     try:
         input_file = file_service.read_file(filename)
-    except Exception, e:
-        logging.error(e)
+    except Exception:
+        logging.exception("Could not read file: %s", filename)
         sys.exit(1)
 
     for line_number, line in enumerate(input_file):
@@ -56,7 +57,7 @@ def load_case_file(dycast_parameters, filename, system_coordinate_system, cur, c
             result = 0
             try:
                 result = load_case(dycast_parameters, line, location_type, system_coordinate_system, cur, conn)
-            except Exception, e:
+            except Exception:
                 raise
 
             # If result is a bird ID or -1 (meaning duplicate) then:
@@ -109,15 +110,15 @@ def load_case(dycast_parameters, line, location_type, system_coordinate_system, 
     try:
         cur.execute(querystring, (case_id, report_date_string,
                                   species, system_coordinate_system))
-    except Exception, inst:
+    except Exception, e:
         conn.rollback()
-        if str(inst).startswith("duplicate key"):
+        if str(e).startswith("duplicate key"):
             logging.debug(
                 "Couldn't insert duplicate case key %s, skipping...", case_id)
             return -1
         else:
             logging.warning("Couldn't insert case record")
-            logging.warning(inst)
+            logging.warning(e)
             return 0
     conn.commit()
     return case_id

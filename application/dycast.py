@@ -76,7 +76,6 @@ def create_parser():
                       help='Override default set in dycast.config. Path to load cases from. If no (--files | -f) is specified, Dycast will look in this directory for .tsv files to load into the database')
         subparser.add('--srid-cases',
                       env_var='SRID_CASES',
-                      type=int,
                       help='The SRID (projection) of the cases you are loading. Only required if your cases are in lat/long, not when they are in PostGIS geometry format')
 
     # Common arguments: generate_risk & run_dycast
@@ -113,7 +112,6 @@ def create_parser():
         subparser.add('--srid-extent',
                       env_var='SRID_EXTENT',
                       required=True,
-                      type=int,
                       help='The SRID (projection) of the specified extent.')
         subparser.add('--spatial-domain',
                       env_var='SPATIAL_DOMAIN',
@@ -162,10 +160,9 @@ def create_parser():
 ##########################################################################
 
 def run_dycast(**kwargs):
-    raise NotImplementedError
-#     load_case_files()
-#     daily_risk()
-#     export_risk()
+    import_cases(**kwargs)
+    generate_risk(**kwargs)
+    export_risk(**kwargs)
 
 
 def import_cases(**kwargs):

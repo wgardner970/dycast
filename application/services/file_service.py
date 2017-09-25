@@ -1,5 +1,4 @@
 import urllib
-import urlparse
 import fileinput
 import logging
 import boto3
@@ -83,9 +82,9 @@ def read_file_s3(s3_uri):
         response = s3_client.get_object(Bucket=bucket, Key=key)
     except botocore.exceptions.ClientError, e:
         if e.response['Error']['Code'] == "404":
-            logging.error("Requested file '%s' in bucket '%s' does not exist", key, bucket)
+            logging.exception("Requested file '%s' in bucket '%s' does not exist", key, bucket)
         else:
-            logging.error("There was a problem downloading requested file '%s' in bucket '%s'", key, bucket)
+            logging.exception("There was a problem downloading requested file '%s' in bucket '%s'", key, bucket)
         raise
 
     content = response["Body"].read()
@@ -107,7 +106,7 @@ def read_file_local(url):
     try:
         input_file = fileinput.input(url)
     except IOError, e:
-        logging.error("Failed to load file: %s", url)
+        logging.exception("Failed to load file: %s", url)
         raise e
     return input_file
 

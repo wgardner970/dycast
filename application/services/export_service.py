@@ -48,9 +48,9 @@ def export_risk(dycast_parameters):
 
     try:
         cur.execute(query, (startdate, enddate))
-    except Exception, e:
+    except Exception:
         conn.rollback()
-        logging.error(e)
+        logging.exception("Failed to select risk data")
         raise
 
     if cur.rowcount == 0:

@@ -16,9 +16,8 @@ def init_config(config_file_path):
         logging.debug("Reading config file...")
         CONFIG.read(config_file_path)
         logging.debug("Done reading config file.")
-    except Exception, e:
-        logging.error("Could not read config file: %s", config_file_path)
-        logging.error(e)
+    except Exception:
+        logging.exception("Could not read config file: %s", config_file_path)
         sys.exit()
 
 def get_config():

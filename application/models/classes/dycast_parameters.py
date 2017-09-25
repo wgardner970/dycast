@@ -7,12 +7,10 @@ import sys
 import os
 import inspect
 import logging
-import datetime
 
 from application.services import import_service
 from application.services import export_service
 from application.services import risk_service
-from application.models.enums import enums
 
 
 APPLICATION_ROOT = os.path.dirname(
@@ -58,7 +56,6 @@ class DycastParameters(object):
 
     def import_cases(self):
         if self.files_to_import:
-            logging.info("Loading files: %s", self.files_to_import)
             import_service.load_case_files(self)
         else:
             logging.info("Loading files from import path: %s",

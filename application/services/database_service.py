@@ -14,9 +14,8 @@ def init_db():
     dsn = get_dsn()
     try:
         conn = psycopg2.connect(dsn)
-    except Exception, inst:
-        logging.error("Unable to connect to database")
-        logging.error(inst)
+    except Exception:
+        logging.exception("Unable to connect to database")
         sys.exit()
     cur = conn.cursor()
     return cur, conn

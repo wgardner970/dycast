@@ -300,7 +300,7 @@ case ${command} in
 			wait_for_db
 			init_dycast
 		fi
-		run_dycast arguments
+		run_dycast ${arguments}
 	;;
 	load_cases)
 		if [[ ! ${help} == true ]]; then
