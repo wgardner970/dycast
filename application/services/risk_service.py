@@ -148,9 +148,3 @@ def insert_result(riskdate, latitude, longitude, number_of_cases, close_pairs, c
         logging.info("Rolling back and exiting...")
         return 0
     conn.commit()
-
-
-
-
-##########################################################################
-##########################################################################

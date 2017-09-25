@@ -65,7 +65,11 @@ def create_parser():
                                               argument_default=configargparse.SUPPRESS)
     run_dycast_parser.set_defaults(func=run_dycast)
 
-    # Common arguments: load_cases & run_dycast
+
+
+    ## Common arguments:
+        # load_cases
+        # run_dycast
     for subparser in [load_cases_parser, run_dycast_parser]:
         subparser.add('--files', '-f',
                       nargs='+',
@@ -78,17 +82,11 @@ def create_parser():
                       env_var='SRID_CASES',
                       help='The SRID (projection) of the cases you are loading. Only required if your cases are in lat/long, not when they are in PostGIS geometry format')
 
-    # Common arguments: generate_risk & run_dycast
+
+    ## Common arguments:
+        # generate_risk
+        # run_dycast
     for subparser in [generate_risk_parser, run_dycast_parser]:
-        subparser.add('--startdate', '-s',
-                      env_var='START_DATE',
-                      type=valid_date,
-                      default='today',
-                      help='Default: today. The start date from which to generate risk. Format: YYYY-MM-DD. Also accepts "today" as input')
-        subparser.add('--enddate', '-e',
-                      env_var='END_DATE',
-                      type=valid_date,
-                      help='Default: same as start date. The end date to which to generate risk. Format: YYYY-MM-DD')
         subparser.add('--extent-min-x',
                       env_var='EXTENT_MIN_X',
                       required=True,
@@ -139,7 +137,10 @@ def create_parser():
                       type=int,
                       help='Spatial domain used in Dycast risk generation and statistical analysis')
 
-    # Common arguments: export_risk & run_dycast
+
+    ## Common arguments:
+        # export_risk
+        # run_dycast
     for subparser in [export_risk_parser, run_dycast_parser]:
         subparser.add('--export-directory',
                       env_var='EXPORT_DIRECTORY',
@@ -151,6 +152,23 @@ def create_parser():
         subparser.add('--export-prefix',
                       env_var='EXPORT_PREFIX',
                       help='Set a prefix for the output file so that it is easy to recognize')
+
+
+    ## Common arguments:
+        # generate_risk
+        # export_risk
+        # run_dycast
+    for subparser in [generate_risk_parser, export_risk_parser, run_dycast_parser]:
+        subparser.add('--startdate', '-s',
+                      env_var='START_DATE',
+                      type=valid_date,
+                      default='today',
+                      help='Default: today. The start date from which to generate and/or export risk. Format: YYYY-MM-DD. Also accepts "today" as input')
+        subparser.add('--enddate', '-e',
+                      env_var='END_DATE',
+                      type=valid_date,
+                      help='Default: same as start date. The end date to which to generate and/or export risk. Format: YYYY-MM-DD')
+
 
     return main_parser
 
