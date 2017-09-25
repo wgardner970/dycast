@@ -11,6 +11,7 @@ import datetime
 
 from application.services import import_service
 from application.services import export_service
+from application.services import risk_service
 from application.models.enums import enums
 
 
@@ -73,4 +74,4 @@ class DycastParameters(object):
         export_service.export_risk(self)
 
     def generate_risk(self):
-        raise NotImplementedError
+        risk_service.generate_risk(self)
