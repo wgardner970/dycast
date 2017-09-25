@@ -18,6 +18,8 @@ CONFIG = config_service.get_config()
 
 def generate_risk(dycast_parameters):
 
+    logging_service.display_current_parameter_set(dycast_parameters)
+
     case_threshold = dycast_parameters.case_threshold
     cur, conn = database_service.init_db()
 
@@ -25,8 +27,6 @@ def generate_risk(dycast_parameters):
     case_table_name = CONFIG.get("database", "dead_birds_table_projected")
     tmp_daily_case_table = CONFIG.get("database", "tmp_daily_case_table")
     tmp_cluster_per_point_selection_table = CONFIG.get("database", "tmp_cluster_per_point_selection_table")
-
-    logging_service.show_current_parameter_set()
 
     gridpoints = grid_service.generate_grid(dycast_parameters)
 
@@ -39,7 +39,7 @@ def generate_risk(dycast_parameters):
         daily_case_count = get_daily_case_count(tmp_daily_case_table, day, cur, conn)
 
         if daily_case_count >= case_threshold:
-            st = time.time()
+            start_time = time.time()
             logging.info("Starting daily_risk for %s", day)
             points_above_threshold = 0
 
@@ -57,7 +57,7 @@ def generate_risk(dycast_parameters):
 
             logging.info("Finished daily_risk for %s: done %s points", day, len(gridpoints))
             logging.info("Total points above threshold of %s: %s", case_threshold, points_above_threshold)
-            logging.info("Time elapsed: %.0f seconds", time.time() - st)
+            logging.info("Time elapsed: %.0f seconds", time.time() - start_time)
         else:
             logging.info("Amount of cases for %s lower than threshold %s: %s, skipping.", day, case_threshold, daily_case_count)
 

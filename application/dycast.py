@@ -15,9 +15,9 @@ CONFIG = config_service.get_config()
 
 def valid_date(date_string):
     if date_string == "today":
-        return datetime.date.today().strptime(date_string, "%Y-%m-%d")
+        return datetime.date.today().strptime(date_string, "%Y-%m-%d").date()
     try:
-        return datetime.datetime.strptime(date_string, "%Y-%m-%d")
+        return datetime.datetime.strptime(date_string, "%Y-%m-%d").date()
     except ValueError, e:
         logging.error("Invalid date format: %s", date_string)
         logging.error(e)
@@ -76,6 +76,7 @@ def create_parser():
                       help='Override default set in dycast.config. Path to load cases from. If no (--files | -f) is specified, Dycast will look in this directory for .tsv files to load into the database')
         subparser.add('--srid-cases',
                       env_var='SRID_CASES',
+                      type=int,
                       help='The SRID (projection) of the cases you are loading. Only required if your cases are in lat/long, not when they are in PostGIS geometry format')
 
     # Common arguments: generate_risk & run_dycast
@@ -92,42 +93,52 @@ def create_parser():
         subparser.add('--extent-min-x',
                       env_var='EXTENT_MIN_X',
                       required=True,
+                      type=float,
                       help='The minimum point on the X axis (north-west)')
         subparser.add('--extent-min-y',
                       env_var='EXTENT_MIN_Y',
                       required=True,
+                      type=float,
                       help='The minimum point on the Y axis (north-west)')
         subparser.add('--extent-max-x',
                       env_var='EXTENT_MAX_X',
                       required=True,
+                      type=float,
                       help='The maximum point on the X axis (south-east)')
         subparser.add('--extent-max-y',
                       env_var='EXTENT_MAX_Y',
                       required=True,
+                      type=float,
                       help='The maximum point on the Y axis (south-east)')
         subparser.add('--srid-extent',
                       env_var='SRID_EXTENT',
                       required=True,
+                      type=int,
                       help='The SRID (projection) of the specified extent.')
         subparser.add('--spatial-domain',
                       env_var='SPATIAL_DOMAIN',
                       default='800',
+                      type=int,
                       help='Spatial domain used in Dycast risk generation and statistical analysis')
         subparser.add('--temporal-domain',
                       env_var='TEMPORAL_DOMAIN',
                       default='28',
+                      type=int,
                       help='Temporal domain used in Dycast risk generation and statistical analysis')
         subparser.add('--close-in-space',
                       env_var='CLOSE_SPACE',
                       default='200',
+                      type=int,
                       help='The amount of meters between two cases that is considered "close in space" in Dycast risk generation and statistical analysis')
         subparser.add('--close-in-time',
                       env_var='CLOSE_TIME',
                       default='4',
+                      type=int,
                       help='The amount of days between two cases that is considered "close in time" in Dycast risk generation and statistical analysis')
         subparser.add('--case-threshold',
                       env_var='CASE_THRESHOLD',
                       default='10',
+                      type=int,
                       help='Spatial domain used in Dycast risk generation and statistical analysis')
 
     # Common arguments: export_risk & run_dycast
@@ -181,12 +192,11 @@ def generate_risk(**kwargs):
 
     dycast.startdate = kwargs.get('startdate', datetime.date.today())
     dycast.enddate = kwargs.get('enddate', dycast.startdate)
-
-    dycast.extent_min_x = kwargs.get('extent-min-x')
-    dycast.extent_min_y = kwargs.get('extent-min-y')
-    dycast.extent_max_x = kwargs.get('extent-max-x')
-    dycast.extent_max_y = kwargs.get('extent-max-y')
-    dycast.srid_of_extent = kwargs.get('srid-extent')
+    dycast.extent_min_x = kwargs.get('extent_min_x')
+    dycast.extent_min_y = kwargs.get('extent_min_y')
+    dycast.extent_max_x = kwargs.get('extent_max_x')
+    dycast.extent_max_y = kwargs.get('extent_max_y')
+    dycast.srid_of_extent = kwargs.get('srid_extent')
 
     dycast.generate_risk()
 
