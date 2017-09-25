@@ -3,24 +3,11 @@
 # dist_margs means "distribution marginals" and is the result of the
 # monte carlo simulations.  See Theophilides et al. for more information
 
-import sys
-import os
-import inspect
 import logging
 
 from application.services import import_service
 from application.services import export_service
 from application.services import risk_service
-
-
-APPLICATION_ROOT = os.path.dirname(
-    os.path.abspath(inspect.getfile(inspect.currentframe())))
-lib_dir = os.path.join(APPLICATION_ROOT, 'libs')
-sys.path.append(lib_dir)
-sys.path.append(os.path.join(lib_dir, "psycopg2"))
-sys.path.append(os.path.join(lib_dir, "dbfpy"))
-
-
 
 
 class DycastParameters(object):
