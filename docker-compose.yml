@@ -27,7 +27,7 @@ services:
         - DEBUG=False
         - WAIT_FOR_ATTACH=False
         - DBPASSWORD=postgres
-        - DBINSTANCE_NAME=dycast
+        - DBNAME=dycast
         - DBHOST=dycast-db
         - DBPORT=5432
         - TZ=EST

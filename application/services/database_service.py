@@ -23,12 +23,12 @@ def init_db(config=None):
 
 
 def get_dsn():
-    dbname = CONFIG.get("database", "dbname")
+    db_instance_name = CONFIG.get("database", "db_instance_name")
     user = CONFIG.get("database", "user")
     password = CONFIG.get("database", "password")
     host = CONFIG.get("database", "host")
     port = CONFIG.get("database", "port")
 
-    return "dbname='" + dbname + "' user='" + user + \
+    return "dbname='" + db_instance_name + "' user='" + user + \
         "' password='" + password + "' host='" + host + \
         "' port='" + port + "'"
