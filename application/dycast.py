@@ -147,8 +147,8 @@ def create_parser():
                       help='Optional. Default is defined in dycast.config')
         subparser.add('--export-format',
                       env_var='EXPORT_FORMAT',
-                      default='txt',
-                      help='Options: txt ')
+                      default='tsv',
+                      help='Options: tsv | csv')
         subparser.add('--export-prefix',
                       env_var='EXPORT_PREFIX',
                       help='Set a prefix for the output file so that it is easy to recognize')

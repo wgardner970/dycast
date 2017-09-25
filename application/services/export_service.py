@@ -25,9 +25,11 @@ def export_risk(dycast_parameters):
     cur, conn = database_service.init_db()
 
     # Quick and dirty solution
-    if export_format != "txt":
+    if export_format != "tsv" and export_format != "csv":
         logging.error("Incorrect export format: %s", export_format)
         return 1
+    else:
+        separator = get_separator(export_format)
 
     if export_directory is None:
         export_directory = CONFIG.get("system", "export_directory")
@@ -62,23 +64,30 @@ def export_risk(dycast_parameters):
 
     table_content = file_service.TableContent()
 
-    if export_format == "txt":
-        header = get_header_as_string()
-        table_content.set_header(header)
+    header = get_header_as_string(separator)
+    table_content.set_header(header)
 
-        body = get_rows_as_string(rows)
-        table_content.set_body(body)
+    body = get_rows_as_string(rows, separator)
+    table_content.set_body(body)
 
 
     file_service.save_file(table_content.get_content(), filepath)
 
 
-def get_header_as_string():
-    return "risk_date\tlat\tlong\tnumber_of_cases\tclose_pairs\tclose_time\tclose_space\tp_value"    
+def get_header_as_string(separator):
+    return "risk_date{0}lat{0}long{0}number_of_cases{0}close_pairs{0}close_time{0}close_space{0}p_value".format(separator)  
 
-def get_rows_as_string(rows):
+def get_rows_as_string(rows, separator):
     string = ""
     for row in rows:
         [date, lat, lon, num_birds, close_pairs, close_space, close_time, monte_carlo_p_value] = row
-        string = string + "{0}\t{1}\t{2}\t{3}\t{4}\t{5}\t{6}\t{7}\n".format(date, lat, lon, num_birds, close_pairs, close_time, close_space, monte_carlo_p_value)
+        string = string + "{0}{8}{1}{8}{2}{8}{3}{8}{4}{8}{5}{8}{6}{8}{7}\n".format(date, lat, lon, num_birds, close_pairs, close_time, close_space, monte_carlo_p_value, separator)
     return string
+
+def get_separator(file_format):
+    if file_format == "tsv":
+        return "\t"
+    elif file_format == "csv":
+        return ","
+    else:
+        raise ValueError("Invalid file format requested")
