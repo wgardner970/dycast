@@ -273,7 +273,7 @@ export_risk() {
 
 # If no arguments are supplied, assume the server needs to be run
 if [[ $#  -eq 0 ]]; then
-	run_dycast
+	display_help
 fi
 
 # Else, process arguments
