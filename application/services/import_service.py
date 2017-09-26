@@ -52,6 +52,8 @@ def load_case_file(dycast_parameters, filename, system_coordinate_system, cur, c
                 logging.error(
                     "Incorrect column count: %s, exiting...", header_count)
                 sys.exit(1)
+            logging.info("Loading cases as location type: %s",
+                         enums.Location_type(location_type).name)
         else:
             lines_read += 1
             result = 0
@@ -125,6 +127,7 @@ def load_case(dycast_parameters, line, location_type, system_coordinate_system, 
 
 
 def fail_on_incorrect_count(location_type, line):
-    logging.error("Incorrect number of fields for 'location_type' %s: %s, exiting...",
-                  location_type, line.rstrip())
+    logging.error("Incorrect number of fields for 'location_type': %s",
+                  enums.Location_type(location_type).name)
+    logging.error(line.rstrip())
     sys.exit(1)
