@@ -42,11 +42,12 @@ def load_case_file(dycast_parameters, filename, system_coordinate_system, cur, c
         sys.exit(1)
 
     for line_number, line in enumerate(input_file):
+        line = remove_trailing_newline(line)
         if line_number == 0:
             header_count = line.count("\t") + 1
-            if header_count == 5:
+            if header_count == 4:
                 location_type = enums.Location_type.LAT_LONG
-            elif header_count == 4:
+            elif header_count == 3:
                 location_type = enums.Location_type.GEOMETRY
             else:
                 logging.error(
@@ -92,26 +93,25 @@ def load_case(dycast_parameters, line, location_type, system_coordinate_system, 
             raise ValueError(
                 "Parameter 'user_coordinate_system' cannot be undefined when loading cases with lat/long locations")
         try:
-            (case_id, report_date_string, lon, lat, species) = line.split("\t")
+            (case_id, report_date_string, lon, lat) = line.split("\t")
         except ValueError:
             fail_on_incorrect_count(location_type, line)
         querystring = "INSERT INTO " + dead_birds_table_projected + \
-            " VALUES (%s, %s, %s, ST_Transform(ST_GeomFromText('POINT(" + lon + " " + \
+            " VALUES (%s, %s, ST_Transform(ST_GeomFromText('POINT(" + lon + " " + \
                       lat + ")', " + user_coordinate_system + \
             "), CAST (%s AS integer)))"
 
     else:
         try:
-            (case_id, report_date_string, geometry, species) = line.split("\t")
+            (case_id, report_date_string, geometry) = line.split("\t")
         except ValueError:
             fail_on_incorrect_count(location_type, line)
         querystring = "INSERT INTO " + dead_birds_table_projected + \
-            " VALUES (%s, %s, %s, ST_Transform(Geometry('" + \
+            " VALUES (%s, %s, ST_Transform(Geometry('" + \
                       geometry + "'), CAST (%s AS integer)))"
 
     try:
-        cur.execute(querystring, (case_id, report_date_string,
-                                  species, system_coordinate_system))
+        cur.execute(querystring, (case_id, report_date_string, system_coordinate_system))
     except Exception, e:
         conn.rollback()
         if str(e).startswith("duplicate key"):
@@ -131,3 +131,6 @@ def fail_on_incorrect_count(location_type, line):
                   enums.Location_type(location_type).name)
     logging.error(line.rstrip())
     sys.exit(1)
+
+def remove_trailing_newline(line):
+    return line.strip()

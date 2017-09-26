@@ -5,8 +5,7 @@ INSERT INTO spatial_ref_sys (srid, proj4text) VALUES (54003, '+proj=mill +lat_0=
 
 CREATE TABLE dead_birds (
     bird_id integer PRIMARY KEY,
-    report_date date,
-    species varchar(40)
+    report_date date
 );
 
 CREATE TABLE dead_birds_unprojected (
@@ -30,8 +29,7 @@ CREATE INDEX dead_birds_projected_locationsidx ON dead_birds_projected USING GIS
 
 CREATE TABLE tmp_daily_case_selection (
     bird_id integer PRIMARY KEY,
-    report_date date,
-    species varchar(40)
+    report_date date
 );
 SELECT AddGeometryColumn('public', 'tmp_daily_case_selection', 'location', 3857, 'POINT', 2);
 CREATE INDEX tmp_daily_case_selection_locationsidx ON tmp_daily_case_selection USING GIST ( location );
@@ -39,8 +37,7 @@ CREATE INDEX tmp_daily_case_selection_locationsidx ON tmp_daily_case_selection U
 
 CREATE TABLE tmp_cluster_per_point_selection (
     bird_id integer PRIMARY KEY,
-    report_date date,
-    species varchar(40)
+    report_date date
 );
 SELECT AddGeometryColumn('public', 'tmp_cluster_per_point_selection', 'location', 3857, 'POINT', 2);
 CREATE INDEX tmp_cluster_per_point_selection_locationsidx ON tmp_cluster_per_point_selection USING GIST ( location );
