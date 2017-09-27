@@ -6,6 +6,7 @@ from application.models.classes import dycast_parameters
 from application.services import logging_service
 from application.services import config_service
 from application.services import debug_service
+from application.services import conversion_service
 
 
 debug_service.enable_debugger()
@@ -15,12 +16,11 @@ CONFIG = config_service.get_config()
 
 def valid_date(date_string):
     if date_string == "today":
-        return datetime.date.today().strptime(date_string, "%Y-%m-%d").date()
+        return conversion_service.get_date_object_from_string(datetime.date.today())
     try:
-        return datetime.datetime.strptime(date_string, "%Y-%m-%d").date()
+        return conversion_service.get_date_object_from_string(date_string)
     except ValueError, e:
-        logging.error("Invalid date format: %s", date_string)
-        logging.error(e)
+        logging.exception("Invalid date format: %s", date_string)
         sys.exit(1)
 
 
