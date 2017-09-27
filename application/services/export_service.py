@@ -43,14 +43,7 @@ class ExportService(object):
 
 
         logging.info("Exporting risk for: %s - %s", startdate_string, enddate_string)
-        query = "SELECT risk_date, lat, long, num_birds, close_pairs, close_space, close_time, nmcm FROM risk WHERE risk_date >= %s AND risk_date <= %s"
-
-        try:
-            cur.execute(query, (startdate, enddate))
-        except Exception:
-            conn.rollback()
-            logging.exception("Failed to select risk data")
-            raise
+        self.get_risk(startdate, enddate, cur, conn)
 
         if cur.rowcount == 0:
             logging.info("No risk found for the provided dates: %s - %s", startdate_string, enddate_string)
@@ -69,6 +62,16 @@ class ExportService(object):
 
         file_service.save_file(table_content.get_content(), filepath)
 
+
+    def get_risk(self, startdate, enddate, cur, conn):
+        query = "SELECT risk_date, lat, long, num_birds, close_pairs, close_space, close_time, nmcm FROM risk WHERE risk_date >= %s AND risk_date <= %s"
+
+        try:
+            cur.execute(query, (startdate, enddate))
+        except Exception:
+            conn.rollback()
+            logging.exception("Failed to select risk data")
+            raise        
 
     def get_header_as_string(self, separator):
         return "risk_date{0}lat{0}long{0}number_of_cases{0}close_pairs{0}close_time{0}close_space{0}p_value".format(separator)  
