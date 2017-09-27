@@ -5,8 +5,8 @@
 
 import logging
 
-from application.services import import_service
-from application.services import export_service
+from application.services import import_service as import_service_module
+from application.services import export_service as export_service_module
 from application.services import risk_service
 
 
@@ -42,6 +42,7 @@ class DycastParameters(object):
 
 
     def import_cases(self):
+        import_service = import_service_module.ImportService()
         if self.files_to_import:
             import_service.load_case_files(self)
         else:
@@ -55,6 +56,7 @@ class DycastParameters(object):
         raise NotImplementedError
 
     def export_risk(self):
+        export_service = export_service_module.ExportService()
         export_service.export_risk(self)
 
     def generate_risk(self):
