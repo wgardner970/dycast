@@ -54,8 +54,7 @@ class ExportService(object):
 
         if cur.rowcount == 0:
             logging.info("No risk found for the provided dates: %s - %s", startdate_string, enddate_string)
-            logging.info("Exiting...")
-            sys.exit(0)
+            return
 
         rows = cur.fetchall()
 
