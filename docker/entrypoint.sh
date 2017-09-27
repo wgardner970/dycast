@@ -1,5 +1,7 @@
 #!/bin/bash
 
+set -e
+
 DBUSER=${DBUSER:-postgres}
 # psql uses PGPASSWORD environment variable to login
 export PGPASSWORD=${DBPASSWORD}
@@ -71,6 +73,7 @@ init_dycast() {
 
 wait_for_db() {
 	echo "Testing database connection: ${DBHOST}:${DBPORT}..."
+	set +e
 	tries=0
 	connected="False"
 	while [[ ${connected} == "False" ]]
@@ -86,6 +89,7 @@ wait_for_db() {
 		fi
 		sleep 1
 	done
+	set -e
 	echo "Connected."
 }
 
@@ -137,18 +141,6 @@ init_directories() {
 	fi
 }
 
-run_tests() {
-
-	echo "Running unit tests..."
-	nosetests -vv --exe tests
-
-	exit_code=$?
-	if [[ ! "${exit_code}" == "0" ]]; then
-		echo "Unit test(s) failed, exiting..."
-		exit ${exit_code}
-	fi
-
-}
 
 listen_for_input() {
 	echo ""
@@ -260,6 +252,19 @@ export_risk() {
 		exit ${exit_code}
 	else 
 		echo "Done loading cases"
+	fi
+}
+
+
+run_tests() {
+	local arguments="$@"
+	echo "Running unit tests..."
+	nosetests -vv --exe tests ${arguments}
+
+	exit_code=$?
+	if [[ ! "${exit_code}" == "0" ]]; then
+		echo "Unit test(s) failed, exiting..."
+		exit ${exit_code}
 	fi
 }
 
