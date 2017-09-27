@@ -7,7 +7,7 @@ import logging
 
 from application.services import import_service as import_service_module
 from application.services import export_service as export_service_module
-from application.services import risk_service
+from application.services import risk_service as risk_service_module
 
 
 class DycastParameters(object):
@@ -60,4 +60,5 @@ class DycastParameters(object):
         export_service.export_risk(self)
 
     def generate_risk(self):
+        risk_service = risk_service_module.RiskService()
         risk_service.generate_risk(self)
