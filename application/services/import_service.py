@@ -25,7 +25,7 @@ def load_case_files(dycast_parameters):
             load_case_file(dycast_parameters, filepath, system_coordinate_system, cur, conn)
         except Exception:
             logging.exception("Could not load file: %s", filepath)
-            logging.info("Continuing...")
+            sys.exit(1)
 
 
 def load_case_file(dycast_parameters, filename, system_coordinate_system, cur, conn):
@@ -82,7 +82,7 @@ def load_case_file(dycast_parameters, filename, system_coordinate_system, cur, c
 
 def load_case(dycast_parameters, line, location_type, system_coordinate_system, cur, conn):
     dead_birds_table_projected = CONFIG.get("database", "dead_birds_table_projected")
-    user_coordinate_system = dycast_parameters.srid_of_cases
+    user_coordinate_system = str(dycast_parameters.srid_of_cases)
 
     if location_type not in (enums.Location_type.LAT_LONG, enums.Location_type.GEOMETRY):
         logging.error("Wrong value for 'location_type', exiting...")
@@ -96,6 +96,7 @@ def load_case(dycast_parameters, line, location_type, system_coordinate_system, 
             (case_id, report_date_string, lon, lat) = line.split("\t")
         except ValueError:
             fail_on_incorrect_count(location_type, line)
+
         querystring = "INSERT INTO " + dead_birds_table_projected + \
             " VALUES (%s, %s, ST_Transform(ST_GeomFromText('POINT(" + lon + " " + \
                       lat + ")', " + user_coordinate_system + \
@@ -119,9 +120,7 @@ def load_case(dycast_parameters, line, location_type, system_coordinate_system, 
                 "Couldn't insert duplicate case key %s, skipping...", case_id)
             return -1
         else:
-            logging.warning("Couldn't insert case record")
-            logging.warning(e)
-            return 0
+            raise
     conn.commit()
     return case_id
 
