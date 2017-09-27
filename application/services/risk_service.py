@@ -2,6 +2,7 @@ import datetime
 import time
 import logging
 import sys
+import psycopg2
 
 from application.services import grid_service
 from application.services import config_service
@@ -140,9 +141,13 @@ class RiskService(object):
         try:
             # Be careful of the ordering of space and time in the db vs the txt file
             cur.execute(querystring, (riskdate, latitude, longitude, number_of_cases, close_pairs, close_space, close_time, nmcm))
+        except psycopg2.IntegrityError:
+            conn.rollback()
+            logging.warning("Risk already exists in database for this date '%s' and location '%s - %s', skipping...", riskdate, latitude, longitude)
         except Exception:
             conn.rollback()
             logging.exception("Couldn't insert risk")
             logging.info("Rolling back and exiting...")
-            return 0
-        conn.commit()
+            sys.exit(1)
+        else:
+            conn.commit()
