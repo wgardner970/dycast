@@ -34,7 +34,7 @@ class TestImportServiceFunctions(unittest.TestCase):
 
         import_service.load_case(dycast, line_correct, location_type, cur, conn)
 
-        with self.assertRaises(psycopg2.DataError) as context:
+        with self.assertRaises(psycopg2.DataError):
             line_incorrect_date = "1\t30/09/16\t1832445.278\t2118527.399"            
             import_service.load_case(dycast, line_incorrect_date, location_type, cur, conn)
 

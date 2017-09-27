@@ -1,5 +1,7 @@
 import logging
 import sys
+import psycopg2
+
 from application.services import config_service
 from application.services import file_service
 from application.services import database_service
@@ -112,14 +114,14 @@ class ImportService(object):
 
         try:
             cur.execute(querystring, (case_id, report_date_string, self.system_coordinate_system))
-        except Exception, e:
+        except psycopg2.IntegrityError:
             conn.rollback()
-            if str(e).startswith("duplicate key"):
-                logging.debug(
-                    "Couldn't insert duplicate case key %s, skipping...", case_id)
-                return -1
-            else:
-                raise
+            logging.warning("Couldn't insert duplicate case key %s, skipping...", case_id)            
+            return -1
+        except Exception:
+            conn.rollback()
+            logging.exception("Couldn't insert case")
+            raise
         conn.commit()
         return case_id
 

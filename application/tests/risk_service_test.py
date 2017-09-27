@@ -33,10 +33,7 @@ class TestDycastFunctions(unittest.TestCase):
 
     def test_generate_risk(self):
         import_service = import_service_module.ImportService()
-        export_service = export_service_module.ExportService()
         risk_service = risk_service_module.RiskService()
-
-        cur, conn = database_service.init_db()
 
         dycast = test_helper_functions.get_dycast_parameters()
 
