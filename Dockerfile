@@ -16,13 +16,16 @@ RUN apt-get update -y &&\
 
 ENV DYCAST_PATH=/dycast
 ENV DYCAST_APP_PATH=${DYCAST_PATH}/application
+ENV DYCAST_REQUIREMENTS_PATH=${DYCAST_APP_PATH}/init/requirements.txt
 ENV PG_SHARE_PATH=/usr/local/pgsql/share
 ENV DOCKER_DIR=/docker
 ENV PYTHONPATH=${DYCAST_PATH}:$PYTHONPATH
 
-COPY ./application ${DYCAST_APP_PATH}
+# First only copy the requirements file, so the build can be cached beyond the `pip install` part
+ADD ./application/init/requirements.txt ${DYCAST_REQUIREMENTS_PATH}
+RUN pip install -r ${DYCAST_REQUIREMENTS_PATH}
 
-RUN pip install -r ${DYCAST_APP_PATH}/init/requirements.txt
+COPY ./application ${DYCAST_APP_PATH}
 
 # Tests cannot be executable
 RUN chmod -R -x ${DYCAST_APP_PATH}/tests
