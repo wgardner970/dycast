@@ -258,6 +258,9 @@ export_risk() {
 
 run_tests() {
 	local arguments="$@"
+
+	init_dycast
+	
 	echo "Running unit tests..."
 	nosetests -vv --exe tests ${arguments}
 
