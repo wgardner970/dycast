@@ -12,11 +12,6 @@ services:
         - DBHOST=dycast-db
         - DBPORT=5432
         - TZ=EST
-      volumes:
-        - ./application:/dycast/application
-        - ./docker/:/docker
-        - ./inbox:/dycast/inbox
-        - ./outbox:/dycast/outbox
       depends_on: 
         - dycast-db
 
