@@ -41,7 +41,7 @@ $(python dycast.py --help)
 
 
 
-	Additional commands for Docker container:
+	Additional commands provided by Docker container:
 
 	[setup_dycast] 		Initializes Dycast: creates the database if it does not exist and 
 				sets up necessary folders  
@@ -203,7 +203,7 @@ run_dycast() {
 		echo "Command 'run_dycast' failed, exiting..."
 		exit ${exit_code}
 	else 
-		echo "Done loading cases"
+		echo "Finished running the full Dycast procedure"
 	fi
 }
 
@@ -251,7 +251,7 @@ export_risk() {
 		echo "Command 'export_risk' failed, exiting..."
 		exit ${exit_code}
 	else 
-		echo "Done loading cases"
+		echo "Done exporting risk"
 	fi
 }
 

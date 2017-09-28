@@ -1,9 +1,26 @@
 # Dycast
 
-*Under construction* 
+The Dynamic Continuous-Area Space-Time (DYCAST) system is a biologically based spatiotemporal model that uses georeferenced case data to identify areas at high risk for the transmission of virusses such as Zika, Dengue and West Nile virus (WNV).
 
-This is fork from https://github.com/almccon/DYCAST, which is a tool to create risk maps for West Nile Virus.
+The original version was written by Constandinos Theophilides at the [Center for Analysis and Research of Spatial Information (CARSI)](http://www.geography.hunter.cuny.edu/~carsi/) at Hunter College, the City University of New York. That version was written in the Magik programming language for GE SmallWorld GIS. 
+
+Subsequently the application was ported to [Python and PostGIS](https://github.com/almccon/DYCAST) by [Alan McConchie](https://github.com/almccon). 
+
+The current version is a continuation of that Python application.
 The aim of this fork is to expand this application so that it supports the generation of prediction models for multiple virusses, including Zika and Dengue. 
+
+
+## Getting started
+The easiest way to get started is to run Dycast in a Docker container.
+
+Then simply run: `docker run cvast/cvast-dycast --help` to see what commands are available and what parameters are required. 
+
+
+## Setting up
+Start with filling out any empty environment variables in the [docker-compose.yml](./docker-compose.yml) provided in this repo.
+
+To start the database and run dycast, run: `docker-compose up`.
+This will start a cycle of 1. importing data; 2. generating risk predictions; and 3. exporting the risk.
 
 
 ## Parameters
@@ -33,175 +50,20 @@ close space: 200 meters
 close time: 4 days  
 
 
-# Original Readme
-
-The Dynamic Continuous-Area Space-Time (DYCAST) system is a biologically based spatiotemporal model that uses public reports of dead birds to identify areas at high risk for West Nile virus (WNV) transmission to humans.
-
-The original version was written by Constandinos Theophilides at the [Center for Analysis and Research of Spatial Information (CARSI)](http://www.geography.hunter.cuny.edu/~carsi/) at Hunter College, the City University of New York. That version was written in the Magik programming language for GE SmallWorld GIS. 
-
-The current version was ported to Python and PostGIS by [Alan McConchie](https://github.com/almccon). It is very much a work-in-progress, and some parts of the original system have not been ported yet.
-
 ## Requirements
+Using Docker with the provided [docker-compose.yml](./docker-compose.yml) file will enable you to run Dycast anywhere, on any OS. All dependencies will be installed for you and a compatible Postgis database is set up alongside your Dycast container. 
 
-DYCAST has been tested on Microsoft Windows [which versions?] and Mac OS X (versions 10.6 and 10.7). 
+If you do wish to run Dycast outside of Docker, you can use the [requirements file](./application/init/requirements.txt) to install python package dependencies:  
+`pip install -r requirements.txt`  
 
-DYCAST depends on the following software:
+Please see the Docker [entrypoint file](./docker/entrypoint.sh) for pointers on how to initialize the database. 
 
-* 	[PostgreSQL](http://www.postgresql.org/) (tested on version 8.4 and 9.1)
-* 	[PostGIS](http://postgis.refractions.net/) (tested on version 1.5 and 2.0)
-* 	[Python](http://www.python.org/)
+Dycast is built for Postgres 9.6 and Postgis 2.3.
 
-For Windows, download and install these requirements from the links provided, following the instructions on the respective web pages. For OS X, we recommend installing the pre-compiled binaries from [William Kyngesburye](http://www.kyngchaos.com/)
 
-## Setup
+## Data Format & Test Data
+Please see the [tests data folder](./application/tests/test_data) for examples of input data. Be sure to follow this format in terms of header row and column order/count.
 
-### Extracting files
-
-This repository contains sample data sufficient to get you started. (To understand the purpose of these datasets, please read the section below titled "About the DYCAST algorithm"). Included data:
-
-* 	A .5 mile analysis grid for the state of California
-* 	Monte Carlo simulations
-
-Unzip file *init.zip* which creates the folder *DYCAST/init*
-
-Unzip file *birds.zip* which creates the folder *DYCAST/inbox*
-
-### Initializing database
-
-For Windows, execute: 
-
-	DYCAST\application\setup_db.bat
-	
-For OS X:
-
-	DYCAST/application/setup_db.sh
-
-*setup_db.bat* will create the necessary PostgreSQL database and populate the DYCAST tables with the contents of the init folder. This may take some time.
-
-If there are any errors connecting to the database and locating files, you may have to quit and modify *DYCAST\application\dycast.config* (use a simple text editor such as WordPad) before trying again.
-
-*setup_db.bat* will also create an inbox and outbox folder, if they do not already exist.
-
-### Loading birds
-
-You must populate the database with the locations of dead birds before you can run the analysis.
-
-The dead bird data must be in TSV (tab separated values) files, in the following format:
-
-	id	report_date	longitude	latitude	species
-	479414	03/27/2008	-119.01529100 35.30386000 Mourning Dove
-	479415	03/27/2008	-119.04693200 35.36288600 American Robin
-	479416	03/27/2008	-119.14695300 35.39921000 European Starling
-
-Once you have your dead bird data files in the correct format, there are two ways you can load them:
-
-* 	Open *C:\DYCAST\application\ui.bat* (double-click it)
-
-	In the DYCAST control window that opens, click “select birds”. Select one or more dead bird export file and click “Open”. Then click “load birds”. Wait until loading is complete before running any analysis. Consult *C:\DYCAST\dycast_log.txt* to see detailed results of the bird load.
-
-* 	Alternatively, open a command prompt (from the start menu), change directory to *C:\DYCAST\application* and execute:
-
-     	C:\DYCAST\application> load_cases.py ..\inbox\dycast_export_2007.tsv
-
-	(replace “..\inbox\dycast_export_2007.tsv” with the filename of a dead bird export)
-	
-Repeat for any other .tsv files of dead birds.
-Using either method, any birds that already exist in the database (according to their ID) will be skipped, not overwritten.
-
-## Directory structure
-
-	C:\DYCAST
-		\inbox
-		\outbox
-		\application
-		\init
-
-### Inbox and outbox
-
-The inbox is where the automated dycast program looks to find new dead birds. It expects the file will always be called *dycast_export.tsv*. On a weekly basis, the automated program will make a backup of the current *dycast_export.tsv* file. Backups will be stored in the same folder, with filenames of the format *dycast_export_YYYY-MM-DD.tsv*
-
-The outbox is based on the “maildir” directory structure. These subfolders are where the automated dycast program deposits DBF files of risk data. DBFs are filed in the “tmp” subdirectory while the program is actively writing to the file. The completed risk DBFs are then moved to the “new” subdirectory of the outbox, and are then moved to the “cur” subdirectory after they have been FTPed to the mapping server.
-
-### Application
-
-The “application” folder contains the Python scripts and libraries.
-
-
-Useful applications:
-
-	load_birds.py birdfile.tsv
-		(load dead birds into the database)
-	daily_risk.py YYYY-MM-DD
-		(run the DYCAST Knox Test for a day, generating risk)
-    export_risk.py
-		(exports DBF files for previously generated risk)
-    daily_tasks.py
-		(includes all the above for current day, plus uploading and downloading)
-    ui.py
-    	(graphical user interface for loading birds, generating risk and exporting risk)
-
-Useful files:
-
-	dycast.config
-		(controls all the default DYCAST settings)
-
-### Init
-
-The “init” folder contains the SQL files to initialize the database with pre- calculated monte carlo distributions and the California analysis grid
-
-### dycast_log.txt
-
-The “dycast_log.txt” file contains detailed reports of each DYCAST operation executed.
-
-## Automation of daily tasks
-
-On Windows, go to Start > Control Panel > Scheduled Tasks to open the Scheduled Task Wizard.
-
-First, create a task. You will be prompted to Browse for the program you want to run. Choose C:\DYCAST\application\daily_tasks.py (daily_tasks.py includes FTPing and risk for 3 previous days)
-
-If the above does not work, try the following more descriptive command
-
-	C:\Python25\python.exe C:\DYCAST\application\download_birds.py -c C:\DYCAST\application\dycast.config
-
-Give the task a name, and choose the desired scheduling (in previous years, we would run daily tasks at 7pm PT, to give sufficient time for all of the new birds for the day to be included in the input file.)
-
-Or use individual tasks, if you are not using FTP to fetch and send data: 
-
-    load_cases.py (if you are placing them in inbox manually, not via FTP) 
-
-    daily_risk.py (generates risk, but does not input or output) 
-
-    export_risk.py (will place files in outbox, but not FTP them)
-
-To check the status of the system, open the log file: DYCAST\dycast_log.txt
-
-## Manual workflow
-
-Manual operation of the system is possible as an alternative to running it as a scheduled task, or can be used in addition, as long as a DYCAST scheduled task is not currently running.  
-
-### Graphical User Interface
-
-*ui.py* (simple graphical user interface). This application allows a more user-friendly method of loading bird data, running daily risk, and exporting risk. More detailed reports of the system status will continue to be reported in C:\DYCAST\dycast_log.txt
-
-### Viewing Results
-
-Resulting DBF files can be joined to a shapefile of effects_polys. 
-
-PostgreSQL tables can be viewed and manipulated using PgAdminIII.
-
-## Post-season analysis
-
-  [under construction]
-
-### Hit rates
-
-### The Kappa test
-
-## About the DYCAST algorithm and parameters
-
-*	TODO: Explain the principles
-*	TODO: Explain the ecological parameters
-*	TODO: Explain the Kappa parameters
 
 ## Peer-reviewed articles about the DYCAST system:
 
@@ -213,4 +75,4 @@ Carney, Ryan, Sean C. Ahearn, Alan McConchie, Carol Glaser, Cynthia Jean, Chris 
 
 ## Contact
 
-Maintained by [Alan McConchie](https://github.com/almccon)
+Maintained by [Vincent Meijer](https://www.linkedin.com/in/vincentmeijer1/).

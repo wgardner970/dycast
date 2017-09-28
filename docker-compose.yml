@@ -8,7 +8,7 @@ services:
       build:
         context: .
         dockerfile: ./Dockerfile
-      command: bash -c  "sleep 10 && /docker/entrypoint.sh"
+      command: run_dycast
       environment:
         - MONTE_CARLO_FILE=/dycast/application/init/Zika_max_75.csv
         - SPATIAL_DOMAIN=
