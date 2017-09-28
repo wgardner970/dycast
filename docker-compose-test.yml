@@ -1,0 +1,30 @@
+version: '2'
+services:
+
+    sut:
+      build:
+        context: .
+      command: run_tests
+      environment:
+        - DEBUG=True
+        - DBPASSWORD=postgres
+        - DBNAME=dycast
+        - DBHOST=dycast-db
+        - DBPORT=5432
+        - TZ=EST
+      volumes:
+        - ./application:/dycast/application
+        - ./docker/:/docker
+        - ./inbox:/dycast/inbox
+        - ./outbox:/dycast/outbox
+      depends_on: 
+        - dycast-db
+
+    dycast-db:
+      container_name: dycast-db
+      image: mdillon/postgis:9.6
+      ports:
+        - '5432:5432'
+      environment:
+        - POSTGRES_PASSWORD=postgres
+        - TZ=EST
