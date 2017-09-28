@@ -108,10 +108,12 @@ init_db() {
 
 	echo "5" && sleep 1 && echo "4" && sleep 1 && echo "3" && sleep 1 && echo "2" && sleep 1 &&	echo "1" &&	sleep 1 && echo "0" && echo ""
 
+	set +e
 	echo "Dropping existing database ${DBNAME}"
 	dropdb -h ${DBHOST} -U ${DBUSER} ${DBNAME} # if necessary
 	echo ""
-
+	set -e
+	
 	echo "Creating database ${DBNAME}"
 	createdb -h ${DBHOST} -U ${DBUSER} --encoding=UTF8 ${DBNAME}
 	echo ""
