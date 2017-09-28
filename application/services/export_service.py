@@ -62,6 +62,8 @@ class ExportService(object):
 
         file_service.save_file(table_content.get_content(), filepath)
 
+        return filepath
+
 
     def get_risk(self, startdate, enddate, cur, conn):
         query = "SELECT risk_date, lat, long, num_birds, close_pairs, close_space, close_time, nmcm FROM risk WHERE risk_date >= %s AND risk_date <= %s"

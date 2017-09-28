@@ -1,5 +1,7 @@
 import os
 import logging
+import psycopg2
+import psycopg2.extras as psycop_extras
 from nose.tools import nottest
 from application.services import config_service
 from application.services import logging_service
@@ -49,14 +51,22 @@ def get_test_data_directory():
     return os.path.join(current_dir, 'test_data')
 
 @nottest
+def get_test_data_import_directory():
+    return os.path.join(get_test_data_directory(), 'import')
+
+@nottest
+def get_test_data_export_directory():
+    return os.path.join(get_test_data_directory(), 'export')
+
+@nottest
 def get_test_cases_import_files_latlong():
-    file_1 = os.path.join(get_test_data_directory(), 'input_cases_latlong1.tsv')
-    file_2 = os.path.join(get_test_data_directory(), 'input_cases_latlong2.tsv')
+    file_1 = os.path.join(get_test_data_import_directory(), 'input_cases_latlong1.tsv')
+    file_2 = os.path.join(get_test_data_import_directory(), 'input_cases_latlong2.tsv')
     return [file_1, file_2]
 
 @nottest
 def get_test_cases_import_file_geometry():
-    return os.path.join(get_test_data_directory(), 'input_cases_geometry.tsv')
+    return os.path.join(get_test_data_import_directory(), 'input_cases_geometry.tsv')
 
 @nottest
 def get_count_from_table(table_name):
@@ -70,3 +80,19 @@ def get_count_from_table(table_name):
         raise
     new_row = cur.fetchone()
     return new_row[0]
+
+@nottest
+def insert_test_risk():
+    cur, conn = database_service.init_db()
+    querystring = "INSERT INTO risk VALUES %s"
+    data_tuple = [('2016-03-30', 1830400, 2120400, 10, 1, 6, 7, 0.3946), ('2016-03-31', 1830400, 2120400, 10, 1, 6, 7, 0.3946)]
+    try:
+        psycop_extras.execute_values(cur, querystring, data_tuple)
+    except psycopg2.IntegrityError:
+        conn.rollback()
+        logging.warning("Couldn't insert duplicate key in tuple: %s...", data_tuple)            
+    except Exception:
+        conn.rollback()
+        logging.exception("Couldn't insert tuple")
+        raise
+    conn.commit()

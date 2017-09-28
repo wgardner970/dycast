@@ -1,5 +1,6 @@
 import unittest
 import psycopg2
+import os
 from application.services import export_service as export_service_module
 from application.services import database_service
 from application.services import conversion_service
@@ -24,5 +25,16 @@ class TestImportServiceFunctions(unittest.TestCase):
         dycast.export_prefix = 'test_export_'
         dycast.export_format = 'tsv'
 
+        dycast.export_directory = test_helper_functions.get_test_data_export_directory()
+
+        test_helper_functions.insert_test_risk()
+
         export_service = export_service_module.ExportService()
-        export_service.export_risk(dycast)
+        exported_file_path = export_service.export_risk(dycast)
+
+        exported_file_size = os.stat(exported_file_path).st_size
+        os.remove(exported_file_path)
+
+        self.assertGreater(exported_file_size, 0)
+
+        
