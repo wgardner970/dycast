@@ -6,6 +6,7 @@ services:
         context: .
       command: run_tests
       environment:
+        - MONTE_CARLO_FILE=/dycast/application/init/Dengue_max_75.csv
         - DEBUG=True
         - DBPASSWORD=postgres
         - DBNAME=dycast
