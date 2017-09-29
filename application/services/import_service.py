@@ -10,10 +10,12 @@ from application.models.enums import enums
 
 CONFIG = config_service.get_config()
 
+
 class ImportService(object):
-    
+
     def __init__(self, **kwargs):
-        self.system_coordinate_system = CONFIG.get("dycast", "system_coordinate_system")
+        self.system_coordinate_system = CONFIG.get(
+            "dycast", "system_coordinate_system")
 
     def load_case_files(self, dycast_parameters):
         logging.info("Loading files: %s", dycast_parameters.files_to_import)
@@ -27,7 +29,6 @@ class ImportService(object):
             except Exception:
                 logging.exception("Could not load file: %s", filepath)
                 sys.exit(1)
-
 
     def load_case_file(self, dycast_parameters, filename, cur, conn):
         lines_read = 0
@@ -55,12 +56,13 @@ class ImportService(object):
                         "Incorrect column count: %s, exiting...", header_count)
                     sys.exit(1)
                 logging.info("Loading cases as location type: %s",
-                            enums.Location_type(location_type).name)
+                             enums.Location_type(location_type).name)
             else:
                 lines_read += 1
                 result = 0
                 try:
-                    result = self.load_case(dycast_parameters, line, location_type, cur, conn)
+                    result = self.load_case(
+                        dycast_parameters, line, location_type, cur, conn)
                 except Exception:
                     raise
 
@@ -77,12 +79,12 @@ class ImportService(object):
 
         logging.info("Case load complete: %s", filename)
         logging.info("Processed %s of %s lines, %s loaded, %s duplicate IDs skipped",
-                    lines_processed, lines_read, lines_loaded, lines_skipped)
+                     lines_processed, lines_read, lines_loaded, lines_skipped)
         return lines_read, lines_processed, lines_loaded, lines_skipped
 
-
     def load_case(self, dycast_parameters, line, location_type, cur, conn):
-        dead_birds_table_projected = CONFIG.get("database", "dead_birds_table_projected")
+        dead_birds_table_projected = CONFIG.get(
+            "database", "dead_birds_table_projected")
         user_coordinate_system = str(dycast_parameters.srid_of_cases)
 
         if location_type not in (enums.Location_type.LAT_LONG, enums.Location_type.GEOMETRY):
@@ -100,7 +102,7 @@ class ImportService(object):
 
             querystring = "INSERT INTO " + dead_birds_table_projected + \
                 " VALUES (%s, %s, ST_Transform(ST_GeomFromText('POINT(" + lon + " " + \
-                        lat + ")', " + user_coordinate_system + \
+                lat + ")', " + user_coordinate_system + \
                 "), CAST (%s AS integer)))"
 
         else:
@@ -110,13 +112,15 @@ class ImportService(object):
                 self.fail_on_incorrect_count(location_type, line)
             querystring = "INSERT INTO " + dead_birds_table_projected + \
                 " VALUES (%s, %s, ST_Transform(Geometry('" + \
-                        geometry + "'), CAST (%s AS integer)))"
+                geometry + "'), CAST (%s AS integer)))"
 
         try:
-            cur.execute(querystring, (case_id, report_date_string, self.system_coordinate_system))
+            cur.execute(querystring, (case_id, report_date_string,
+                                      self.system_coordinate_system))
         except psycopg2.IntegrityError:
             conn.rollback()
-            logging.warning("Couldn't insert duplicate case key %s, skipping...", case_id)            
+            logging.warning(
+                "Couldn't insert duplicate case key %s, skipping...", case_id)
             return -1
         except Exception:
             conn.rollback()
@@ -125,10 +129,9 @@ class ImportService(object):
         conn.commit()
         return case_id
 
-
     def fail_on_incorrect_count(self, location_type, line):
         logging.error("Incorrect number of fields for 'location_type': %s",
-                    enums.Location_type(location_type).name)
+                      enums.Location_type(location_type).name)
         logging.error(line.rstrip())
         sys.exit(1)
 
