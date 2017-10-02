@@ -1,1 +1,2 @@
 *.shp filter=lfs diff=lfs merge=lfs -text
+*_100_40000.csv filter=lfs diff=lfs merge=lfs -text
