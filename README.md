@@ -1,6 +1,6 @@
 # Dycast
 
-The Dynamic Continuous-Area Space-Time (DYCAST) system is a biologically based spatiotemporal model that uses georeferenced case data to identify areas at high risk for the transmission of virusses such as Zika, Dengue and West Nile virus (WNV).
+The Dynamic Continuous-Area Space-Time (DYCAST) system is a biologically based spatiotemporal model that uses georeferenced case data to identify areas at high risk for the transmission of virusses such as Zika, Dengue and West Nile virus (WNV).  
 
 The original version was written by Constandinos Theophilides at the [Center for Analysis and Research of Spatial Information (CARSI)](http://www.geography.hunter.cuny.edu/~carsi/) at Hunter College, the City University of New York. That version was written in the Magik programming language for GE SmallWorld GIS. 
 
@@ -8,6 +8,8 @@ Subsequently the application was ported to [Python and PostGIS](https://github.c
 
 The current version is a continuation of that Python application.
 The aim of this fork is to expand this application so that it supports the generation of prediction models for multiple virusses, including Zika and Dengue. 
+
+More information: https://cvast.usf.edu/projects/dycast/  
 
 
 ## Getting started
