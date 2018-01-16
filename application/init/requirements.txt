@@ -1,6 +1,6 @@
 psycopg2
 # ptvsd = for debugging with Visual Studio Code
-ptvsd==3.0.0
+ptvsd==3.2.1
 pyproj
 shapely
 nose

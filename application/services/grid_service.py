@@ -46,6 +46,6 @@ def generate_grid(dycast_parameters):
             y -= stepsize
         x += stepsize
 
-    logging.info("Done generating grid.")
+    logging.info("Done generating grid. Result: %s points", len(gridpoints))
 
     return gridpoints

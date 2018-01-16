@@ -3,7 +3,6 @@ services:
 
     dycast:
       container_name: dycast
-      restart: always
       image: cvast/cvast-dycast:2.0.1dev
       build:
         context: .
@@ -36,7 +35,6 @@ services:
 
     dycast-db:
       container_name: dycast-db
-      restart: always
       image: mdillon/postgis:9.6
       volumes:
           - dycast-postgres-data:/var/lib/postgresql/data

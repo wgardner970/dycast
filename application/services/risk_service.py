@@ -39,8 +39,7 @@ class RiskService(object):
 
         while day <= dycast_parameters.enddate:
 
-            self.setup_tmp_daily_case_table_for_date(
-                dycast_parameters, day, cur, conn)
+            self.setup_tmp_daily_case_table_for_date(dycast_parameters, day, cur, conn)
             daily_case_count = self.get_daily_case_count(day, cur, conn)
 
             if daily_case_count >= case_threshold:
@@ -49,8 +48,7 @@ class RiskService(object):
                 points_above_threshold = 0
 
                 for point in gridpoints:
-                    vector_count = self.get_vector_count_for_point(
-                        dycast_parameters, point, cur, conn)
+                    vector_count = self.get_vector_count_for_point(dycast_parameters, point, cur, conn)
                     if vector_count >= case_threshold:
                         points_above_threshold += 1
                         self.insert_cases_in_cluster_table(
