@@ -52,10 +52,11 @@ def display_current_parameter_set(dycast_parameters):
 
 def get_log_level():
     debug_setting = config_service.get_env_variable("DEBUG")
-    if ast.literal_eval(debug_setting):
-        return logging.DEBUG
-    else:
-        return logging.INFO
+    if debug_setting:
+        if ast.literal_eval(debug_setting):
+            return logging.DEBUG
+
+    return logging.INFO
 
 def get_log_file_path():
     return CONFIG.get("system", "logfile")
