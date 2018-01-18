@@ -7,6 +7,8 @@ from application.services import logging_service
 from application.services import config_service
 from application.services import debug_service
 from application.services import conversion_service
+from application.services import database_service
+from application.models import models
 
 
 debug_service.enable_debugger()
@@ -14,6 +16,7 @@ debug_service.enable_debugger()
 CONFIG = config_service.get_config()
 
 
+# Types
 def valid_date(date_string):
     if date_string == "today":
         return conversion_service.get_date_object_from_string(datetime.date.today())
@@ -24,6 +27,8 @@ def valid_date(date_string):
         sys.exit(1)
 
 
+
+# Parsers
 def create_parser():
     # Common arguments for all subcommands
     common_parser = configargparse.ArgParser(add_help=False)
@@ -64,6 +69,13 @@ def create_parser():
                                               help='Loads any .tsv files in (--files | -f), generates risk and exports it to --export_directory',
                                               argument_default=configargparse.SUPPRESS)
     run_dycast_parser.set_defaults(func=run_dycast)
+
+    # Init database
+    init_db_parser = subparsers.add_parser('init_db',
+                                              parents=[common_parser],
+                                              help='Initialize database',
+                                              argument_default=configargparse.SUPPRESS)
+    init_db_parser.set_defaults(func=init_db)
 
 
 
@@ -170,6 +182,17 @@ def create_parser():
                       help='Default: same as start date. The end date to which to generate and/or export risk. Format: YYYY-MM-DD')
 
 
+    ## Init db argumentss:
+    init_db_parser.add('--force-db-init',
+                       action='store_true',
+                       help='If this flag is provided: drops existing database')
+    init_db_parser.add('--monte-carlo-file',
+                       env_var='MONTE_CARLO_FILE',
+                       required=True,
+                       help='File name without folder. File must be in `application/init` folder')
+
+
+
     return main_parser
 
 
@@ -231,6 +254,13 @@ def export_risk(**kwargs):
 
 def listen_for_input(**kwargs):
     raise NotImplementedError
+
+
+def init_db(**kwargs):
+    force = kwargs.get('force_db_init')
+    monte_carlo_file = kwargs.get('monte_carlo_file')
+    database_service.init_db(monte_carlo_file, force)
+
 
 
 def main():

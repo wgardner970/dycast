@@ -99,40 +99,6 @@ db_exists() {
 }
 
 
-init_db() {
-	echo "" && echo ""
-	echo "*** Initializing database ***"
-	echo ""
-	echo "*** Any existing Dycast database will be deleted ***"
-	echo "" && echo ""
-
-	echo "5" && sleep 1 && echo "4" && sleep 1 && echo "3" && sleep 1 && echo "2" && sleep 1 &&	echo "1" &&	sleep 1 && echo "0" && echo ""
-
-	set +e
-	echo "Dropping existing database ${DBNAME}"
-	dropdb -h ${DBHOST} -U ${DBUSER} ${DBNAME} # if necessary
-	echo ""
-	set -e
-	
-	echo "Creating database ${DBNAME}"
-	createdb -h ${DBHOST} -U ${DBUSER} --encoding=UTF8 ${DBNAME}
-	echo ""
-
-	### Using the new 9.1+ extension method:
-	echo "Creating extension 'postgis'"
-	psql -h ${DBHOST} -U ${DBUSER} -d ${DBNAME} -c "CREATE EXTENSION postgis;" 
-	echo ""
-
-	echo "Running ${DYCAST_INIT_PATH}/postgres_init.sql"
-	psql -h ${DBHOST} -U ${DBUSER} -d ${DBNAME} -f ${DYCAST_INIT_PATH}/postgres_init.sql
-	echo ""
-
-	echo "Importing Monte Carlo data: ${MONTE_CARLO_FILE}"
-	psql -h ${DBHOST} -U ${DBUSER} -d ${DBNAME} -c "\COPY dist_margs FROM '${MONTE_CARLO_FILE}' delimiter ',';"
-	echo "" 
-}
-
-
 init_directories() {
 	if [[ ! -d ${DYCAST_INBOX_COMPLETED} ]]; then
 		mkdir -p ${DYCAST_INBOX_COMPLETED}
@@ -258,6 +224,21 @@ export_risk() {
 }
 
 
+init_db() {
+	local arguments="$@"
+	echo "Initializing database using arguments: ${arguments}..."
+	python ${DYCAST_APP_PATH}/dycast.py init_db ${arguments}
+
+	exit_code=$?
+	if [[ ! "${exit_code}" == "0" ]]; then
+		echo "Command 'init_db' failed, exiting..."
+		exit ${exit_code}
+	else 
+		echo "Done initializing database"
+	fi
+}
+
+
 run_tests() {
 	local arguments="$@"
 
@@ -329,6 +310,12 @@ case ${command} in
 			wait_for_db
 		fi
 		export_risk ${arguments}
+	;;
+	init_db)
+		if [[ ! ${help} == true ]]; then
+			wait_for_db
+		fi
+		init_db ${arguments}
 	;;
 	### From here list only commands that are specific for this Docker entrypoint
 	run_tests)
