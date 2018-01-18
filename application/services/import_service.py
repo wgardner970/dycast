@@ -14,8 +14,7 @@ CONFIG = config_service.get_config()
 class ImportService(object):
 
     def __init__(self, **kwargs):
-        self.system_coordinate_system = CONFIG.get(
-            "dycast", "system_coordinate_system")
+        self.system_coordinate_system = CONFIG.get("dycast", "system_coordinate_system")
 
     def load_case_files(self, dycast_parameters):
         logging.info("Loading files: %s", dycast_parameters.files_to_import)
@@ -52,17 +51,14 @@ class ImportService(object):
                 elif header_count == 3:
                     location_type = enums.Location_type.GEOMETRY
                 else:
-                    logging.error(
-                        "Incorrect column count: %s, exiting...", header_count)
+                    logging.error("Incorrect column count: %s, exiting...", header_count)
                     sys.exit(1)
-                logging.info("Loading cases as location type: %s",
-                             enums.Location_type(location_type).name)
+                logging.info("Loading cases as location type: %s", enums.Location_type(location_type).name)
             else:
                 lines_read += 1
                 result = 0
                 try:
-                    result = self.load_case(
-                        dycast_parameters, line, location_type, cur, conn)
+                    result = self.load_case(dycast_parameters, line, location_type, cur, conn)
                 except Exception:
                     raise
 
@@ -115,8 +111,7 @@ class ImportService(object):
                 geometry + "'), CAST (%s AS integer)))"
 
         try:
-            cur.execute(querystring, (case_id, report_date_string,
-                                      self.system_coordinate_system))
+            cur.execute(querystring, (case_id, report_date_string, self.system_coordinate_system))
         except psycopg2.IntegrityError:
             conn.rollback()
             logging.warning(
