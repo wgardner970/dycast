@@ -10,7 +10,7 @@ from application.services import config_service
 CONFIG = config_service.get_config()
 
 
-def init_db():
+def init_psycopg_db():
     dsn = get_dsn()
     try:
         conn = psycopg2.connect(dsn)

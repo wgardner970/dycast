@@ -20,7 +20,7 @@ class ImportService(object):
     def load_case_files(self, dycast_parameters):
         logging.info("Loading files: %s", dycast_parameters.files_to_import)
 
-        cur, conn = database_service.init_db()
+        cur, conn = database_service.init_psycopg_db()
 
         for filepath in dycast_parameters.files_to_import:
             try:

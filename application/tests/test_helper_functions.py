@@ -70,7 +70,7 @@ def get_test_cases_import_file_geometry():
 
 @nottest
 def get_count_from_table(table_name):
-    cur, conn = database_service.init_db()
+    cur, conn = database_service.init_psycopg_db()
     querystring = "SELECT count(*) from " + table_name
     try:
         cur.execute(querystring)
@@ -83,7 +83,7 @@ def get_count_from_table(table_name):
 
 @nottest
 def insert_test_risk():
-    cur, conn = database_service.init_db()
+    cur, conn = database_service.init_psycopg_db()
     querystring = "INSERT INTO risk VALUES %s"
     data_tuple = [('2016-03-30', 1830400, 2120400, 10, 1, 6, 7, 0.3946), ('2016-03-31', 1830400, 2120400, 10, 1, 6, 7, 0.3946)]
     try:

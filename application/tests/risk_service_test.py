@@ -16,7 +16,7 @@ class TestDycastFunctions(unittest.TestCase):
         test_helper_functions.init_test_environment()
         risk_service = risk_service_module.RiskService()
 
-        cur, conn = database_service.init_db()
+        cur, conn = database_service.init_psycopg_db()
 
         dycast_paramaters = test_helper_functions.get_dycast_parameters()
 

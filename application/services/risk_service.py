@@ -30,7 +30,7 @@ class RiskService(object):
         logging_service.display_current_parameter_set(dycast_parameters)
 
         case_threshold = dycast_parameters.case_threshold
-        cur, conn = database_service.init_db()
+        cur, conn = database_service.init_psycopg_db()
 
         gridpoints = grid_service.generate_grid(dycast_parameters)
 

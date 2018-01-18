@@ -19,7 +19,7 @@ class ExportService(object):
         export_prefix = dycast_parameters.export_prefix
         export_format = dycast_parameters.export_format
 
-        cur, conn = database_service.init_db()
+        cur, conn = database_service.init_psycopg_db()
 
         # Quick and dirty solution
         if export_format != "tsv" and export_format != "csv":

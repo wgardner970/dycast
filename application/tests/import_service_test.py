@@ -24,7 +24,7 @@ class TestImportServiceFunctions(unittest.TestCase):
 
     def test_load_case_correct(self):
         import_service = import_service_module.ImportService()
-        cur, conn = database_service.init_db()
+        cur, conn = database_service.init_psycopg_db()
 
         dycast = dycast_parameters.DycastParameters()
         dycast.srid_of_cases = 3857
@@ -40,7 +40,7 @@ class TestImportServiceFunctions(unittest.TestCase):
 
     def test_load_case_data_error(self):
         import_service = import_service_module.ImportService()
-        cur, conn = database_service.init_db()
+        cur, conn = database_service.init_psycopg_db()
 
         dycast = dycast_parameters.DycastParameters()
         dycast.srid_of_cases = 3857
