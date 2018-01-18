@@ -19,7 +19,7 @@ def create_tables(engine):
 
 # Entities
 
-class Cases(DeclarativeBase):
+class Case(DeclarativeBase):
     """SQLAlchemy Case model"""
     __tablename__ = "cases"
 
@@ -27,7 +27,7 @@ class Cases(DeclarativeBase):
     report_date = Column(DateTime)
     location = Column(Geometry(geometry_type='POINT', srid='3857'))
 
-class DistributionMargins(DeclarativeBase):
+class DistributionMargin(DeclarativeBase):
     """SQLAlchemy Distribution Margins model (Monte Carlo)"""
     __tablename__ = "distribution_margins"
 
