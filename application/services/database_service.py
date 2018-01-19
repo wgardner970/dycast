@@ -6,6 +6,7 @@ import psycopg2
 from sqlalchemy import create_engine
 from sqlalchemy.engine.url import URL
 from sqlalchemy.ext.declarative import declarative_base
+from sqlalchemy.orm import sessionmaker
 from sqlalchemy_utils import database_exists, create_database, drop_database
 
 from application.services import config_service
@@ -61,6 +62,12 @@ def get_sqlalchemy_conn_string():
                username=get_db_user(),
                password=get_db_password(),
                database=get_db_instance_name())
+
+
+def get_sqlalchemy_session():
+    engine = db_connect()
+    Session = sessionmaker(bind=engine)
+    return Session()
 
 
 
@@ -129,3 +136,5 @@ def init_db(monte_carlo_file, force=False):
         create_postgis_extension(engine)
         models.create_tables(engine)
         import_monte_carlo(monte_carlo_file, engine)
+    else:
+        logging.info("Database already exists, skipping database initialization...")
