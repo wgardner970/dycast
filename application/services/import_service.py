@@ -1,10 +1,15 @@
 import logging
 import sys
-import psycopg2
+
+from sqlalchemy import exists
+from sqlalchemy.exc import SQLAlchemyError
 
 from application.services import config_service
 from application.services import file_service
 from application.services import database_service
+from application.services import geography_service
+
+from application.models.models import Case
 from application.models.enums import enums
 
 
@@ -16,20 +21,22 @@ class ImportService(object):
     def __init__(self, **kwargs):
         self.system_coordinate_system = CONFIG.get("dycast", "system_coordinate_system")
 
+
     def load_case_files(self, dycast_parameters):
         logging.info("Loading files: %s", dycast_parameters.files_to_import)
-
-        cur, conn = database_service.init_psycopg_db()
 
         for filepath in dycast_parameters.files_to_import:
             try:
                 logging.info("Loading file: %s", filepath)
-                self.load_case_file(dycast_parameters, filepath, cur, conn)
+                self.load_case_file(dycast_parameters, filepath)
             except Exception:
                 logging.exception("Could not load file: %s", filepath)
                 sys.exit(1)
 
-    def load_case_file(self, dycast_parameters, filename, cur, conn):
+
+    def load_case_file(self, dycast_parameters, filename):
+        session = database_service.get_sqlalchemy_session()
+
         lines_read = 0
         lines_processed = 0
         lines_loaded = 0
@@ -43,7 +50,7 @@ class ImportService(object):
             sys.exit(1)
 
         for line_number, line in enumerate(input_file):
-            line = self.remove_trailing_newline(line)
+            line = remove_trailing_newline(line)
             if line_number == 0:
                 header_count = line.count("\t") + 1
                 if header_count == 4:
@@ -58,77 +65,83 @@ class ImportService(object):
                 lines_read += 1
                 result = 0
                 try:
-                    result = self.load_case(dycast_parameters, line, location_type, cur, conn)
+                    result = self.load_case(dycast_parameters, line, location_type, session)
                 except Exception:
                     raise
 
-                # If result is a bird ID or -1 (meaning duplicate) then:
-                if result:
-                    lines_processed += 1
-                    if result == -1:
-                        lines_skipped += 1
-                    else:
-                        lines_loaded += 1
+                # If result is a case ID or -1 (meaning duplicate) then:
+                lines_processed += 1
+                if result == -1:
+                    lines_skipped += 1
                 else:
-                    logging.error("No result after loading case: ")
-                    logging.error(line)
+                    lines_loaded += 1
+
+        try:
+            session.commit()
+        except SQLAlchemyError, e:
+            session.rollback()
+            logging.exception("Couldn't insert cases")
+            logging.exception(e)
+            raise
+        finally:
+            session.close()
 
         logging.info("Case load complete: %s", filename)
         logging.info("Processed %s of %s lines, %s loaded, %s duplicate IDs skipped",
                      lines_processed, lines_read, lines_loaded, lines_skipped)
         return lines_read, lines_processed, lines_loaded, lines_skipped
 
-    def load_case(self, dycast_parameters, line, location_type, cur, conn):
-        dead_birds_table_projected = CONFIG.get(
-            "database", "dead_birds_table_projected")
-        user_coordinate_system = str(dycast_parameters.srid_of_cases)
+
+    def load_case(self, dycast_parameters, line, location_type, session):
 
         if location_type not in (enums.Location_type.LAT_LONG, enums.Location_type.GEOMETRY):
             logging.error("Wrong value for 'location_type', exiting...")
             sys.exit(1)
 
+        case = Case()
+
         if location_type == enums.Location_type.LAT_LONG:
-            if not user_coordinate_system:
+            user_coordinate_system = dycast_parameters.srid_of_cases
+            if user_coordinate_system is None:
                 raise ValueError(
                     "Parameter 'user_coordinate_system' cannot be undefined when loading cases with lat/long locations")
             try:
-                (case_id, report_date_string, lon, lat) = line.split("\t")
+                (case_id, report_date, lon, lat) = line.split("\t")
             except ValueError:
-                self.fail_on_incorrect_count(location_type, line)
+                fail_on_incorrect_count(location_type, line)
 
-            querystring = "INSERT INTO " + dead_birds_table_projected + \
-                " VALUES (%s, %s, ST_Transform(ST_GeomFromText('POINT(" + lon + " " + \
-                lat + ")', " + user_coordinate_system + \
-                "), CAST (%s AS integer)))"
+            point = geography_service.get_point_from_lat_long(lat, lon, user_coordinate_system)
+            projected_point = geography_service.transform_point(point, self.system_coordinate_system)
+
+            case = Case(id=case_id, report_date=report_date, location=projected_point)
 
         else:
             try:
-                (case_id, report_date_string, geometry) = line.split("\t")
+                (case_id, report_date, geometry) = line.split("\t")
             except ValueError:
-                self.fail_on_incorrect_count(location_type, line)
-            querystring = "INSERT INTO " + dead_birds_table_projected + \
-                " VALUES (%s, %s, ST_Transform(Geometry('" + \
-                geometry + "'), CAST (%s AS integer)))"
+                fail_on_incorrect_count(location_type, line)
 
-        try:
-            cur.execute(querystring, (case_id, report_date_string, self.system_coordinate_system))
-        except psycopg2.IntegrityError:
-            conn.rollback()
-            logging.warning(
-                "Couldn't insert duplicate case key %s, skipping...", case_id)
+            case = Case(id=case_id, report_date=report_date, location=geometry)
+
+        if not case_exists(session, case_id):
+            session.add(case)
+            session.flush()
+            return 1
+        else:
+            logging.warning("Couldn't insert duplicate case key %s, skipping...", case_id)
             return -1
-        except Exception:
-            conn.rollback()
-            logging.exception("Couldn't insert case")
-            raise
-        conn.commit()
-        return case_id
 
-    def fail_on_incorrect_count(self, location_type, line):
-        logging.error("Incorrect number of fields for 'location_type': %s",
-                      enums.Location_type(location_type).name)
-        logging.error(line.rstrip())
-        sys.exit(1)
 
-    def remove_trailing_newline(self, line):
-        return line.strip()
+
+
+def fail_on_incorrect_count(location_type, line):
+    logging.error("Incorrect number of fields for 'location_type': %s",
+                  enums.Location_type(location_type).name)
+    logging.error(line.rstrip())
+    sys.exit(1)
+
+def remove_trailing_newline(line):
+    return line.strip()
+
+def case_exists(session, case_id):
+    return session.query(exists().where(Case.id == case_id)).scalar()
