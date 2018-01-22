@@ -3,7 +3,7 @@ import sys
 import time
 import psycopg2
 
-from sqlalchemy import create_engine
+from sqlalchemy import create_engine, func
 from sqlalchemy.engine.url import URL
 from sqlalchemy.ext.declarative import declarative_base
 from sqlalchemy.orm import sessionmaker
@@ -138,3 +138,11 @@ def init_db(monte_carlo_file, force=False):
         import_monte_carlo(monte_carlo_file, engine)
     else:
         logging.info("Database already exists, skipping database initialization...")
+
+
+
+# Query helper functions
+
+def get_count_for_query(query):
+    count_query = query.statement.with_only_columns([func.count()]).order_by(None)
+    return query.session.execute(count_query).scalar()
