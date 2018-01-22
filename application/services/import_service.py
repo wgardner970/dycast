@@ -65,7 +65,7 @@ class ImportService(object):
                 lines_read += 1
                 result = 0
                 try:
-                    result = self.load_case(dycast_parameters, line, location_type, session)
+                    result = self.load_case(session, dycast_parameters, line, location_type)
                 except Exception:
                     raise
 
@@ -92,7 +92,7 @@ class ImportService(object):
         return lines_read, lines_processed, lines_loaded, lines_skipped
 
 
-    def load_case(self, dycast_parameters, line, location_type, session):
+    def load_case(self, session, dycast_parameters, line, location_type):
 
         if location_type not in (enums.Location_type.LAT_LONG, enums.Location_type.GEOMETRY):
             logging.error("Wrong value for 'location_type', exiting...")
