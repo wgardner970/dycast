@@ -25,7 +25,7 @@ def init_test_environment():
 
     config_service.init_config(config_path)
     logging_service.init_logging()
-    
+
     insert_test_cases()
 
 @nottest
@@ -43,9 +43,9 @@ def get_dycast_parameters():
 
     dycast.startdate = conversion_service.get_date_object_from_string('2016-03-30')
     dycast.enddate = conversion_service.get_date_object_from_string('2016-03-31')
-    dycast.extent_min_x = 1830400
-    dycast.extent_min_y = 2120600
-    dycast.extent_max_x = 1830700
+    dycast.extent_min_x = 1820000
+    dycast.extent_min_y = 2121000
+    dycast.extent_max_x = 1820800
     dycast.extent_max_y = 2120300
     dycast.srid_of_extent = 3857
 
