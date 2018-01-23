@@ -5,7 +5,7 @@ set -e
 export DBUSER=${DBUSER:-postgres}
 # psql uses PGPASSWORD environment variable to login
 export PGPASSWORD=${DBPASSWORD}
-export TEST_DBNAME=${TEST_DBNAME:-test_$DBNAME}
+TEST_DBNAME=test_dycast
 
 DYCAST_INBOX=${DYCAST_INBOX:-$DYCAST_PATH/inbox}
 DYCAST_INBOX_COMPLETED=${DYCAST_INBOX}/completed
@@ -122,9 +122,7 @@ init_directories() {
 
 
 init_test_variables() {
-	export DYCAST_INBOX=${TEST_DYCAST_INBOX:-$DYCAST_PATH/tests/inbox}
-	export DYCAST_INBOX_COMPLETED=${DYCAST_INBOX}/completed
-	export DYCAST_OUTBOX=${TEST_DYCAST_INBOX:-$DYCAST_PATH/tests/outbox}
+	export DBNAME=${TEST_DBNAME}
 }
 
 
@@ -135,6 +133,7 @@ prepare_launch() {
 		init_directories
 	fi	
 }
+
 
 prepare_launch_test() {
 	if [[ ! ${help} == true ]]; then
