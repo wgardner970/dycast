@@ -10,6 +10,10 @@ from application.services import conversion_service
 from application.tests import test_helper_functions
 from application.models.classes import dycast_parameters
 
+
+test_helper_functions.init_test_environment()
+
+
 class TestDycastFunctions(unittest.TestCase):
 
     def test_get_vector_count_for_point(self):

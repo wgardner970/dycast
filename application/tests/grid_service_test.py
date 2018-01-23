@@ -4,11 +4,13 @@ from application.services import config_service
 from application.models.classes import dycast_parameters
 from application.tests import test_helper_functions
 
+
+test_helper_functions.init_test_environment()
+
+
 class TestGridService(unittest.TestCase):
 
     def test_generate_grid(self):
-        test_helper_functions.init_test_environment()
-
         dycast_paramaters = dycast_parameters.DycastParameters()
 
         dycast_paramaters.srid_of_extent = "29193"

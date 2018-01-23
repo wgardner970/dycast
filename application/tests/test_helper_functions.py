@@ -3,12 +3,15 @@ import logging
 import psycopg2
 import psycopg2.extras as psycop_extras
 from nose.tools import nottest
+
+from application.services import import_service as import_service_module
 from application.services import config_service
 from application.services import logging_service
 from application.services import debug_service
 from application.services import conversion_service
 from application.services import database_service
 from application.models.classes import dycast_parameters
+from application.models.models import Case
 
 
 debug_service.enable_debugger()
@@ -22,6 +25,8 @@ def init_test_environment():
 
     config_service.init_config(config_path)
     logging_service.init_logging()
+    
+    insert_test_cases()
 
 @nottest
 def get_dycast_parameters():
@@ -96,3 +101,19 @@ def insert_test_risk():
         logging.exception("Couldn't insert tuple")
         raise
     conn.commit()
+
+@nottest
+def insert_test_cases():
+    import_service = import_service_module.ImportService()
+
+    dycast_model = dycast_parameters.DycastParameters()
+
+    dycast_model.srid_of_cases = '3857'
+    dycast_model.files_to_import = get_test_cases_import_files_latlong()
+
+    session = database_service.get_sqlalchemy_session()
+    case_query = session.query(Case)
+    case_count = database_service.get_count_for_query(case_query)
+
+    if case_count == 0:
+        import_service.load_case_files(dycast_model)
