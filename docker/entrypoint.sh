@@ -61,14 +61,14 @@ display_help() {
 
 
 check_init_dycast() {
-	if [[ ! $(db_exists) ]]; then
+	if ! $(db_exists); then
 		echo "Dycast database is not initialized yet. Please run the 'setup-dycast' command"
 	fi
 }
 
 
 init_test_db() {
-	if [[ ! $(test_db_exists) ]]; then
+	if ! $(test_db_exists); then
 		echo "Dycast test database is not initialized yet. Initializing test database..."
 		init_db --test --monte-carlo-file Dengue_max_100_40000.csv
 	else
@@ -78,12 +78,12 @@ init_test_db() {
 
 
 db_exists() {
-	$(psql -lqt -h ${DBHOST} -U ${DBUSER} | cut -d \| -f 1 | grep -qx ${DBNAME})
+	$(psql -lqt -h ${DBHOST} -U ${DBUSER} | cut -d \| -f 1 | grep -qw ${DBNAME})
 }
 
 
 test_db_exists() {
-	$(psql -lqt -h ${DBHOST} -U ${DBUSER} | cut -d \| -f 1 | grep -qx ${TEST_DBNAME})
+	$(psql -lqt -h ${DBHOST} -U ${DBUSER} | cut -d \| -f 1 | grep -qw ${TEST_DBNAME})
 }
 
 
