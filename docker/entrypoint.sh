@@ -2,9 +2,10 @@
 
 set -e
 
-DBUSER=${DBUSER:-postgres}
+export DBUSER=${DBUSER:-postgres}
 # psql uses PGPASSWORD environment variable to login
 export PGPASSWORD=${DBPASSWORD}
+export TEST_DBNAME=${TEST_DBNAME:-test_$DBNAME}
 
 DYCAST_INBOX=${DYCAST_INBOX:-$DYCAST_PATH/inbox}
 DYCAST_INBOX_COMPLETED=${DYCAST_INBOX}/completed
@@ -59,15 +60,30 @@ display_help() {
 
 
 
-init_dycast() {
-	if db_exists; then
-		echo "Database ${DBNAME} already exists, skipping initialization."
-	else
-		echo "Database ${DBNAME} does not exists."
-		init_db
+check_init_dycast() {
+	if [[ ! $(db_exists) ]]; then
+		echo "Dycast database is not initialized yet. Please run the 'setup-dycast' command"
 	fi
+}
 
-	init_directories
+
+init_test_db() {
+	if [[ ! $(test_db_exists) ]]; then
+		echo "Dycast test database is not initialized yet. Initializing test database..."
+		init_db --test --monte-carlo-file Dengue_max_100_40000.csv
+	else
+		echo "Dycast test database exists: ${TEST_DBNAME}"
+	fi
+}
+
+
+db_exists() {
+	$(psql -lqt -h ${DBHOST} -U ${DBUSER} | cut -d \| -f 1 | grep -qx ${DBNAME})
+}
+
+
+test_db_exists() {
+	$(psql -lqt -h ${DBHOST} -U ${DBUSER} | cut -d \| -f 1 | grep -qx ${TEST_DBNAME})
 }
 
 
@@ -94,11 +110,6 @@ wait_for_db() {
 }
 
 
-db_exists() {
-	psql -lqt -h ${DBHOST} -U ${DBUSER} | cut -d \| -f 1 | grep -qw ${DBNAME}
-}
-
-
 init_directories() {
 	if [[ ! -d ${DYCAST_INBOX_COMPLETED} ]]; then
 		mkdir -p ${DYCAST_INBOX_COMPLETED}
@@ -107,6 +118,31 @@ init_directories() {
 	if [[ ! -d ${DYCAST_OUTBOX}/tmp ]]; then
 		mkdir -p ${DYCAST_OUTBOX}/{tmp,cur,new}
 	fi
+}
+
+
+init_test_variables() {
+	export DYCAST_INBOX=${TEST_DYCAST_INBOX:-$DYCAST_PATH/tests/inbox}
+	export DYCAST_INBOX_COMPLETED=${DYCAST_INBOX}/completed
+	export DYCAST_OUTBOX=${TEST_DYCAST_INBOX:-$DYCAST_PATH/tests/outbox}
+}
+
+
+prepare_launch() {
+	if [[ ! ${help} == true ]]; then
+		wait_for_db
+		check_init_dycast
+		init_directories
+	fi	
+}
+
+prepare_launch_test() {
+	if [[ ! ${help} == true ]]; then
+		wait_for_db
+		init_test_db
+		init_test_variables
+		init_directories
+	fi	
 }
 
 
@@ -159,6 +195,7 @@ move_case_file() {
 }
 
 
+
 ### Commands
 
 run_dycast() {
@@ -174,6 +211,7 @@ run_dycast() {
 		echo "Finished running the full Dycast procedure"
 	fi
 }
+
 
 load_cases() {
 	local arguments="$@"
@@ -241,11 +279,13 @@ init_db() {
 
 run_tests() {
 	local arguments="$@"
-
-	init_dycast
 	
 	echo "Running unit tests..."
-	nosetests -vv --exe tests ${arguments}
+	if [[ -z ${arguments} ]]; then
+		nosetests -vv --exe tests
+	else
+		nosetests -v --exe ${arguments}
+	fi
 
 	exit_code=$?
 	if [[ ! "${exit_code}" == "0" ]]; then
@@ -283,52 +323,36 @@ else
 	help=true
 fi
 
+if [[ ! -z ${arguments} ]]; then
+	echo "Arguments: ${arguments}"
+fi
 
 case ${command} in
 	### First list all commands built into Dycast, not into this Docker entrypoint
 	run_dycast)
-		if [[ ! ${help} == true ]]; then
-			wait_for_db
-			init_dycast
-		fi
+		prepare_launch
 		run_dycast ${arguments}
 	;;
 	load_cases)
-		if [[ ! ${help} == true ]]; then
-			wait_for_db
-		fi
+		prepare_launch
 		load_cases ${arguments}
 	;;
 	generate_risk)
-		if [[ ! ${help} == true ]]; then
-			wait_for_db
-		fi
+		prepare_launch
 		generate_risk ${arguments}
 	;;
 	export_risk)
-		if [[ ! ${help} == true ]]; then
-			wait_for_db
-		fi
+		prepare_launch
 		export_risk ${arguments}
 	;;
 	init_db)
-		if [[ ! ${help} == true ]]; then
-			wait_for_db
-		fi
+		prepare_launch
 		init_db ${arguments}
 	;;
 	### From here list only commands that are specific for this Docker entrypoint
 	run_tests)
-		wait_for_db
+		prepare_launch_test
 		run_tests ${arguments}
-	;;
-	setup_dycast)
-		wait_for_db
-		init_dycast
-	;;
-	setup_db)
-		wait_for_db
-		init_db
 	;;	
 	help|-h|--help)
 		display_help
