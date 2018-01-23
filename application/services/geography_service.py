@@ -11,11 +11,18 @@ def get_point_from_lat_long(lat, lon, projection):
 
 def transform_point(point, target_projection):
     return ST_Transform(point, int(target_projection))
-def get_close_space_only(cases_in_cluster_query, close_space):
+def get_close_space_only(cases_in_cluster_query, close_in_space):
     subquery = cases_in_cluster_query.subquery()
     query = cases_in_cluster_query.join(subquery, literal(True)) \
-        .filter(func.ST_DWithin(Case.location, subquery.c.location, close_space),
+        .filter(func.ST_DWithin(Case.location, subquery.c.location, close_in_space),
                 Case.id < subquery.c.id
                )
+    
     return database_service.get_count_for_query(query)
 
+def get_close_time_only(cases_in_cluster_query, close_in_time):
+    subquery = cases_in_cluster_query.subquery()
+    query = cases_in_cluster_query.join(subquery, literal(True)) \
+        .filter(func.abs(Case.report_date - subquery.c.report_date) <= close_in_time,
+                Case.id < subquery.c.id)
+    return database_service.get_count_for_query(query)
