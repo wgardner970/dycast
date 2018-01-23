@@ -20,9 +20,11 @@ DeclarativeBase = declarative_base()
 
 # Helper functions common
 
-def get_db_instance_name():
-    return CONFIG.get("database", "db_instance_name")
-
+def get_db_instance_name(test=False):
+    if test:
+        return CONFIG.get("database", "db_test_instance_name")
+    else:
+        return CONFIG.get("database", "db_instance_name")
 
 def get_db_user():
     return CONFIG.get("database", "user")
@@ -43,25 +45,25 @@ def get_db_port():
 
 # Helper functions SQLAlchemy
 
-def db_connect():
+def db_connect(test=False):
     """
     Connect to database.
     Returns sqlalchemy engine instance
     """
-    return create_engine(get_sqlalchemy_conn_string())
+    return create_engine(get_sqlalchemy_conn_string(test))
 
 
 def execute_sql_command(sql_command, engine):
     engine.execute(sql_command)
 
 
-def get_sqlalchemy_conn_string():
+def get_sqlalchemy_conn_string(test=False):   
     return URL(drivername="postgres",
                host=get_db_host(),
                port=get_db_port(),
                username=get_db_user(),
                password=get_db_password(),
-               database=get_db_instance_name())
+               database=get_db_instance_name(test))
 
 
 def get_sqlalchemy_session():
@@ -73,8 +75,8 @@ def get_sqlalchemy_session():
 
 # Helper functions Psycopg2
 
-def init_psycopg_db():
-    dsn = get_dsn()
+def init_psycopg_db(test=False):
+    dsn = get_dsn(test)
     try:
         conn = psycopg2.connect(dsn)
     except Exception:
@@ -84,8 +86,8 @@ def init_psycopg_db():
     return cur, conn
 
 
-def get_dsn():
-    db_instance_name = get_db_instance_name()
+def get_dsn(test=False):
+    db_instance_name = get_db_instance_name(test)
     user = get_db_user()
     password = get_db_password()
     host = get_db_host()
@@ -105,10 +107,10 @@ def create_postgis_extension(engine):
     execute_sql_command(sql_command, engine)
 
 
-def import_monte_carlo(monte_carlo_file, engine):
+def import_monte_carlo(monte_carlo_file, test=False):
     logging.info("Importing Monte Carlo file: %s", monte_carlo_file)
     input_file = open(r'/dycast/application/init/{0}'.format(monte_carlo_file), 'r')
-    cur, conn = init_psycopg_db()
+    cur, conn = init_psycopg_db(test)
 
     cur.copy_from(input_file, 'distribution_margins', sep=',')
     input_file.close()
@@ -119,23 +121,23 @@ def import_monte_carlo(monte_carlo_file, engine):
 
 # Init command
 
-def init_db(monte_carlo_file, force=False):
-    engine = db_connect()
+def init_db(monte_carlo_file, force=False, test=False):
+    engine = db_connect(test)
     db_url = engine.url
 
     if force:
-        logging.info("Dropping existing database in 5 seconds...")
-        time.sleep(5)
-        drop_database(db_url)
-        logging.info("Dropped.")
-
+        if database_exists(db_url):
+            logging.info("Dropping existing database in 5 seconds...")
+            time.sleep(5)
+            drop_database(db_url)
+            logging.info("Dropped.")
 
     if not database_exists(db_url):
         logging.info("Creating database...")
         create_database(db_url)
         create_postgis_extension(engine)
         models.create_tables(engine)
-        import_monte_carlo(monte_carlo_file, engine)
+        import_monte_carlo(monte_carlo_file, test)
     else:
         logging.info("Database already exists, skipping database initialization...")
 

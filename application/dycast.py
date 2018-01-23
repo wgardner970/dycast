@@ -185,7 +185,10 @@ def create_parser():
     ## Init db argumentss:
     init_db_parser.add('--force-db-init',
                        action='store_true',
-                       help='If this flag is provided: drops existing database')
+                       help='If this flag is provided: drops existing database')    
+    init_db_parser.add('--test',
+                       action='store_true',
+                       help='If this flag is provided: initializes the test database')
     init_db_parser.add('--monte-carlo-file',
                        env_var='MONTE_CARLO_FILE',
                        required=True,
@@ -258,8 +261,9 @@ def listen_for_input(**kwargs):
 
 def init_db(**kwargs):
     force = kwargs.get('force_db_init')
+    test = kwargs.get('test')
     monte_carlo_file = kwargs.get('monte_carlo_file')
-    database_service.init_db(monte_carlo_file, force)
+    database_service.init_db(monte_carlo_file, force, test)
 
 
 
