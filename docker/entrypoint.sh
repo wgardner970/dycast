@@ -70,7 +70,7 @@ check_init_dycast() {
 init_test_db() {
 	if ! $(test_db_exists); then
 		echo "Dycast test database is not initialized yet. Initializing test database..."
-		init_db --test --monte-carlo-file Dengue_max_100_40000.csv
+		init_db --monte-carlo-file Dengue_max_100_40000.csv
 	else
 		echo "Dycast test database exists: ${TEST_DBNAME}"
 	fi
@@ -138,9 +138,8 @@ prepare_launch() {
 prepare_launch_test() {
 	if [[ ! ${help} == true ]]; then
 		wait_for_db
-		init_test_db
 		init_test_variables
-		init_directories
+		init_test_db
 	fi	
 }
 
