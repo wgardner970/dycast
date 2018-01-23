@@ -1,6 +1,6 @@
 import logging
 
-from sqlalchemy import Column, Integer, Float, DateTime
+from sqlalchemy import Column, Integer, Float, Date
 from sqlalchemy.ext.declarative import declarative_base
 from geoalchemy2 import Geometry
 
@@ -24,7 +24,7 @@ class Case(DeclarativeBase):
     __tablename__ = "cases"
 
     id = Column(Integer, primary_key=True)
-    report_date = Column(DateTime)
+    report_date = Column(Date)
     location = Column(Geometry(geometry_type='POINT', srid='3857'))
 
 class DistributionMargin(DeclarativeBase):
@@ -43,7 +43,7 @@ class TmpDailyCaseSelection(DeclarativeBase):
     __tablename__ = "tmp_daily_case_selection"
 
     case_id = Column(Integer, primary_key=True)
-    report_date = Column(DateTime)
+    report_date = Column(Date)
     location = Column(Geometry(geometry_type='POINT', srid='3857'))
 
 class TmpClusterPerPointSelection(DeclarativeBase):
@@ -51,14 +51,14 @@ class TmpClusterPerPointSelection(DeclarativeBase):
     __tablename__ = "tmp_cluster_per_point_selection"    
 
     case_id = Column(Integer, primary_key=True)
-    report_date = Column(DateTime)
+    report_date = Column(Date)
     location = Column(Geometry(geometry_type='POINT', srid='3857'))
 
 class Risk(DeclarativeBase):
     """SQLAlchemy Risk model"""
     __tablename__ = "risk"
 
-    risk_date = Column(DateTime, primary_key=True)
+    risk_date = Column(Date, primary_key=True)
     lat = Column(Float, primary_key=True)
     long = Column(Float, primary_key=True)
     num_birds = Column(Integer)
