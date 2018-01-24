@@ -31,6 +31,7 @@ class RiskService(object):
         self.tmp_cluster_per_point_selection_table = CONFIG.get(
             "database", "tmp_cluster_per_point_selection_table")
 
+
     def generate_risk(self, dycast_parameters):
 
         logging_service.display_current_parameter_set(dycast_parameters)
@@ -45,8 +46,10 @@ class RiskService(object):
 
         while day <= dycast_parameters.enddate:
 
-            self.setup_tmp_daily_case_table_for_date(dycast_parameters, day, cur, conn)
-            daily_case_count = self.get_daily_case_count(day, cur, conn)
+            session = database_service.get_sqlalchemy_session()
+
+            daily_cases_query = self.get_daily_cases_query(session, dycast_parameters, day)
+            daily_case_count = database_service.get_count_for_query(daily_cases_query)
 
             if daily_case_count >= case_threshold:
                 start_time = time.time()
@@ -54,7 +57,8 @@ class RiskService(object):
                 points_above_threshold = 0
 
                 for point in gridpoints:
-                    vector_count = self.get_vector_count_for_point(dycast_parameters, point, cur, conn)
+                    cases_in_cluster_query = self.get_cases_in_cluster_query(daily_cases_query, dycast_parameters, point)
+                    vector_count = database_service.get_count_for_query(cases_in_cluster_query)
                     if vector_count >= case_threshold:
                         points_above_threshold += 1
                         self.insert_cases_in_cluster_table(
@@ -81,6 +85,23 @@ class RiskService(object):
 
             day += delta
 
+
+    def get_daily_cases_query(self, session, dycast_parameters, riskdate):
+        days_prev = dycast_parameters.temporal_domain
+        enddate = riskdate
+        startdate = riskdate - datetime.timedelta(days=(days_prev))
+
+        return session.query(Case).filter(
+            Case.report_date >= startdate,
+            Case.report_date <= enddate
+        )
+
+
+    def get_cases_in_cluster_query(self, daily_cases_query, dycast_parameters, point):
+        wkt_point = geography_service.get_point_from_lat_long(point.y, point.x, self.system_coordinate_system)
+
+        return daily_cases_query.filter(func.ST_DWithin(Case.location, wkt_point, dycast_parameters.spatial_domain))
+
     def setup_tmp_daily_case_table_for_date(self, dycast_parameters, riskdate, cur, conn):
         days_prev = dycast_parameters.temporal_domain
         enddate = riskdate
@@ -97,6 +118,7 @@ class RiskService(object):
             raise
         conn.commit()
 
+
     def get_daily_case_count(self,  riskdate, cur, conn):
         query = "SELECT COUNT(*) FROM {0}".format(self.tmp_daily_case_table)
         try:
@@ -108,6 +130,7 @@ class RiskService(object):
             raise
         result_count = cur.fetchone()
         return result_count[0]
+
 
     def get_vector_count_for_point(self, dycast_parameters, point, cur, conn):
         querystring = "SELECT count(*) from \"" + self.tmp_daily_case_table + \
@@ -122,6 +145,7 @@ class RiskService(object):
         new_row = cur.fetchone()
         return new_row[0]
 
+
     def insert_cases_in_cluster_table(self, dycast_parameters, point, cur, conn):
         querystring = "TRUNCATE " + self.tmp_cluster_per_point_selection_table + "; INSERT INTO " + self.tmp_cluster_per_point_selection_table + \
             " SELECT * from " + self.tmp_daily_case_table + \
@@ -135,6 +159,7 @@ class RiskService(object):
             logging.info("Rolling back and exiting...")
             sys.exit(1)
         conn.commit()
+
 
     def cst_cs_ct_wrapper(self, dycast_parameters, cur, conn):
         close_in_space = dycast_parameters.close_in_space
