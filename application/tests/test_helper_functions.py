@@ -66,8 +66,7 @@ def get_test_data_export_directory():
 @nottest
 def get_test_cases_import_files_latlong():
     file_1 = os.path.join(get_test_data_import_directory(), 'input_cases_latlong1.tsv')
-    file_2 = os.path.join(get_test_data_import_directory(), 'input_cases_latlong2.tsv')
-    return [file_1, file_2]
+    return [file_1]
 
 @nottest
 def get_test_cases_import_file_geometry():
