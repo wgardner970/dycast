@@ -31,7 +31,7 @@ class DistributionMargin(DeclarativeBase):
     """SQLAlchemy Distribution Margins model (Monte Carlo)"""
     __tablename__ = "distribution_margins"
 
-    number_of_birds = Column(Integer, primary_key=True, index=True)
+    number_of_cases = Column(Integer, primary_key=True, index=True)
     close_pairs = Column(Integer, primary_key=True, index=True)
     probability = Column(Float)
     cumulative_probability = Column(Float)
