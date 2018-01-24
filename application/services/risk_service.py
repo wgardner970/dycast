@@ -55,13 +55,15 @@ class RiskService(object):
                     vector_count = database_service.get_count_for_query(cases_in_cluster_query)
                     if vector_count >= case_threshold:
                         points_above_threshold += 1
-                        self.insert_cases_in_cluster_table(
-                            dycast_parameters, point, cur, conn)
-                        results = self.cst_cs_ct_wrapper(
-                            dycast_parameters, cur, conn)
-                        close_pairs = results[0][0]
-                        close_space = results[1][0] - close_pairs
-                        close_time = results[2][0] - close_pairs
+
+                        close_pairs = self.get_close_space_and_time(cases_in_cluster_query,
+                                                               dycast_parameters.close_in_space,
+                                                               dycast_parameters.close_in_time)
+                        close_space = self.get_close_space_only(cases_in_cluster_query,
+                                                           dycast_parameters.close_in_space)
+                        close_time = self.get_close_time_only(cases_in_cluster_query,
+                                                         dycast_parameters.close_in_time)
+
                         result2 = self.nmcm_wrapper(
                             vector_count, close_pairs, close_space, close_time, cur, conn)
                         self.insert_result(day, point.x, point.y, vector_count, close_pairs,
