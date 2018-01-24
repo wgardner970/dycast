@@ -26,6 +26,13 @@ def get_close_space_and_time(cases_in_cluster_query, close_in_space, close_in_ti
     return database_service.get_count_for_query(query)
 
 
+def get_close_space_and_time_old(close_in_space, close_in_time, cur):
+    querystring = "SELECT * FROM close_space_and_time({0}, {1})".format(close_in_space, close_in_time)
+    cur.execute(querystring)
+
+    return cur.fetchall()[0]
+
+
 def get_close_space_only(cases_in_cluster_query, close_in_space):
     subquery = cases_in_cluster_query.subquery()
     query = cases_in_cluster_query.join(subquery, literal(True)) \
@@ -34,9 +41,24 @@ def get_close_space_only(cases_in_cluster_query, close_in_space):
 
     return database_service.get_count_for_query(query)
 
+
+def get_close_space_only_old(close_in_space, cur):
+    querystring = "SELECT * FROM close_space_only({0})".format(close_in_space)
+    cur.execute(querystring)
+
+    return cur.fetchall()[0]
+
+
 def get_close_time_only(cases_in_cluster_query, close_in_time):
     subquery = cases_in_cluster_query.subquery()
     query = cases_in_cluster_query.join(subquery, literal(True)) \
         .filter(func.abs(Case.report_date - subquery.c.report_date) <= close_in_time,
                 Case.id < subquery.c.id)
     return database_service.get_count_for_query(query)
+
+
+def get_close_time_only_old(close_in_time, cur):
+    querystring = "SELECT * FROM close_time_only({0})".format(close_in_time)
+    cur.execute(querystring)
+
+    return cur.fetchall()[0]
