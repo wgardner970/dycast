@@ -46,3 +46,75 @@ class TestDycastFunctions(unittest.TestCase):
 
         risk_count = test_helper_functions.get_count_from_table("risk")
         self.assertGreater(risk_count, 0)
+
+
+    def test_get_close_space_and_time(self):
+
+        risk_service = risk_service_module.RiskService()
+        session = database_service.get_sqlalchemy_session()
+
+        dycast_parameters = test_helper_functions.get_dycast_parameters()
+
+        gridpoints = grid_service.generate_grid(dycast_parameters)
+        point = gridpoints[0]
+
+        daily_cases_query = risk_service.get_daily_cases_query(session,
+                                                               dycast_parameters,
+                                                               dycast_parameters.startdate)
+
+        cases_in_cluster_query = risk_service.get_cases_in_cluster_query(daily_cases_query,
+                                                                         dycast_parameters,
+                                                                         point)
+
+        count = risk_service.get_close_space_and_time(cases_in_cluster_query,
+                                                      dycast_parameters.close_in_space,
+                                                      dycast_parameters.close_in_time)
+        self.assertGreater(count, 0)
+
+
+    def test_get_close_space_only(self):
+
+        risk_service = risk_service_module.RiskService()
+        session = database_service.get_sqlalchemy_session()
+
+        dycast_parameters = test_helper_functions.get_dycast_parameters()
+        riskdate = datetime.date(int(2016), int(3), int(25))
+
+        gridpoints = grid_service.generate_grid(dycast_parameters)
+        point = gridpoints[0]
+
+        daily_cases_query = risk_service.get_daily_cases_query(session,
+                                                               dycast_parameters,
+                                                               riskdate)
+
+        cases_in_cluster_query = risk_service.get_cases_in_cluster_query(daily_cases_query,
+                                                                         dycast_parameters,
+                                                                         point)
+
+        count = risk_service.get_close_space_only(cases_in_cluster_query,
+                                                  dycast_parameters.close_in_space)
+        self.assertGreater(count, 0)
+
+
+    def test_close_time_only(self):
+
+        risk_service = risk_service_module.RiskService()
+        session = database_service.get_sqlalchemy_session()
+
+        dycast_parameters = test_helper_functions.get_dycast_parameters()
+        riskdate = datetime.date(int(2016), int(3), int(25))
+
+        gridpoints = grid_service.generate_grid(dycast_parameters)
+        point = gridpoints[0]
+
+        daily_cases_query = risk_service.get_daily_cases_query(session,
+                                                               dycast_parameters,
+                                                               riskdate)
+
+        cases_in_cluster_query = risk_service.get_cases_in_cluster_query(daily_cases_query,
+                                                                         dycast_parameters,
+                                                                         point)
+
+        count = risk_service.get_close_time_only(cases_in_cluster_query,
+                                                 dycast_parameters.close_in_time)
+        self.assertGreater(count, 0)
