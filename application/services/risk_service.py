@@ -24,12 +24,6 @@ class RiskService(object):
     def __init__(self, **kwargs):
         self.system_coordinate_system = CONFIG.get(
             "dycast", "system_coordinate_system")
-        self.case_table_name = CONFIG.get(
-            "database", "dead_birds_table_projected")
-        self.tmp_daily_case_table = CONFIG.get(
-            "database", "tmp_daily_case_table")
-        self.tmp_cluster_per_point_selection_table = CONFIG.get(
-            "database", "tmp_cluster_per_point_selection_table")
 
 
     def generate_risk(self, dycast_parameters):
@@ -101,64 +95,6 @@ class RiskService(object):
         wkt_point = geography_service.get_point_from_lat_long(point.y, point.x, self.system_coordinate_system)
 
         return daily_cases_query.filter(func.ST_DWithin(Case.location, wkt_point, dycast_parameters.spatial_domain))
-
-    def setup_tmp_daily_case_table_for_date(self, dycast_parameters, riskdate, cur, conn):
-        days_prev = dycast_parameters.temporal_domain
-        enddate = riskdate
-        startdate = riskdate - datetime.timedelta(days=(days_prev))
-        querystring = "TRUNCATE " + self.tmp_daily_case_table + "; INSERT INTO " + self.tmp_daily_case_table + \
-            " SELECT * from " + self.case_table_name + \
-            " where report_date >= %s and report_date <= %s"
-        try:
-            cur.execute(querystring, (startdate, enddate))
-        except Exception:
-            conn.rollback()
-            logging.exception(
-                "Something went wrong when setting up tmp_daily_case_selection table: " + str(riskdate))
-            raise
-        conn.commit()
-
-
-    def get_daily_case_count(self,  riskdate, cur, conn):
-        query = "SELECT COUNT(*) FROM {0}".format(self.tmp_daily_case_table)
-        try:
-            cur.execute(query)
-        except Exception:
-            conn.rollback()
-            logging.exception(
-                "Something went wrong when getting count from tmp_daily_case_selection table: " + str(riskdate))
-            raise
-        result_count = cur.fetchone()
-        return result_count[0]
-
-
-    def get_vector_count_for_point(self, dycast_parameters, point, cur, conn):
-        querystring = "SELECT count(*) from \"" + self.tmp_daily_case_table + \
-            "\" a where st_distance(a.location,ST_GeomFromText('POINT(%s %s)',%s)) < %s"
-        try:
-            cur.execute(querystring, (point.x, point.y,
-                                      self.system_coordinate_system, dycast_parameters.spatial_domain))
-        except Exception:
-            conn.rollback()
-            logging.exception("Can't select vector count, exiting...")
-            sys.exit()
-        new_row = cur.fetchone()
-        return new_row[0]
-
-
-    def insert_cases_in_cluster_table(self, dycast_parameters, point, cur, conn):
-        querystring = "TRUNCATE " + self.tmp_cluster_per_point_selection_table + "; INSERT INTO " + self.tmp_cluster_per_point_selection_table + \
-            " SELECT * from " + self.tmp_daily_case_table + \
-            " a where st_distance(a.location,ST_GeomFromText('POINT(%s %s)',%s)) < %s"
-        try:
-            cur.execute(querystring, (point.x, point.y,
-                                      self.system_coordinate_system, dycast_parameters.spatial_domain))
-        except Exception:
-            conn.rollback()
-            logging.exception("Something went wrong at point: " + str(point))
-            logging.info("Rolling back and exiting...")
-            sys.exit(1)
-        conn.commit()
 
 
     def cst_cs_ct_wrapper(self, dycast_parameters, cur, conn):
