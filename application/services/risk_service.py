@@ -55,7 +55,7 @@ class RiskService(object):
                     if vector_count >= case_threshold:
                         points_above_threshold += 1
                         risk = Risk(risk_date=day,
-                                    vector_count=vector_count,
+                                    number_of_cases=vector_count,
                                     lat=point.x,
                                     long=point.y)
 
@@ -64,7 +64,7 @@ class RiskService(object):
                         risk.close_time = self.get_close_time_only(cases_in_cluster_query)
 
                         risk.cumulative_probability = self.get_cumulative_probability(session,
-                                                                                      risk.vector_count,
+                                                                                      risk.number_of_cases,
                                                                                       risk.close_pairs,
                                                                                       risk.close_space,
                                                                                       risk.close_time)
