@@ -5,6 +5,7 @@ from application.services import risk_service as risk_service_module
 from application.services import geography_service
 from application.services import database_service
 from application.tests import test_helper_functions
+from application.models.models import Risk
 
 
 test_helper_functions.init_test_environment()
@@ -59,6 +60,35 @@ class TestDycastFunctions(unittest.TestCase):
 
         risk_count = test_helper_functions.get_count_from_table("risk")
         self.assertGreater(risk_count, 0)
+
+
+    def test_insert_risk(self):
+
+        session = database_service.get_sqlalchemy_session()
+
+        dycast_parameters = test_helper_functions.get_dycast_parameters()
+        risk_service = risk_service_module.RiskService(dycast_parameters)
+
+        gridpoints = geography_service.generate_grid(dycast_parameters)
+        point = gridpoints[0]
+
+
+        risk = Risk(risk_date=datetime.date(int(2016), int(3), int(25)),
+                    number_of_cases=5,
+                    lat=point.x,
+                    long=point.y,
+                    close_pairs=3,
+                    close_space=2,
+                    close_time=1,
+                    cumulative_probability=0.032)
+
+        risk_service.insert_risk(session, risk)
+        session.commit()
+
+        session.query(Risk.risk_date).filter(Risk.risk_date == risk.risk_date,
+                                             Risk.lat == risk.lat,
+                                             Risk.long == risk.long) \
+                                     .one()
 
 
     def test_get_close_space_and_time(self):

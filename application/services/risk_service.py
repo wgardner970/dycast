@@ -5,6 +5,7 @@ import sys
 import psycopg2
 
 from sqlalchemy import func
+from sqlalchemy.exc import SQLAlchemyError, IntegrityError
 from sqlalchemy.sql.expression import literal
 
 from application.services import config_service
@@ -12,7 +13,7 @@ from application.services import logging_service
 from application.services import database_service
 from application.services import geography_service
 
-from application.models.models import Case, DistributionMargin
+from application.models.models import Case, DistributionMargin, Risk
 
 
 CONFIG = config_service.get_config()
@@ -55,19 +56,21 @@ class RiskService(object):
                     vector_count = database_service.get_count_for_query(cases_in_cluster_query)
                     if vector_count >= case_threshold:
                         points_above_threshold += 1
+                        risk = Risk(risk_date=day,
+                                    vector_count=vector_count,
+                                    lat=point.x,
+                                    long=point.y)
 
-                        close_pairs = self.get_close_space_and_time(cases_in_cluster_query)
-                        close_space = self.get_close_space_only(cases_in_cluster_query)
-                        close_time = self.get_close_time_only(cases_in_cluster_query)
+                        risk.close_pairs = self.get_close_space_and_time(cases_in_cluster_query)
+                        risk.close_space = self.get_close_space_only(cases_in_cluster_query)
+                        risk.close_time = self.get_close_time_only(cases_in_cluster_query)
 
-                        cumulative_probability = self.get_cumulative_probability(session,
-                                                                  vector_count,
-                                                                  close_pairs,
-                                                                  close_space,
-                                                                  close_time)
-
-                        self.insert_result(day, point.x, point.y, vector_count, close_pairs,
-                                           close_time, close_space, cumulative_probability, cur, conn)
+                        risk.cumulative_probability = self.get_cumulative_probability(session,
+                                                                                      risk.vector_count,
+                                                                                      risk.close_pairs,
+                                                                                      risk.close_space,
+                                                                                      risk.close_time)
+                        self.insert_risk(session, risk)
 
                 logging.info(
                     "Finished daily_risk for %s: done %s points", day, len(gridpoints))
@@ -80,6 +83,31 @@ class RiskService(object):
                              day, case_threshold, daily_case_count)
 
             day += delta
+
+        try:
+            session.commit()
+        except SQLAlchemyError, e:
+            session.rollback()
+            logging.exception("There was a problem committing the risk data session")
+            logging.exception(e)
+            raise
+        finally:
+            session.close()
+
+
+    def insert_risk(self, session, risk):
+        try:
+            session.add(risk)
+            session.flush()
+        except IntegrityError, e:
+            logging.warning("Risk already exists in database for this date '%s' and location '%s - %s', skipping...",
+                            risk.risk_date, risk.lat, risk.long)
+            session.rollback()
+        except SQLAlchemyError, e:
+            logging.exception("There was a problem inserting risk")
+            logging.exception(e)
+            session.rollback()
+            raise
 
 
     def get_daily_cases_query(self, session, riskdate):
@@ -124,24 +152,6 @@ class RiskService(object):
             logging.info("Rolling back and exiting...")
             sys.exit()
         return cur.fetchall()
-
-    def insert_result(self, riskdate, latitude, longitude, number_of_cases, close_pairs, close_time, close_space, nmcm, cur, conn):
-        querystring = "INSERT INTO risk (risk_date, lat, long, num_birds, close_pairs, close_space, close_time, nmcm) VALUES (%s, %s, %s, %s, %s, %s, %s, %s)"
-        try:
-            # Be careful of the ordering of space and time in the db vs the txt file
-            cur.execute(querystring, (riskdate, latitude, longitude,
-                                      number_of_cases, close_pairs, close_space, close_time, nmcm))
-        except psycopg2.IntegrityError:
-            conn.rollback()
-            logging.warning(
-                "Risk already exists in database for this date '%s' and location '%s - %s', skipping...", riskdate, latitude, longitude)
-        except Exception:
-            conn.rollback()
-            logging.exception("Couldn't insert risk")
-            logging.info("Rolling back and exiting...")
-            sys.exit(1)
-        else:
-            conn.commit()
 
 
     def get_close_space_and_time(self, cases_in_cluster_query):
