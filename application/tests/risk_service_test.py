@@ -130,3 +130,18 @@ class TestDycastFunctions(unittest.TestCase):
         count = risk_service.get_close_time_only(cases_in_cluster_query,
                                                  dycast_parameters.close_in_time)
         self.assertGreater(count, 0)
+
+
+    def test_get_exact_match_distribution_margin(self):
+
+        risk_service = risk_service_module.RiskService()
+        session = database_service.get_sqlalchemy_session()
+
+        number_of_cases = 2
+        close_in_space_and_time = 1
+        close_in_space = 1
+        close_in_time = 1
+
+        distribution_margin = risk_service.get_exact_match_distribution_margin(session, number_of_cases, close_in_space_and_time, close_in_space, close_in_time)
+
+        self.assertIsNotNone(distribution_margin)
