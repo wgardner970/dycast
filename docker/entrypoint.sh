@@ -70,7 +70,7 @@ check_init_dycast() {
 init_test_db() {
 	if ! $(test_db_exists); then
 		echo "Dycast test database is not initialized yet. Initializing test database..."
-		init_db --monte-carlo-file Dengue_max_100_40000.csv
+		setup_dycast --monte-carlo-file Dengue_max_100_40000.csv
 	else
 		echo "Dycast test database exists: ${TEST_DBNAME}"
 	fi
@@ -260,17 +260,17 @@ export_risk() {
 }
 
 
-init_db() {
+setup_dycast() {
 	local arguments="$@"
 	echo "Initializing database using arguments: ${arguments}..."
-	python ${DYCAST_APP_PATH}/dycast.py init_db ${arguments}
+	python ${DYCAST_APP_PATH}/dycast.py setup_dycast ${arguments}
 
 	exit_code=$?
 	if [[ ! "${exit_code}" == "0" ]]; then
-		echo "Command 'init_db' failed, exiting..."
+		echo "Command 'setup_dycast' failed, exiting..."
 		exit ${exit_code}
 	else 
-		echo "Done initializing database"
+		echo "Done initializing Dycast database"
 	fi
 }
 
@@ -343,9 +343,9 @@ case ${command} in
 		prepare_launch
 		export_risk ${arguments}
 	;;
-	init_db)
+	setup_dycast)
 		prepare_launch
-		init_db ${arguments}
+		setup_dycast ${arguments}
 	;;
 	### From here list only commands that are specific for this Docker entrypoint
 	run_tests)

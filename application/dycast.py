@@ -71,11 +71,11 @@ def create_parser():
     run_dycast_parser.set_defaults(func=run_dycast)
 
     # Init database
-    init_db_parser = subparsers.add_parser('init_db',
+    setup_dycast_parser = subparsers.add_parser('setup_dycast',
                                               parents=[common_parser],
                                               help='Initialize database',
                                               argument_default=configargparse.SUPPRESS)
-    init_db_parser.set_defaults(func=init_db)
+    setup_dycast_parser.set_defaults(func=setup_dycast)
 
 
 
@@ -183,10 +183,10 @@ def create_parser():
 
 
     ## Init db argumentss:
-    init_db_parser.add('--force-db-init',
+    setup_dycast_parser.add('--force-db-init',
                        action='store_true',
                        help='If this flag is provided: drops existing database')
-    init_db_parser.add('--monte-carlo-file',
+    setup_dycast_parser.add('--monte-carlo-file',
                        env_var='MONTE_CARLO_FILE',
                        required=True,
                        help='File name without folder. File must be in `application/init` folder')
@@ -256,7 +256,7 @@ def listen_for_input(**kwargs):
     raise NotImplementedError
 
 
-def init_db(**kwargs):
+def setup_dycast(**kwargs):
     force = kwargs.get('force_db_init')
     monte_carlo_file = kwargs.get('monte_carlo_file')
     database_service.init_db(monte_carlo_file, force)
