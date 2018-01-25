@@ -60,9 +60,9 @@ display_help() {
 
 
 
-check_init_dycast() {
+check_init_db() {
 	if ! $(db_exists); then
-		echo "Dycast database is not initialized yet. Please run the 'setup-dycast' command"
+		echo "Dycast database is not initialized yet. Please run the 'setup_dycast' command"
 	fi
 }
 
@@ -129,7 +129,7 @@ init_test_variables() {
 prepare_launch() {
 	if [[ ! ${help} == true ]]; then
 		wait_for_db
-		check_init_dycast
+		check_init_db
 		init_directories
 	fi	
 }
