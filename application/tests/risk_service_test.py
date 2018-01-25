@@ -2,8 +2,8 @@ import unittest
 import datetime
 from application.services import import_service as import_service_module
 from application.services import risk_service as risk_service_module
+from application.services import geography_service
 from application.services import database_service
-from application.services import grid_service
 from application.tests import test_helper_functions
 
 
@@ -36,7 +36,7 @@ class TestDycastFunctions(unittest.TestCase):
 
         riskdate = datetime.date(int(2016), int(3), int(25))
 
-        gridpoints = grid_service.generate_grid(dycast_parameters)
+        gridpoints = geography_service.generate_grid(dycast_parameters)
         point = gridpoints[0]
 
         daily_cases_query = risk_service.get_daily_cases_query(session, riskdate)
@@ -69,7 +69,7 @@ class TestDycastFunctions(unittest.TestCase):
 
         riskdate = datetime.date(int(2016), int(3), int(25))
 
-        gridpoints = grid_service.generate_grid(dycast_parameters)
+        gridpoints = geography_service.generate_grid(dycast_parameters)
         point = gridpoints[0]
 
         daily_cases_query = risk_service.get_daily_cases_query(session,
@@ -90,7 +90,7 @@ class TestDycastFunctions(unittest.TestCase):
 
         riskdate = datetime.date(int(2016), int(3), int(25))
 
-        gridpoints = grid_service.generate_grid(dycast_parameters)
+        gridpoints = geography_service.generate_grid(dycast_parameters)
         point = gridpoints[0]
 
         daily_cases_query = risk_service.get_daily_cases_query(session,
@@ -111,7 +111,7 @@ class TestDycastFunctions(unittest.TestCase):
 
         riskdate = datetime.date(int(2016), int(3), int(25))
 
-        gridpoints = grid_service.generate_grid(dycast_parameters)
+        gridpoints = geography_service.generate_grid(dycast_parameters)
         point = gridpoints[0]
 
         daily_cases_query = risk_service.get_daily_cases_query(session,
