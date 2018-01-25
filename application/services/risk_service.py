@@ -13,7 +13,7 @@ from application.services import logging_service
 from application.services import database_service
 from application.services import geography_service
 
-from application.models.models import Case
+from application.models.models import Case, DistributionMargin
 
 
 CONFIG = config_service.get_config()
@@ -169,3 +169,13 @@ class RiskService(object):
             .filter(func.abs(Case.report_date - subquery.c.report_date) <= close_in_time,
                     Case.id < subquery.c.id)
         return database_service.get_count_for_query(query)
+
+
+
+
+    def get_exact_match_distribution_margin(self, session, number_of_cases, close_in_space_and_time, close_in_space, close_in_time):
+        return session.query(DistributionMargin).filter(DistributionMargin.number_of_cases == number_of_cases,
+                                                        DistributionMargin.close_in_space_and_time == close_in_space_and_time,
+                                                        DistributionMargin.close_space == close_in_space,
+                                                        DistributionMargin.close_time == close_in_time) \
+                                                .first()
