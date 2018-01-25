@@ -44,11 +44,6 @@ $(python dycast.py --help)
 
 	Additional commands provided by Docker container:
 
-	[setup_dycast] 		Initializes Dycast: creates the database if it does not exist and 
-				sets up necessary folders  
-
-	[setup_db] 		Deletes any existing Dycast database and sets up a fresh one  
-
 	[run_tests] 		Run unit tests  
 
 	[help] or [-h]		Display help text  
