@@ -66,7 +66,7 @@ class ExportService(object):
 
 
     def get_risk(self, startdate, enddate, cur, conn):
-        query = "SELECT risk_date, lat, long, num_birds, close_pairs, close_space, close_time, nmcm FROM risk WHERE risk_date >= %s AND risk_date <= %s"
+        query = "SELECT risk_date, lat, long, number_of_cases, close_pairs, close_space, close_time, cumulative_probability FROM risk WHERE risk_date >= %s AND risk_date <= %s"
 
         try:
             cur.execute(query, (startdate, enddate))
@@ -81,8 +81,8 @@ class ExportService(object):
     def get_rows_as_string(self, rows, separator):
         string = ""
         for row in rows:
-            [date, lat, lon, num_birds, close_pairs, close_space, close_time, monte_carlo_p_value] = row
-            string = string + "{0}{8}{1}{8}{2}{8}{3}{8}{4}{8}{5}{8}{6}{8}{7}\n".format(date, lat, lon, num_birds, close_pairs, close_time, close_space, monte_carlo_p_value, separator)
+            [date, lat, lon, number_of_cases, close_pairs, close_space, close_time, monte_carlo_p_value] = row
+            string = string + "{0}{8}{1}{8}{2}{8}{3}{8}{4}{8}{5}{8}{6}{8}{7}\n".format(date, lat, lon, number_of_cases, close_pairs, close_time, close_space, monte_carlo_p_value, separator)
         return string
 
     def get_separator(self, file_format):

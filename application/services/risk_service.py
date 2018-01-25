@@ -113,10 +113,10 @@ class RiskService(object):
             sys.exit()
         return cur.fetchall()
 
-    def nmcm_wrapper(self, num_birds, close_pairs, close_space, close_time, cur, conn):
+    def nmcm_wrapper(self, number_of_cases, close_pairs, close_space, close_time, cur, conn):
         querystring = "SELECT * FROM nmcm(%s, %s, %s, %s)"
         try:
-            cur.execute(querystring, (num_birds, close_pairs,
+            cur.execute(querystring, (number_of_cases, close_pairs,
                                       close_space, close_time))
         except Exception:
             conn.rollback()
