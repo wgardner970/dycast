@@ -239,7 +239,7 @@ class RiskService(object):
                                                             nearest_close_in_time,
                                                             close_in_space):
 
-        return session.query(DistributionMargin) \
+        return session.query(DistributionMargin.cumulative_probability) \
             .filter(
                 DistributionMargin.number_of_cases == number_of_cases,
                 DistributionMargin.close_in_space_and_time >= close_in_space_and_time,
