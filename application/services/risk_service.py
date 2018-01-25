@@ -29,10 +29,10 @@ class RiskService(object):
 
     def generate_risk(self):
 
+        session = database_service.get_sqlalchemy_session()
         logging_service.display_current_parameter_set(self.dycast_parameters)
 
         case_threshold = self.dycast_parameters.case_threshold
-        cur, conn = database_service.init_psycopg_db()
 
         gridpoints = geography_service.generate_grid(self.dycast_parameters)
 
@@ -40,8 +40,6 @@ class RiskService(object):
         delta = datetime.timedelta(days=1)
 
         while day <= self.dycast_parameters.enddate:
-
-            session = database_service.get_sqlalchemy_session()
 
             daily_cases_query = self.get_daily_cases_query(session, day)
             daily_case_count = database_service.get_count_for_query(daily_cases_query)
