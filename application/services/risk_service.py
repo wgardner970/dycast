@@ -60,10 +60,14 @@ class RiskService(object):
                         close_space = self.get_close_space_only(cases_in_cluster_query)
                         close_time = self.get_close_time_only(cases_in_cluster_query)
 
-                        result2 = self.nmcm_wrapper(
-                            vector_count, close_pairs, close_space, close_time, cur, conn)
+                        cumulative_probability = self.get_cumulative_probability(session,
+                                                                  vector_count,
+                                                                  close_pairs,
+                                                                  close_space,
+                                                                  close_time)
+
                         self.insert_result(day, point.x, point.y, vector_count, close_pairs,
-                                           close_time, close_space, result2[0][0], cur, conn)
+                                           close_time, close_space, cumulative_probability, cur, conn)
 
                 logging.info(
                     "Finished daily_risk for %s: done %s points", day, len(gridpoints))
