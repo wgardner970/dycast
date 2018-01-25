@@ -7,7 +7,6 @@ import psycopg2
 from sqlalchemy import func
 from sqlalchemy.sql.expression import literal
 
-from application.services import grid_service
 from application.services import config_service
 from application.services import logging_service
 from application.services import database_service
@@ -33,7 +32,7 @@ class RiskService(object):
         case_threshold = dycast_parameters.case_threshold
         cur, conn = database_service.init_psycopg_db()
 
-        gridpoints = grid_service.generate_grid(dycast_parameters)
+        gridpoints = geography_service.generate_grid(dycast_parameters)
 
         day = dycast_parameters.startdate
         delta = datetime.timedelta(days=1)
