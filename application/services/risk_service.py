@@ -96,7 +96,7 @@ class RiskService(object):
     def insert_risk(self, session, risk):
         try:
             session.add(risk)
-            session.flush()
+            session.commit()
         except IntegrityError, e:
             logging.warning("Risk already exists in database for this date '%s' and location '%s - %s', skipping...",
                             risk.risk_date, risk.lat, risk.long)
