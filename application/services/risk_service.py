@@ -20,28 +20,29 @@ CONFIG = config_service.get_config()
 
 class RiskService(object):
 
-    def __init__(self, **kwargs):
+    def __init__(self, dycast_parameters):
         self.system_coordinate_system = CONFIG.get(
             "dycast", "system_coordinate_system")
+        self.dycast_parameters = dycast_parameters
 
 
-    def generate_risk(self, dycast_parameters):
+    def generate_risk(self):
 
-        logging_service.display_current_parameter_set(dycast_parameters)
+        logging_service.display_current_parameter_set(self.dycast_parameters)
 
-        case_threshold = dycast_parameters.case_threshold
+        case_threshold = self.dycast_parameters.case_threshold
         cur, conn = database_service.init_psycopg_db()
 
-        gridpoints = geography_service.generate_grid(dycast_parameters)
+        gridpoints = geography_service.generate_grid(self.dycast_parameters)
 
-        day = dycast_parameters.startdate
+        day = self.dycast_parameters.startdate
         delta = datetime.timedelta(days=1)
 
-        while day <= dycast_parameters.enddate:
+        while day <= self.dycast_parameters.enddate:
 
             session = database_service.get_sqlalchemy_session()
 
-            daily_cases_query = self.get_daily_cases_query(session, dycast_parameters, day)
+            daily_cases_query = self.get_daily_cases_query(session, day)
             daily_case_count = database_service.get_count_for_query(daily_cases_query)
 
             if daily_case_count >= case_threshold:
@@ -50,18 +51,14 @@ class RiskService(object):
                 points_above_threshold = 0
 
                 for point in gridpoints:
-                    cases_in_cluster_query = self.get_cases_in_cluster_query(daily_cases_query, dycast_parameters, point)
+                    cases_in_cluster_query = self.get_cases_in_cluster_query(daily_cases_query, point)
                     vector_count = database_service.get_count_for_query(cases_in_cluster_query)
                     if vector_count >= case_threshold:
                         points_above_threshold += 1
 
-                        close_pairs = self.get_close_space_and_time(cases_in_cluster_query,
-                                                               dycast_parameters.close_in_space,
-                                                               dycast_parameters.close_in_time)
-                        close_space = self.get_close_space_only(cases_in_cluster_query,
-                                                           dycast_parameters.close_in_space)
-                        close_time = self.get_close_time_only(cases_in_cluster_query,
-                                                         dycast_parameters.close_in_time)
+                        close_pairs = self.get_close_space_and_time(cases_in_cluster_query)
+                        close_space = self.get_close_space_only(cases_in_cluster_query)
+                        close_time = self.get_close_time_only(cases_in_cluster_query)
 
                         result2 = self.nmcm_wrapper(
                             vector_count, close_pairs, close_space, close_time, cur, conn)
@@ -81,8 +78,8 @@ class RiskService(object):
             day += delta
 
 
-    def get_daily_cases_query(self, session, dycast_parameters, riskdate):
-        days_prev = dycast_parameters.temporal_domain
+    def get_daily_cases_query(self, session, riskdate):
+        days_prev = self.dycast_parameters.temporal_domain
         enddate = riskdate
         startdate = riskdate - datetime.timedelta(days=(days_prev))
 
@@ -92,15 +89,15 @@ class RiskService(object):
         )
 
 
-    def get_cases_in_cluster_query(self, daily_cases_query, dycast_parameters, point):
+    def get_cases_in_cluster_query(self, daily_cases_query, point):
         wkt_point = geography_service.get_point_from_lat_long(point.y, point.x, self.system_coordinate_system)
 
-        return daily_cases_query.filter(func.ST_DWithin(Case.location, wkt_point, dycast_parameters.spatial_domain))
+        return daily_cases_query.filter(func.ST_DWithin(Case.location, wkt_point, self.dycast_parameters.spatial_domain))
 
 
-    def cst_cs_ct_wrapper(self, dycast_parameters, cur, conn):
-        close_in_space = dycast_parameters.close_in_space
-        close_in_time = dycast_parameters.close_in_time
+    def cst_cs_ct_wrapper(self, cur, conn):
+        close_in_space = self.dycast_parameters.close_in_space
+        close_in_time = self.dycast_parameters.close_in_time
 
         querystring = "SELECT * FROM cst_cs_ct(%s, %s)"
         try:
@@ -143,29 +140,29 @@ class RiskService(object):
             conn.commit()
 
 
-    def get_close_space_and_time(self, cases_in_cluster_query, close_in_space, close_in_time):
+    def get_close_space_and_time(self, cases_in_cluster_query):
         subquery = cases_in_cluster_query.subquery()
         query = cases_in_cluster_query.join(subquery, literal(True)) \
-            .filter(func.ST_DWithin(Case.location, subquery.c.location, close_in_space),
-                    func.abs(Case.report_date - subquery.c.report_date) <= close_in_time,
+            .filter(func.ST_DWithin(Case.location, subquery.c.location, self.dycast_parameters.close_in_space),
+                    func.abs(Case.report_date - subquery.c.report_date) <= self.dycast_parameters.close_in_time,
                     Case.id < subquery.c.id)
 
         return database_service.get_count_for_query(query)
 
 
-    def get_close_space_only(self, cases_in_cluster_query, close_in_space):
+    def get_close_space_only(self, cases_in_cluster_query):
         subquery = cases_in_cluster_query.subquery()
         query = cases_in_cluster_query.join(subquery, literal(True)) \
-            .filter(func.ST_DWithin(Case.location, subquery.c.location, close_in_space),
+            .filter(func.ST_DWithin(Case.location, subquery.c.location, self.dycast_parameters.close_in_space),
                     Case.id < subquery.c.id)
 
         return database_service.get_count_for_query(query)
 
 
-    def get_close_time_only(self, cases_in_cluster_query, close_in_time):
+    def get_close_time_only(self, cases_in_cluster_query):
         subquery = cases_in_cluster_query.subquery()
         query = cases_in_cluster_query.join(subquery, literal(True)) \
-            .filter(func.abs(Case.report_date - subquery.c.report_date) <= close_in_time,
+            .filter(func.abs(Case.report_date - subquery.c.report_date) <= self.dycast_parameters.close_in_time,
                     Case.id < subquery.c.id)
         return database_service.get_count_for_query(query)
 

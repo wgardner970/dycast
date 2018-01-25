@@ -60,5 +60,5 @@ class DycastParameters(object):
         export_service.export_risk(self)
 
     def generate_risk(self):
-        risk_service = risk_service_module.RiskService()
-        risk_service.generate_risk(self)
+        risk_service = risk_service_module.RiskService(self)
+        risk_service.generate_risk()
