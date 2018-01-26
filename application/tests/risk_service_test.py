@@ -230,38 +230,3 @@ class TestDycastFunctions(unittest.TestCase):
                                                                          close_in_space)
 
         self.assertGreater(cumulative_probability, 0)
-
-
-    def test_get_close_time_only_compare(self):
-
-        dycast_parameters = test_helper_functions.get_dycast_parameters()
-        risk_service = risk_service_module.RiskService(dycast_parameters)
-        session = database_service.get_sqlalchemy_session()
-        cur, conn = database_service.init_psycopg_db()
-
-        gridpoints = geography_service.generate_grid(dycast_parameters)
-        day = dycast_parameters.startdate
-
-        delta = datetime.timedelta(days=1)
-
-        while day <= dycast_parameters.enddate:
-
-            for point in gridpoints:
-
-                daily_cases_query = risk_service.get_daily_cases_query(session, day)
-                cases_in_cluster_query = risk_service.get_cases_in_cluster_query(daily_cases_query, point)
-                vector_count_new = database_service.get_count_for_query(cases_in_cluster_query)
-
-                risk_service.setup_tmp_daily_case_table_for_date(dycast_parameters, day, cur, conn)
-                risk_service.insert_cases_in_cluster_table(dycast_parameters, point, cur, conn)
-                vector_count_old = risk_service.get_vector_count_for_point(dycast_parameters, point, cur, conn)
-
-                self.assertEqual(vector_count_new, vector_count_old)
-
-                if vector_count_old > 10:
-                    count_new = risk_service.get_close_time_only(cases_in_cluster_query)
-                    count_old = risk_service.get_close_time_only_old(dycast_parameters.close_in_time, cur)
-
-                    self.assertEqual(count_new, count_old[0])
-
-            day += delta
