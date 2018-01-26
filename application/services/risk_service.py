@@ -60,8 +60,8 @@ class RiskService(object):
                                     long=point.y)
 
                         risk.close_pairs = self.get_close_space_and_time(cases_in_cluster_query)
-                        risk.close_space = self.get_close_space_only(cases_in_cluster_query)
-                        risk.close_time = self.get_close_time_only(cases_in_cluster_query)
+                        risk.close_space = self.get_close_space_only(cases_in_cluster_query) - risk.close_pairs
+                        risk.close_time = self.get_close_time_only(cases_in_cluster_query) - risk.close_pairs
 
                         risk.cumulative_probability = self.get_cumulative_probability(session,
                                                                                       risk.number_of_cases,
