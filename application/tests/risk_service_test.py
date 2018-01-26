@@ -11,7 +11,7 @@ from application.models.models import Risk
 test_helper_functions.init_test_environment()
 
 
-class TestDycastFunctions(unittest.TestCase):
+class TestRiskServiceFunctions(unittest.TestCase):
 
     def test_get_daily_cases_query(self):
 
