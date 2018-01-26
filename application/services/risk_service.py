@@ -25,6 +25,12 @@ class RiskService(object):
         self.system_coordinate_system = CONFIG.get(
             "dycast", "system_coordinate_system")
         self.dycast_parameters = dycast_parameters
+        self.case_table_name = CONFIG.get(
+            "database", "dead_birds_table_projected")
+        self.tmp_daily_case_table = CONFIG.get(
+            "database", "tmp_daily_case_table")
+        self.tmp_cluster_per_point_selection_table = CONFIG.get(
+            "database", "tmp_cluster_per_point_selection_table")
 
 
     def generate_risk(self):
@@ -179,6 +185,13 @@ class RiskService(object):
         return database_service.get_count_for_query(query)
 
 
+    def get_close_time_only_old(self, close_in_time, cur):
+        querystring = "SELECT * FROM close_time_only({0})".format(close_in_time)
+        cur.execute(querystring)
+
+        return cur.fetchall()[0]
+
+
     def get_cumulative_probability(self, session, number_of_cases, close_in_space_and_time, close_in_space, close_in_time):
         exact_match = self.get_exact_match_cumulative_probability(session,
                                                                number_of_cases,
@@ -247,3 +260,61 @@ class RiskService(object):
                 DistributionMargin.close_space >= close_in_space) \
             .order_by(DistributionMargin.close_space) \
             .first()
+
+
+    def setup_tmp_daily_case_table_for_date(self, dycast_parameters, riskdate, cur, conn):
+        days_prev = dycast_parameters.temporal_domain
+        enddate = riskdate
+        startdate = riskdate - datetime.timedelta(days=(days_prev))
+        querystring = "TRUNCATE " + self.tmp_daily_case_table + "; INSERT INTO " + self.tmp_daily_case_table + \
+            " SELECT * from " + self.case_table_name + \
+            " where report_date >= %s and report_date <= %s"
+        try:
+            cur.execute(querystring, (startdate, enddate))
+        except Exception:
+            conn.rollback()
+            logging.exception(
+                "Something went wrong when setting up tmp_daily_case_selection table: " + str(riskdate))
+            raise
+        conn.commit()
+
+
+    def get_daily_case_count(self,  riskdate, cur, conn):
+        query = "SELECT COUNT(*) FROM {0}".format(self.tmp_daily_case_table)
+        try:
+            cur.execute(query)
+        except Exception:
+            conn.rollback()
+            logging.exception(
+                "Something went wrong when getting count from tmp_daily_case_selection table: " + str(riskdate))
+            raise
+        result_count = cur.fetchone()
+        return result_count[0]
+
+
+    def get_vector_count_for_point(self, dycast_parameters, point, cur, conn):
+        querystring = "SELECT count(*) from \"" + self.tmp_daily_case_table + \
+            "\" a where st_distance(a.location,ST_GeomFromText('POINT(%s %s)',%s)) < %s"
+        try:
+            cur.execute(querystring, (point.x, point.y,
+                                      self.system_coordinate_system, dycast_parameters.spatial_domain))
+        except Exception:
+            conn.rollback()
+            logging.exception("Can't select vector count, exiting...")
+            sys.exit()
+        new_row = cur.fetchone()
+        return new_row[0]
+
+    def insert_cases_in_cluster_table(self, dycast_parameters, point, cur, conn):
+        querystring = "TRUNCATE " + self.tmp_cluster_per_point_selection_table + "; INSERT INTO " + self.tmp_cluster_per_point_selection_table + \
+            " SELECT * from " + self.tmp_daily_case_table + \
+            " a where st_distance(a.location,ST_GeomFromText('POINT(%s %s)',%s)) < %s"
+        try:
+            cur.execute(querystring, (point.x, point.y,
+                                      self.system_coordinate_system, dycast_parameters.spatial_domain))
+        except Exception:
+            conn.rollback()
+            logging.exception("Something went wrong at point: " + str(point))
+            logging.info("Rolling back and exiting...")
+            sys.exit(1)
+        conn.commit()
