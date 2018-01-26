@@ -1,8 +1,6 @@
 import datetime
 import time
 import logging
-import sys
-import psycopg2
 
 from sqlalchemy import func
 from sqlalchemy.exc import SQLAlchemyError, IntegrityError
@@ -154,10 +152,10 @@ class RiskService(object):
 
     def get_cumulative_probability(self, session, number_of_cases, close_in_space_and_time, close_in_space, close_in_time):
         exact_match = self.get_exact_match_cumulative_probability(session,
-                                                               number_of_cases,
-                                                               close_in_space_and_time,
-                                                               close_in_space,
-                                                               close_in_time)
+                                                                  number_of_cases,
+                                                                  close_in_space_and_time,
+                                                                  close_in_space,
+                                                                  close_in_time)
 
         if exact_match:
             return exact_match
@@ -178,10 +176,10 @@ class RiskService(object):
 
 
     def get_exact_match_cumulative_probability(self, session,
-                                            number_of_cases,
-                                            close_in_space_and_time,
-                                            close_in_space,
-                                            close_in_time):
+                                               number_of_cases,
+                                               close_in_space_and_time,
+                                               close_in_space,
+                                               close_in_time):
 
         return session.query(DistributionMargin.cumulative_probability) \
             .filter(
