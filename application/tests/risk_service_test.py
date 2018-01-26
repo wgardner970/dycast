@@ -166,10 +166,10 @@ class TestDycastFunctions(unittest.TestCase):
         close_in_time = 1
 
         cumulative_probability = risk_service.get_exact_match_cumulative_probability(session,
-                                                                               number_of_cases,
-                                                                               close_in_space_and_time,
-                                                                               close_in_space,
-                                                                               close_in_time)
+                                                                                     number_of_cases,
+                                                                                     close_in_space_and_time,
+                                                                                     close_in_space,
+                                                                                     close_in_time)
 
         self.assertGreater(cumulative_probability, 0)
 
@@ -204,10 +204,10 @@ class TestDycastFunctions(unittest.TestCase):
         nearest_close_in_time = 1
 
         cumulative_probability = risk_service.get_cumulative_probability_by_nearest_close_in_time(session,
-                                                                                           number_of_cases,
-                                                                                           close_in_space_and_time,
-                                                                                           nearest_close_in_time,
-                                                                                           close_in_space)
+                                                                                                  number_of_cases,
+                                                                                                  close_in_space_and_time,
+                                                                                                  nearest_close_in_time,
+                                                                                                  close_in_space)
 
         self.assertGreater(cumulative_probability, 0)
 
