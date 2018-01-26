@@ -45,6 +45,7 @@ class TestImportServiceFunctions(unittest.TestCase):
 
         self.assertEquals(count, 1)
         session.delete(query.first())
+        session.commit()
 
 
     def test_load_case_data_error(self):
