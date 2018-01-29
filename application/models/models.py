@@ -38,22 +38,6 @@ class DistributionMargin(DeclarativeBase):
     close_space = Column(Integer, primary_key=True, index=True)
     close_time = Column(Integer, primary_key=True, index=True)
 
-class TmpDailyCaseSelection(DeclarativeBase):
-    """SQLAlchemy Daily Case Selection model"""
-    __tablename__ = "tmp_daily_case_selection"
-
-    case_id = Column(Integer, primary_key=True)
-    report_date = Column(Date)
-    location = Column(Geometry(geometry_type='POINT', srid='3857'))
-
-class TmpClusterPerPointSelection(DeclarativeBase):
-    """SQLAlchemy Cluster Per Point Selection model"""
-    __tablename__ = "tmp_cluster_per_point_selection"    
-
-    case_id = Column(Integer, primary_key=True)
-    report_date = Column(Date)
-    location = Column(Geometry(geometry_type='POINT', srid='3857'))
-
 class Risk(DeclarativeBase):
     """SQLAlchemy Risk model"""
     __tablename__ = "risk"
