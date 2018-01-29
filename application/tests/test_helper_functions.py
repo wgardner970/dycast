@@ -73,6 +73,15 @@ def get_test_cases_import_file_geometry():
     return os.path.join(get_test_data_import_directory(), 'input_cases_geometry.tsv')
 
 @nottest
+def get_test_file_path():
+    return os.path.join(get_test_data_import_directory(), 'test_file.tsv')
+
+@nottest
+def delete_test_file():
+    file_path = get_test_file_path()
+    os.remove(file_path)
+
+@nottest
 def get_count_from_table(table_name):
     cur, conn = database_service.init_psycopg_db()
     querystring = "SELECT count(*) from " + table_name
