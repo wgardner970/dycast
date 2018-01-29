@@ -3,7 +3,7 @@ services:
 
     dycast:
       container_name: dycast
-      image: cvast/cvast-dycast:2.0.1dev
+      image: dycast/dycast:master
       build:
         context: .
         dockerfile: ./Dockerfile

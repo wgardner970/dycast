@@ -6,6 +6,7 @@ from application.services import conversion_service
 from application.services import config_service
 from application.services import database_service
 from application.services import file_service
+from application.models.models import Risk
 
 
 CONFIG = config_service.get_config()
@@ -13,13 +14,14 @@ CONFIG = config_service.get_config()
 class ExportService(object):
     
     def export_risk(self, dycast_parameters):
+
+        session = database_service.get_sqlalchemy_session()
+
         startdate = dycast_parameters.startdate
         enddate = dycast_parameters.enddate
         export_directory = dycast_parameters.export_directory
         export_prefix = dycast_parameters.export_prefix
         export_format = dycast_parameters.export_format
-
-        cur, conn = database_service.init_db()
 
         # Quick and dirty solution
         if export_format != "tsv" and export_format != "csv":
@@ -43,20 +45,21 @@ class ExportService(object):
 
 
         logging.info("Exporting risk for: %s - %s", startdate_string, enddate_string)
-        self.get_risk(startdate, enddate, cur, conn)
+        risk_query = self.get_risk_query(session, startdate, enddate)
+        risk_count = database_service.get_count_for_query(risk_query)
 
-        if cur.rowcount == 0:
+        if risk_count == 0:
             logging.info("No risk found for the provided dates: %s - %s", startdate_string, enddate_string)
             return
 
-        rows = cur.fetchall()
+        risk_collection = risk_query.all()
 
         table_content = file_service.TableContent()
 
         header = self.get_header_as_string(separator)
         table_content.set_header(header)
 
-        body = self.get_rows_as_string(rows, separator)
+        body = self.get_rows_as_string(risk_collection, separator)
         table_content.set_body(body)
 
 
@@ -65,24 +68,27 @@ class ExportService(object):
         return filepath
 
 
-    def get_risk(self, startdate, enddate, cur, conn):
-        query = "SELECT risk_date, lat, long, num_birds, close_pairs, close_space, close_time, nmcm FROM risk WHERE risk_date >= %s AND risk_date <= %s"
-
-        try:
-            cur.execute(query, (startdate, enddate))
-        except Exception:
-            conn.rollback()
-            logging.exception("Failed to select risk data")
-            raise        
+    def get_risk_query(self, session, startdate, enddate):
+        return session.query(Risk).filter(Risk.risk_date >= startdate,
+                                          Risk.risk_date <= enddate)
+      
 
     def get_header_as_string(self, separator):
         return "risk_date{0}lat{0}long{0}number_of_cases{0}close_pairs{0}close_time{0}close_space{0}p_value".format(separator)  
 
-    def get_rows_as_string(self, rows, separator):
+
+    def get_rows_as_string(self, risk_collection, separator):
         string = ""
-        for row in rows:
-            [date, lat, lon, num_birds, close_pairs, close_space, close_time, monte_carlo_p_value] = row
-            string = string + "{0}{8}{1}{8}{2}{8}{3}{8}{4}{8}{5}{8}{6}{8}{7}\n".format(date, lat, lon, num_birds, close_pairs, close_time, close_space, monte_carlo_p_value, separator)
+        for risk in risk_collection:
+            string = string + "{0}{8}{1}{8}{2}{8}{3}{8}{4}{8}{5}{8}{6}{8}{7}\n".format(risk.risk_date,
+                                                                                       risk.lat,
+                                                                                       risk.long,
+                                                                                       risk.number_of_cases,
+                                                                                       risk.close_pairs,
+                                                                                       risk.close_time,
+                                                                                       risk.close_space,
+                                                                                       risk.cumulative_probability,
+                                                                                       separator)
         return string
 
     def get_separator(self, file_format):

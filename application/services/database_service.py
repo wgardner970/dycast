@@ -1,16 +1,78 @@
 import logging
 import sys
-try:
-    import psycopg2
-except ImportError:
-    logging.error("Couldn't import psycopg2 library in path: %s", sys.path)
-    sys.exit()
+import time
+import psycopg2
+
+from sqlalchemy import create_engine, func
+from sqlalchemy.engine.url import URL
+from sqlalchemy.ext.declarative import declarative_base
+from sqlalchemy.orm import sessionmaker
+from sqlalchemy_utils import database_exists, create_database, drop_database
+
 from application.services import config_service
+from application.models import models
+
 
 CONFIG = config_service.get_config()
+DeclarativeBase = declarative_base()
 
 
-def init_db():
+
+# Helper functions common
+
+def get_db_instance_name():
+    return CONFIG.get("database", "db_instance_name")
+
+def get_db_user():
+    return CONFIG.get("database", "user")
+
+
+def get_db_password():
+    return CONFIG.get("database", "password")
+
+
+def get_db_host():
+    return CONFIG.get("database", "host")
+
+
+def get_db_port():
+    return CONFIG.get("database", "port")
+
+
+
+# Helper functions SQLAlchemy
+
+def db_connect():
+    """
+    Connect to database.
+    Returns sqlalchemy engine instance
+    """
+    return create_engine(get_sqlalchemy_conn_string())
+
+
+def execute_sql_command(sql_command, engine):
+    engine.execute(sql_command)
+
+
+def get_sqlalchemy_conn_string():   
+    return URL(drivername="postgres",
+               host=get_db_host(),
+               port=get_db_port(),
+               username=get_db_user(),
+               password=get_db_password(),
+               database=get_db_instance_name())
+
+
+def get_sqlalchemy_session():
+    engine = db_connect()
+    Session = sessionmaker(bind=engine)
+    return Session()
+
+
+
+# Helper functions Psycopg2
+
+def init_psycopg_db():
     dsn = get_dsn()
     try:
         conn = psycopg2.connect(dsn)
@@ -22,12 +84,64 @@ def init_db():
 
 
 def get_dsn():
-    db_instance_name = CONFIG.get("database", "db_instance_name")
-    user = CONFIG.get("database", "user")
-    password = CONFIG.get("database", "password")
-    host = CONFIG.get("database", "host")
-    port = CONFIG.get("database", "port")
+    db_instance_name = get_db_instance_name()
+    user = get_db_user()
+    password = get_db_password()
+    host = get_db_host()
+    port = get_db_port()
 
     return "dbname='" + db_instance_name + "' user='" + user + \
         "' password='" + password + "' host='" + host + \
         "' port='" + port + "'"
+
+
+
+# Init helper functions
+
+def create_postgis_extension(engine):
+    logging.info("Creating PostGIS extension...")
+    sql_command = "CREATE EXTENSION postgis;"
+    execute_sql_command(sql_command, engine)
+
+
+def import_monte_carlo(monte_carlo_file):
+    logging.info("Importing Monte Carlo file: %s", monte_carlo_file)
+    input_file = open(r'/dycast/application/init/{0}'.format(monte_carlo_file), 'r')
+    cur, conn = init_psycopg_db()
+
+    cur.copy_from(input_file, 'distribution_margins', sep=',')
+    input_file.close()
+    conn.commit()
+    conn.close()
+
+
+
+# Init command
+
+def init_db(monte_carlo_file, force=False):
+    engine = db_connect()
+    db_url = engine.url
+
+    if force:
+        if database_exists(db_url):
+            logging.info("Dropping existing database in 5 seconds...")
+            time.sleep(5)
+            drop_database(db_url)
+            logging.info("Dropped.")
+
+    if not database_exists(db_url):
+        logging.info("Creating database...")
+        create_database(db_url)
+        create_postgis_extension(engine)
+        models.create_tables(engine)
+        import_monte_carlo(monte_carlo_file)
+    else:
+        logging.info("Database already exists, skipping database initialization...")
+
+
+
+# Query helper functions
+
+def get_count_for_query(query):
+    count_query = query.statement.with_only_columns([func.count()]).order_by(None)
+    return query.session.execute(count_query).scalar()

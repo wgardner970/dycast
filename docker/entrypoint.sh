@@ -2,9 +2,10 @@
 
 set -e
 
-DBUSER=${DBUSER:-postgres}
+export DBUSER=${DBUSER:-postgres}
 # psql uses PGPASSWORD environment variable to login
 export PGPASSWORD=${DBPASSWORD}
+TEST_DBNAME=test_dycast
 
 DYCAST_INBOX=${DYCAST_INBOX:-$DYCAST_PATH/inbox}
 DYCAST_INBOX_COMPLETED=${DYCAST_INBOX}/completed
@@ -43,11 +44,6 @@ $(python dycast.py --help)
 
 	Additional commands provided by Docker container:
 
-	[setup_dycast] 		Initializes Dycast: creates the database if it does not exist and 
-				sets up necessary folders  
-
-	[setup_db] 		Deletes any existing Dycast database and sets up a fresh one  
-
 	[run_tests] 		Run unit tests  
 
 	[help] or [-h]		Display help text  
@@ -59,15 +55,30 @@ display_help() {
 
 
 
-init_dycast() {
-	if db_exists; then
-		echo "Database ${DBNAME} already exists, skipping initialization."
-	else
-		echo "Database ${DBNAME} does not exists."
-		init_db
+check_init_db() {
+	if ! $(db_exists); then
+		echo "Dycast database is not initialized yet. Please run the 'setup_dycast' command"
 	fi
+}
 
-	init_directories
+
+init_test_db() {
+	if ! $(test_db_exists); then
+		echo "Dycast test database is not initialized yet. Initializing test database..."
+		setup_dycast --monte-carlo-file Dengue_max_100_40000.csv
+	else
+		echo "Dycast test database exists: ${TEST_DBNAME}"
+	fi
+}
+
+
+db_exists() {
+	$(psql -lqt -h ${DBHOST} -U ${DBUSER} | cut -d \| -f 1 | grep -qw ${DBNAME})
+}
+
+
+test_db_exists() {
+	$(psql -lqt -h ${DBHOST} -U ${DBUSER} | cut -d \| -f 1 | grep -qw ${TEST_DBNAME})
 }
 
 
@@ -94,45 +105,6 @@ wait_for_db() {
 }
 
 
-db_exists() {
-	psql -lqt -h ${DBHOST} -U ${DBUSER} | cut -d \| -f 1 | grep -qw ${DBNAME}
-}
-
-
-init_db() {
-	echo "" && echo ""
-	echo "*** Initializing database ***"
-	echo ""
-	echo "*** Any existing Dycast database will be deleted ***"
-	echo "" && echo ""
-
-	echo "5" && sleep 1 && echo "4" && sleep 1 && echo "3" && sleep 1 && echo "2" && sleep 1 &&	echo "1" &&	sleep 1 && echo "0" && echo ""
-
-	set +e
-	echo "Dropping existing database ${DBNAME}"
-	dropdb -h ${DBHOST} -U ${DBUSER} ${DBNAME} # if necessary
-	echo ""
-	set -e
-	
-	echo "Creating database ${DBNAME}"
-	createdb -h ${DBHOST} -U ${DBUSER} --encoding=UTF8 ${DBNAME}
-	echo ""
-
-	### Using the new 9.1+ extension method:
-	echo "Creating extension 'postgis'"
-	psql -h ${DBHOST} -U ${DBUSER} -d ${DBNAME} -c "CREATE EXTENSION postgis;" 
-	echo ""
-
-	echo "Running ${DYCAST_INIT_PATH}/postgres_init.sql"
-	psql -h ${DBHOST} -U ${DBUSER} -d ${DBNAME} -f ${DYCAST_INIT_PATH}/postgres_init.sql
-	echo ""
-
-	echo "Importing Monte Carlo data: ${MONTE_CARLO_FILE}"
-	psql -h ${DBHOST} -U ${DBUSER} -d ${DBNAME} -c "\COPY dist_margs FROM '${MONTE_CARLO_FILE}' delimiter ',';"
-	echo "" 
-}
-
-
 init_directories() {
 	if [[ ! -d ${DYCAST_INBOX_COMPLETED} ]]; then
 		mkdir -p ${DYCAST_INBOX_COMPLETED}
@@ -141,6 +113,29 @@ init_directories() {
 	if [[ ! -d ${DYCAST_OUTBOX}/tmp ]]; then
 		mkdir -p ${DYCAST_OUTBOX}/{tmp,cur,new}
 	fi
+}
+
+
+init_test_variables() {
+	export DBNAME=${TEST_DBNAME}
+}
+
+
+prepare_launch() {
+	if [[ ! ${help} == true ]]; then
+		wait_for_db
+		check_init_db
+		init_directories
+	fi	
+}
+
+
+prepare_launch_test() {
+	if [[ ! ${help} == true ]]; then
+		wait_for_db
+		init_test_variables
+		init_test_db
+	fi	
 }
 
 
@@ -193,6 +188,7 @@ move_case_file() {
 }
 
 
+
 ### Commands
 
 run_dycast() {
@@ -208,6 +204,7 @@ run_dycast() {
 		echo "Finished running the full Dycast procedure"
 	fi
 }
+
 
 load_cases() {
 	local arguments="$@"
@@ -258,13 +255,30 @@ export_risk() {
 }
 
 
+setup_dycast() {
+	local arguments="$@"
+	echo "Initializing database using arguments: ${arguments}..."
+	python ${DYCAST_APP_PATH}/dycast.py setup_dycast ${arguments}
+
+	exit_code=$?
+	if [[ ! "${exit_code}" == "0" ]]; then
+		echo "Command 'setup_dycast' failed, exiting..."
+		exit ${exit_code}
+	else 
+		echo "Done initializing Dycast database"
+	fi
+}
+
+
 run_tests() {
 	local arguments="$@"
-
-	init_dycast
 	
 	echo "Running unit tests..."
-	nosetests -vv --exe tests ${arguments}
+	if [[ -z ${arguments} ]]; then
+		nosetests -vv --exe tests
+	else
+		nosetests -v --exe ${arguments}
+	fi
 
 	exit_code=$?
 	if [[ ! "${exit_code}" == "0" ]]; then
@@ -302,46 +316,36 @@ else
 	help=true
 fi
 
+if [[ ! -z ${arguments} ]]; then
+	echo "Arguments: ${arguments}"
+fi
 
 case ${command} in
 	### First list all commands built into Dycast, not into this Docker entrypoint
 	run_dycast)
-		if [[ ! ${help} == true ]]; then
-			wait_for_db
-			init_dycast
-		fi
+		prepare_launch
 		run_dycast ${arguments}
 	;;
 	load_cases)
-		if [[ ! ${help} == true ]]; then
-			wait_for_db
-		fi
+		prepare_launch
 		load_cases ${arguments}
 	;;
 	generate_risk)
-		if [[ ! ${help} == true ]]; then
-			wait_for_db
-		fi
+		prepare_launch
 		generate_risk ${arguments}
 	;;
 	export_risk)
-		if [[ ! ${help} == true ]]; then
-			wait_for_db
-		fi
+		prepare_launch
 		export_risk ${arguments}
+	;;
+	setup_dycast)
+		prepare_launch
+		setup_dycast ${arguments}
 	;;
 	### From here list only commands that are specific for this Docker entrypoint
 	run_tests)
-		wait_for_db
+		prepare_launch_test
 		run_tests ${arguments}
-	;;
-	setup_dycast)
-		wait_for_db
-		init_dycast
-	;;
-	setup_db)
-		wait_for_db
-		init_db
 	;;	
 	help|-h|--help)
 		display_help

@@ -1,8 +1,12 @@
 import unittest
-import psycopg2
+
+from sqlalchemy.exc import DataError
+
 from application.services import import_service as import_service_module
 from application.services import database_service
 from application.tests import test_helper_functions
+
+from application.models.models import Case
 from application.models.classes import dycast_parameters
 from application.models.enums import enums
 
@@ -15,38 +19,44 @@ class TestImportServiceFunctions(unittest.TestCase):
     def test_load_cases(self):
         import_service = import_service_module.ImportService()
 
-        dycast = dycast_parameters.DycastParameters()
+        dycast_model = dycast_parameters.DycastParameters()
 
-        dycast.srid_of_cases = '3857'
-        dycast.files_to_import = test_helper_functions.get_test_cases_import_files_latlong()
+        dycast_model.srid_of_cases = '3857'
+        dycast_model.files_to_import = test_helper_functions.get_test_cases_import_files_latlong()
 
-        import_service.load_case_files(dycast)
+        import_service.load_case_files(dycast_model)
+
 
     def test_load_case_correct(self):
+        session = database_service.get_sqlalchemy_session()
         import_service = import_service_module.ImportService()
-        cur, conn = database_service.init_db()
 
-        dycast = dycast_parameters.DycastParameters()
-        dycast.srid_of_cases = 3857
+        dycast_model = dycast_parameters.DycastParameters()
+        dycast_model.srid_of_cases = 3857
 
-        line_correct = "1\t03/09/16\t1832445.278\t2118527.399"
+        line_correct = "99999\t03/09/16\t1832445.278\t2118527.399"
         location_type = enums.Location_type.LAT_LONG
 
-        import_service.load_case(dycast, line_correct, location_type, cur, conn)
+        import_service.load_case(session, dycast_model, line_correct, location_type)
+        session.commit()
 
-        with self.assertRaises(psycopg2.DataError):
-            line_incorrect_date = "1\t30/09/16\t1832445.278\t2118527.399"            
-            import_service.load_case(dycast, line_incorrect_date, location_type, cur, conn)
+        query = session.query(Case).filter(Case.id == '99999')
+        count = database_service.get_count_for_query(query)
+
+        self.assertEquals(count, 1)
+        session.delete(query.first())
+        session.commit()
+
 
     def test_load_case_data_error(self):
+        session = database_service.get_sqlalchemy_session()
         import_service = import_service_module.ImportService()
-        cur, conn = database_service.init_db()
 
-        dycast = dycast_parameters.DycastParameters()
-        dycast.srid_of_cases = 3857
+        dycast_model = dycast_parameters.DycastParameters()
+        dycast_model.srid_of_cases = 3857
 
         location_type = enums.Location_type.LAT_LONG
+        line_incorrect_date = "9998\t30/09/16\t1832445.278\t2118527.399"
 
-        with self.assertRaises(psycopg2.DataError) as context:
-            line_incorrect_date = "1\t30/09/16\t1832445.278\t2118527.399"            
-            import_service.load_case(dycast, line_incorrect_date, location_type, cur, conn)
+        with self.assertRaises(DataError):
+            import_service.load_case(session, dycast_model, line_incorrect_date, location_type)

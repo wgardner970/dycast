@@ -1,14 +1,30 @@
+import logging
 import shapely.geometry
 import pyproj
-import logging
+from geoalchemy2.functions import ST_Transform
+from geoalchemy2.elements import WKTElement
 
 from application.services import config_service
+
 
 CONFIG = config_service.get_config()
 
 
-# Returns a raster grid with points in the coordinate system specified in global setting 'system_coordinate_system'
+
+def get_point_from_lat_long(lat, lon, projection):
+    return WKTElement("POINT({0} {1})".format(lon, lat), srid=projection)
+
+
+def transform_point(point, target_projection):
+    return ST_Transform(point, int(target_projection))
+
+
 def generate_grid(dycast_parameters):
+    '''
+    Returns a raster grid with points in the coordinate system as
+    specified in global setting 'system_coordinate_system'
+    '''
+
     srid_of_extent = dycast_parameters.srid_of_extent
     extent_min_x = dycast_parameters.extent_min_x
     extent_min_y = dycast_parameters.extent_min_y

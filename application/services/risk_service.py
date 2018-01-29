@@ -1,13 +1,17 @@
 import datetime
 import time
 import logging
-import sys
-import psycopg2
 
-from application.services import grid_service
+from sqlalchemy import func
+from sqlalchemy.exc import SQLAlchemyError, IntegrityError
+from sqlalchemy.sql.expression import literal
+
 from application.services import config_service
 from application.services import logging_service
 from application.services import database_service
+from application.services import geography_service
+
+from application.models.models import Case, DistributionMargin, Risk
 
 
 CONFIG = config_service.get_config()
@@ -15,32 +19,28 @@ CONFIG = config_service.get_config()
 
 class RiskService(object):
 
-    def __init__(self, **kwargs):
+    def __init__(self, dycast_parameters):
         self.system_coordinate_system = CONFIG.get(
             "dycast", "system_coordinate_system")
-        self.case_table_name = CONFIG.get(
-            "database", "dead_birds_table_projected")
-        self.tmp_daily_case_table = CONFIG.get(
-            "database", "tmp_daily_case_table")
-        self.tmp_cluster_per_point_selection_table = CONFIG.get(
-            "database", "tmp_cluster_per_point_selection_table")
+        self.dycast_parameters = dycast_parameters
 
-    def generate_risk(self, dycast_parameters):
 
-        logging_service.display_current_parameter_set(dycast_parameters)
+    def generate_risk(self):
 
-        case_threshold = dycast_parameters.case_threshold
-        cur, conn = database_service.init_db()
+        session = database_service.get_sqlalchemy_session()
+        logging_service.display_current_parameter_set(self.dycast_parameters)
 
-        gridpoints = grid_service.generate_grid(dycast_parameters)
+        case_threshold = self.dycast_parameters.case_threshold
 
-        day = dycast_parameters.startdate
+        gridpoints = geography_service.generate_grid(self.dycast_parameters)
+
+        day = self.dycast_parameters.startdate
         delta = datetime.timedelta(days=1)
 
-        while day <= dycast_parameters.enddate:
+        while day <= self.dycast_parameters.enddate:
 
-            self.setup_tmp_daily_case_table_for_date(dycast_parameters, day, cur, conn)
-            daily_case_count = self.get_daily_case_count(day, cur, conn)
+            daily_cases_query = self.get_daily_cases_query(session, day)
+            daily_case_count = database_service.get_count_for_query(daily_cases_query)
 
             if daily_case_count >= case_threshold:
                 start_time = time.time()
@@ -48,20 +48,25 @@ class RiskService(object):
                 points_above_threshold = 0
 
                 for point in gridpoints:
-                    vector_count = self.get_vector_count_for_point(dycast_parameters, point, cur, conn)
+                    cases_in_cluster_query = self.get_cases_in_cluster_query(daily_cases_query, point)
+                    vector_count = database_service.get_count_for_query(cases_in_cluster_query)
                     if vector_count >= case_threshold:
                         points_above_threshold += 1
-                        self.insert_cases_in_cluster_table(
-                            dycast_parameters, point, cur, conn)
-                        results = self.cst_cs_ct_wrapper(
-                            dycast_parameters, cur, conn)
-                        close_pairs = results[0][0]
-                        close_space = results[1][0] - close_pairs
-                        close_time = results[2][0] - close_pairs
-                        result2 = self.nmcm_wrapper(
-                            vector_count, close_pairs, close_space, close_time, cur, conn)
-                        self.insert_result(day, point.x, point.y, vector_count, close_pairs,
-                                           close_time, close_space, result2[0][0], cur, conn)
+                        risk = Risk(risk_date=day,
+                                    number_of_cases=vector_count,
+                                    lat=point.x,
+                                    long=point.y)
+
+                        risk.close_pairs = self.get_close_space_and_time(cases_in_cluster_query)
+                        risk.close_space = self.get_close_space_only(cases_in_cluster_query) - risk.close_pairs
+                        risk.close_time = self.get_close_time_only(cases_in_cluster_query) - risk.close_pairs
+
+                        risk.cumulative_probability = self.get_cumulative_probability(session,
+                                                                                      risk.number_of_cases,
+                                                                                      risk.close_pairs,
+                                                                                      risk.close_space,
+                                                                                      risk.close_time)
+                        self.insert_risk(session, risk)
 
                 logging.info(
                     "Finished daily_risk for %s: done %s points", day, len(gridpoints))
@@ -75,101 +80,141 @@ class RiskService(object):
 
             day += delta
 
-    def setup_tmp_daily_case_table_for_date(self, dycast_parameters, riskdate, cur, conn):
-        days_prev = dycast_parameters.temporal_domain
+        try:
+            session.commit()
+        except SQLAlchemyError, e:
+            session.rollback()
+            logging.exception("There was a problem committing the risk data session")
+            logging.exception(e)
+            raise
+        finally:
+            session.close()
+
+
+    def insert_risk(self, session, risk):
+        try:
+            session.add(risk)
+            session.commit()
+        except IntegrityError, e:
+            logging.warning("Risk already exists in database for this date '%s' and location '%s - %s', skipping...",
+                            risk.risk_date, risk.lat, risk.long)
+            session.rollback()
+        except SQLAlchemyError, e:
+            logging.exception("There was a problem inserting risk")
+            logging.exception(e)
+            session.rollback()
+            raise
+
+
+    def get_daily_cases_query(self, session, riskdate):
+        days_prev = self.dycast_parameters.temporal_domain
         enddate = riskdate
         startdate = riskdate - datetime.timedelta(days=(days_prev))
-        querystring = "TRUNCATE " + self.tmp_daily_case_table + "; INSERT INTO " + self.tmp_daily_case_table + \
-            " SELECT * from " + self.case_table_name + \
-            " where report_date >= %s and report_date <= %s"
-        try:
-            cur.execute(querystring, (startdate, enddate))
-        except Exception:
-            conn.rollback()
-            logging.exception(
-                "Something went wrong when setting up tmp_daily_case_selection table: " + str(riskdate))
-            raise
-        conn.commit()
 
-    def get_daily_case_count(self,  riskdate, cur, conn):
-        query = "SELECT COUNT(*) FROM {0}".format(self.tmp_daily_case_table)
-        try:
-            cur.execute(query)
-        except Exception:
-            conn.rollback()
-            logging.exception(
-                "Something went wrong when getting count from tmp_daily_case_selection table: " + str(riskdate))
-            raise
-        result_count = cur.fetchone()
-        return result_count[0]
+        return session.query(Case).filter(
+            Case.report_date >= startdate,
+            Case.report_date <= enddate
+        )
 
-    def get_vector_count_for_point(self, dycast_parameters, point, cur, conn):
-        querystring = "SELECT count(*) from \"" + self.tmp_daily_case_table + \
-            "\" a where st_distance(a.location,ST_GeomFromText('POINT(%s %s)',%s)) < %s"
-        try:
-            cur.execute(querystring, (point.x, point.y,
-                                      self.system_coordinate_system, dycast_parameters.spatial_domain))
-        except Exception:
-            conn.rollback()
-            logging.exception("Can't select vector count, exiting...")
-            sys.exit()
-        new_row = cur.fetchone()
-        return new_row[0]
 
-    def insert_cases_in_cluster_table(self, dycast_parameters, point, cur, conn):
-        querystring = "TRUNCATE " + self.tmp_cluster_per_point_selection_table + "; INSERT INTO " + self.tmp_cluster_per_point_selection_table + \
-            " SELECT * from " + self.tmp_daily_case_table + \
-            " a where st_distance(a.location,ST_GeomFromText('POINT(%s %s)',%s)) < %s"
-        try:
-            cur.execute(querystring, (point.x, point.y,
-                                      self.system_coordinate_system, dycast_parameters.spatial_domain))
-        except Exception:
-            conn.rollback()
-            logging.exception("Something went wrong at point: " + str(point))
-            logging.info("Rolling back and exiting...")
-            sys.exit(1)
-        conn.commit()
+    def get_cases_in_cluster_query(self, daily_cases_query, point):
+        wkt_point = geography_service.get_point_from_lat_long(point.y, point.x, self.system_coordinate_system)
 
-    def cst_cs_ct_wrapper(self, dycast_parameters, cur, conn):
-        close_in_space = dycast_parameters.close_in_space
-        close_in_time = dycast_parameters.close_in_time
+        return daily_cases_query.filter(func.ST_DWithin(Case.location, wkt_point, self.dycast_parameters.spatial_domain))
 
-        querystring = "SELECT * FROM cst_cs_ct(%s, %s)"
-        try:
-            cur.execute(querystring, (close_in_space, close_in_time))
-        except Exception:
-            conn.rollback()
-            logging.exception("Can't select cst_cs_ct function")
-            logging.info("Rolling back and exiting...")
-            sys.exit()
-        return cur.fetchall()
 
-    def nmcm_wrapper(self, num_birds, close_pairs, close_space, close_time, cur, conn):
-        querystring = "SELECT * FROM nmcm(%s, %s, %s, %s)"
-        try:
-            cur.execute(querystring, (num_birds, close_pairs,
-                                      close_space, close_time))
-        except Exception:
-            conn.rollback()
-            logging.exception("Can't select nmcm function")
-            logging.info("Rolling back and exiting...")
-            sys.exit()
-        return cur.fetchall()
+    def get_close_space_and_time(self, cases_in_cluster_query):
+        subquery = cases_in_cluster_query.subquery()
+        query = cases_in_cluster_query.join(subquery, literal(True)) \
+            .filter(func.ST_DWithin(Case.location, subquery.c.location, self.dycast_parameters.close_in_space),
+                    func.abs(Case.report_date - subquery.c.report_date) <= self.dycast_parameters.close_in_time,
+                    Case.id < subquery.c.id)
 
-    def insert_result(self, riskdate, latitude, longitude, number_of_cases, close_pairs, close_time, close_space, nmcm, cur, conn):
-        querystring = "INSERT INTO risk (risk_date, lat, long, num_birds, close_pairs, close_space, close_time, nmcm) VALUES (%s, %s, %s, %s, %s, %s, %s, %s)"
-        try:
-            # Be careful of the ordering of space and time in the db vs the txt file
-            cur.execute(querystring, (riskdate, latitude, longitude,
-                                      number_of_cases, close_pairs, close_space, close_time, nmcm))
-        except psycopg2.IntegrityError:
-            conn.rollback()
-            logging.warning(
-                "Risk already exists in database for this date '%s' and location '%s - %s', skipping...", riskdate, latitude, longitude)
-        except Exception:
-            conn.rollback()
-            logging.exception("Couldn't insert risk")
-            logging.info("Rolling back and exiting...")
-            sys.exit(1)
+        return database_service.get_count_for_query(query)
+
+
+    def get_close_space_only(self, cases_in_cluster_query):
+        subquery = cases_in_cluster_query.subquery()
+        query = cases_in_cluster_query.join(subquery, literal(True)) \
+            .filter(func.ST_DWithin(Case.location, subquery.c.location, self.dycast_parameters.close_in_space),
+                    Case.id < subquery.c.id)
+
+        return database_service.get_count_for_query(query)
+
+
+    def get_close_time_only(self, cases_in_cluster_query):
+        subquery = cases_in_cluster_query.subquery()
+        query = cases_in_cluster_query.join(subquery, literal(True)) \
+            .filter(func.abs(Case.report_date - subquery.c.report_date) <= self.dycast_parameters.close_in_time,
+                    Case.id < subquery.c.id)
+        return database_service.get_count_for_query(query)
+
+
+    def get_cumulative_probability(self, session, number_of_cases, close_in_space_and_time, close_in_space, close_in_time):
+        exact_match = self.get_exact_match_cumulative_probability(session,
+                                                                  number_of_cases,
+                                                                  close_in_space_and_time,
+                                                                  close_in_space,
+                                                                  close_in_time)
+
+        if exact_match:
+            return exact_match
         else:
-            conn.commit()
+            nearest_close_in_time = self.get_nearest_close_in_time_distribution_margin(session,
+                                                                                       number_of_cases,
+                                                                                       close_in_space_and_time,
+                                                                                       close_in_time)
+            if nearest_close_in_time:
+                cumulative_probability = self.get_cumulative_probability_by_nearest_close_in_time(session,
+                                                                                                  number_of_cases,
+                                                                                                  close_in_space_and_time,
+                                                                                                  nearest_close_in_time,
+                                                                                                  close_in_space)
+                return cumulative_probability or 0.001
+            else:
+                return 0.0001
+
+
+    def get_exact_match_cumulative_probability(self, session,
+                                               number_of_cases,
+                                               close_in_space_and_time,
+                                               close_in_space,
+                                               close_in_time):
+
+        return session.query(DistributionMargin.cumulative_probability) \
+            .filter(
+                DistributionMargin.number_of_cases == number_of_cases,
+                DistributionMargin.close_in_space_and_time == close_in_space_and_time,
+                DistributionMargin.close_space == close_in_space,
+                DistributionMargin.close_time == close_in_time) \
+            .scalar()
+
+
+    def get_nearest_close_in_time_distribution_margin(self, session,
+                                                      number_of_cases,
+                                                      close_in_space_and_time,
+                                                      close_in_time):
+
+        return session.query(DistributionMargin.close_time) \
+            .filter(
+                DistributionMargin.number_of_cases == number_of_cases,
+                DistributionMargin.close_in_space_and_time >= close_in_space_and_time,
+                DistributionMargin.close_time >= close_in_time) \
+            .order_by(DistributionMargin.close_time) \
+            .first()
+
+
+    def get_cumulative_probability_by_nearest_close_in_time(self, session,
+                                                            number_of_cases,
+                                                            close_in_space_and_time,
+                                                            nearest_close_in_time,
+                                                            close_in_space):
+
+        return session.query(DistributionMargin.cumulative_probability) \
+            .filter(
+                DistributionMargin.number_of_cases == number_of_cases,
+                DistributionMargin.close_in_space_and_time >= close_in_space_and_time,
+                DistributionMargin.close_time == nearest_close_in_time,
+                DistributionMargin.close_space >= close_in_space) \
+            .order_by(DistributionMargin.close_space) \
+            .first()
