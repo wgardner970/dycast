@@ -2,9 +2,10 @@ import datetime
 import time
 import logging
 
-from sqlalchemy import func
+from sqlalchemy import func, select
 from sqlalchemy.exc import SQLAlchemyError, IntegrityError
 from sqlalchemy.sql.expression import literal
+from sqlalchemy.dialects.postgresql import array
 
 from application.services import config_service
 from application.services import logging_service
@@ -104,6 +105,28 @@ class RiskService(object):
             logging.exception(e)
             session.rollback()
             raise
+
+
+    def get_clusters_per_point(self, session, gridpoints, riskdate):
+        days_prev = self.dycast_parameters.temporal_domain
+        enddate = riskdate
+        startdate = riskdate - datetime.timedelta(days=(days_prev))
+
+        points_query = select([
+            func.ST_DumpPoints(
+                func.ST_Collect(array(gridpoints))) \
+            .label('point')]) \
+            .alias('point_query')
+
+        return session.query(func.array_agg(Case.id).label('case_id_array'),
+                             func.ST_AsText(points_query.c.point.geom).label('single_point')) \
+            .join(points_query, literal(True)) \
+            .filter(func.ST_DWithin(Case.location, points_query.c.point.geom,
+                                    self.dycast_parameters.spatial_domain),
+                    Case.report_date >= startdate,
+                    Case.report_date <= enddate) \
+            .group_by(points_query.c.point.geom) \
+            .all()
 
 
     def get_daily_cases_query(self, session, riskdate):

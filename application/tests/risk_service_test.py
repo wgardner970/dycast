@@ -1,5 +1,6 @@
 import unittest
 import datetime
+
 from application.services import import_service as import_service_module
 from application.services import risk_service as risk_service_module
 from application.services import geography_service
@@ -12,6 +13,22 @@ test_helper_functions.init_test_environment()
 
 
 class TestRiskServiceFunctions(unittest.TestCase):
+
+    def test_get_clusters_per_point(self):
+
+        dycast_parameters = test_helper_functions.get_dycast_parameters()
+        risk_service = risk_service_module.RiskService(dycast_parameters)
+
+        session = database_service.get_sqlalchemy_session()
+
+        riskdate = datetime.date(int(2016), int(3), int(30))
+        gridpoints = geography_service.generate_grid(dycast_parameters)
+
+        clusters_per_point = risk_service.get_clusters_per_point(session, gridpoints, riskdate)
+
+        for point in clusters_per_point:
+            self.assertGreater(len(point), 0)
+
 
     def test_get_daily_cases_query(self):
 
