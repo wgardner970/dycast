@@ -113,13 +113,13 @@ class RiskService(object):
         startdate = riskdate - datetime.timedelta(days=(days_prev))
 
         points_query = select([
-            func.ST_DumpPoints(
+                func.ST_DumpPoints(
                 func.ST_Collect(array(gridpoints))) \
             .label('point')]) \
             .alias('point_query')
 
         return session.query(func.array_agg(Case.id).label('case_id_array'),
-                             func.ST_AsText(points_query.c.point.geom).label('single_point')) \
+                             points_query.c.point.geom.label('point')) \
             .join(points_query, literal(True)) \
             .filter(func.ST_DWithin(Case.location, points_query.c.point.geom,
                                     self.dycast_parameters.spatial_domain),

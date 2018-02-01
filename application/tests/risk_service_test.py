@@ -26,9 +26,8 @@ class TestRiskServiceFunctions(unittest.TestCase):
 
         clusters_per_point = risk_service.get_clusters_per_point(session, gridpoints, riskdate)
 
-        for point in clusters_per_point:
-            self.assertGreater(len(point), 0)
-
+        for cluster in clusters_per_point:
+            self.assertGreater(len(cluster), 0)
 
     def test_get_daily_cases_query(self):
 
