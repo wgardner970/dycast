@@ -29,7 +29,7 @@ def init_test_environment():
     insert_test_cases()
 
 @nottest
-def get_dycast_parameters():
+def get_dycast_parameters(large_dataset=False):
     dycast = dycast_parameters.DycastParameters()
 
     dycast.srid_of_cases = '3857'
@@ -43,10 +43,17 @@ def get_dycast_parameters():
 
     dycast.startdate = conversion_service.get_date_object_from_string('2016-03-30')
     dycast.enddate = conversion_service.get_date_object_from_string('2016-03-31')
-    dycast.extent_min_x = 1820000
-    dycast.extent_min_y = 2121000
-    dycast.extent_max_x = 1820800
-    dycast.extent_max_y = 2120300
+    if large_dataset:
+        dycast.extent_min_x = 1825450
+        dycast.extent_min_y = 2130000
+        dycast.extent_max_x = 1840000
+        dycast.extent_max_y = 2120008
+    else:
+        dycast.extent_min_x = 1820000
+        dycast.extent_min_y = 2121000
+        dycast.extent_max_x = 1820800
+        dycast.extent_max_y = 2120300
+    
     dycast.srid_of_extent = 3857
 
     return dycast  
