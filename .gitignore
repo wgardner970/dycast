@@ -5,3 +5,4 @@ outbox/
 data/
 application/dycast_log.txt
 application/output/
+.noseids
