@@ -4,7 +4,16 @@ import logging
 import boto3
 import botocore
 import rfc3986
+from rfc3986.exceptions import MissingComponentError, UnpermittedComponentError, InvalidComponentsError
 import os
+
+
+VALIDATOR = rfc3986.validators.Validator().allow_schemes(
+        'http',
+        'https',
+        's3',
+        'file'
+    )
 
 
 class TableContent(object):
@@ -158,7 +167,31 @@ def write_local_file(body, filepath):
 # Misc
 
 def get_file_uri(url):
-    return rfc3986.urlparse(url)
+    url = rfc3986.urlparse(url)
+    try:
+        url = validate_uri(url)
+    except (MissingComponentError, UnpermittedComponentError, InvalidComponentsError) as e:
+        logging.error("File uri '{0}' not valid".format(url))
+        raise e
+    return url
+
+
+def validate_uri(url):
+    try:
+        VALIDATOR.validate(url)
+        return url
+    except:
+        # Fix for Windows paths receiving a scheme of 'c' from rfc3986.urlparse()
+        if url.scheme == 'c':
+            try:
+                url = url.copy_with(scheme='file')
+                VALIDATOR.validate(url)
+                return url
+            except:
+                raise
+        else:
+            raise
+
 
 def get_path_from_s3_uri(s3_uri):
     return s3_uri.path[1:]      # uri.path includes a leading "/"
