@@ -16,7 +16,7 @@ from application.models.models import Case
 
 debug_service.enable_debugger()
 
-current_dir = os.path.basename(os.path.dirname(os.path.realpath(__file__)))
+current_dir = os.path.dirname(os.path.realpath(__file__))
 
 
 @nottest
