@@ -211,8 +211,7 @@ def import_cases(**kwargs):
     dycast = dycast_parameters.DycastParameters()
 
     dycast.srid_of_cases = kwargs.get('srid_cases')
-    dycast.dead_birds_dir = kwargs.get(
-        'import_directory', CONFIG.get("system", "import_directory"))
+    dycast.dead_birds_dir = kwargs.get('import_directory', config_service.get_import_directory())
     dycast.files_to_import = kwargs.get('files')
 
     dycast.import_cases()
@@ -245,7 +244,7 @@ def export_risk(**kwargs):
 
     dycast.export_prefix = kwargs.get('export_prefix')
     dycast.export_format = kwargs.get('export_format')
-    dycast.export_directory = kwargs.get('export_directory')
+    dycast.export_directory = kwargs.get('export_directory', config_service.get_export_directory())
     dycast.startdate = kwargs.get('startdate', datetime.date.today())
     dycast.enddate = kwargs.get('enddate', dycast.startdate)
 

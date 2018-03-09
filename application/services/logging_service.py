@@ -1,3 +1,4 @@
+import os
 import logging
 import ast
 from application.services import config_service
@@ -58,4 +59,6 @@ def get_log_level():
         return logging.INFO
 
 def get_log_file_path():
-    return CONFIG.get("system", "logfile")
+    log_dir = CONFIG.get("system", "logfile")
+    root_dir = config_service.get_root_directory()
+    return os.path.join(root_dir, log_dir)
