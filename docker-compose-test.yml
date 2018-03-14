@@ -8,6 +8,7 @@ services:
       environment:
         - MONTE_CARLO_FILE=/dycast/application/init/Dengue_max_75.csv
         - DEBUG=True
+        - REMOTE_DEBUG=False
         - DBPASSWORD=postgres
         - DBNAME=dycast
         - DBHOST=dycast-db
