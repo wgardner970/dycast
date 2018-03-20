@@ -1,8 +1,10 @@
 import logging
 import shapely.geometry
 import pyproj
+
 from geoalchemy2.functions import ST_Transform
 from geoalchemy2.elements import WKTElement
+from geoalchemy2.shape import to_shape
 
 from application.services import config_service
 
@@ -12,7 +14,19 @@ CONFIG = config_service.get_config()
 
 
 def get_point_from_lat_long(lat, lon, projection):
-    return WKTElement("POINT({0} {1})".format(lon, lat), srid=projection)
+    return WKTElement("POINT({0} {1})".format(lat, lon), srid=projection)
+
+
+def get_shape_from_literal_wkt(wkt):
+    return shapely.wkt.loads(wkt)
+
+
+def get_wktelement_from_wkt(wkt):
+    return WKTElement(wkt, srid=CONFIG.get("dycast", "system_coordinate_system"))
+
+
+def get_shape_from_sqlalch_element(element):
+    return to_shape(element)
 
 
 def transform_point(point, target_projection):
@@ -32,7 +46,7 @@ def generate_grid(dycast_parameters):
     extent_max_y = dycast_parameters.extent_max_y
 
     system_coordinate_system = CONFIG.get("dycast", "system_coordinate_system")
-    
+
     # Set up projections
     projection_user_defined = pyproj.Proj(init="epsg:%s" % srid_of_extent)
     projection_metric = pyproj.Proj(init='epsg:3857')  # metric; same as EPSG:900913
