@@ -79,3 +79,10 @@ def generate_grid(dycast_parameters):
     logging.info("Done generating grid. Result: %s points", len(gridpoints))
 
     return gridpoints
+
+
+def is_within_distance(point_1, point_2, distance):
+    if point_1.distance(point_2) < distance:
+        return True
+    else:
+        return False
