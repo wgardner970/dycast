@@ -193,7 +193,18 @@ class RiskService(object):
         return database_service.get_count_for_query(query)
 
 
-    def get_close_space_only(self, cases_in_cluster_query):
+    def get_close_space_only(self, cluster_per_point):
+        for cluster in cluster_per_point:
+            cluster.close_in_space = 0
+            for case in cluster.cases:
+                for nearby_case in cluster.cases:
+                    if case.id > nearby_case.id:
+                        if geography_service.is_within_distance(case.location,
+                                                                nearby_case.location,
+                                                                self.dycast_parameters.close_in_space):
+                            cluster.close_in_space += 1
+
+
         subquery = cases_in_cluster_query.subquery()
         query = cases_in_cluster_query.join(subquery, literal(True)) \
             .filter(func.ST_DWithin(Case.location, subquery.c.location, self.dycast_parameters.close_in_space),
