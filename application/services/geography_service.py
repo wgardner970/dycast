@@ -70,8 +70,8 @@ def generate_grid(dycast_parameters):
     while x < end[0]:
         y = start[1]
         while y > end[1]:
-            transformed_coordinate = pyproj.transform(projection_metric, projection_system_default, x, y)
-            point = shapely.geometry.Point(transformed_coordinate)
+            new_x, new_y = pyproj.transform(projection_metric, projection_system_default, x, y)
+            point = get_point_from_lat_long(new_x, new_y, system_coordinate_system)
             gridpoints.append(point)
             y -= stepsize
         x += stepsize
