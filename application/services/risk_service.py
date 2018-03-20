@@ -13,6 +13,7 @@ from application.services import database_service
 from application.services import geography_service
 
 from application.models.models import Case, DistributionMargin, Risk
+from application.models.classes.cluster import Cluster
 
 
 CONFIG = config_service.get_config()
@@ -126,6 +127,34 @@ class RiskService(object):
                                 func.ST_DWithin(Case.location, points_query.c.point.geom,
                                     self.dycast_parameters.spatial_domain)) \
                         .group_by(points_query.c.point.geom)
+
+
+    def get_cluster_per_point_from_query(self, cluster_per_point_query):
+        """
+        Because get_clusters_per_point_query() aggregates cases by point in a json format,
+        here we create a proper collection of classes with it, in order to speed up further
+        iterations over these clusters
+        :param cluster_per_point_query:
+        :return: array of Cluster objects
+        """
+        rows = cluster_per_point_query.all()
+        cluster_per_point = []
+
+        for row in rows:
+            cluster = Cluster()
+            cluster.point = geography_service.get_shape_from_sqlalch_element(row.point)
+            cluster.cases = []
+
+            for case_json in row.case_array:
+                for case_id, case_location in case_json.iteritems():
+                    case = Case()
+                    case.id = case_id
+                    case.location = geography_service.get_shape_from_literal_wkt(case_location)
+                    cluster.cases.append(case)
+
+            cluster_per_point.append(cluster)
+
+        return cluster_per_point
 
 
     def get_points_query_from_grid(self, gridpoints):
