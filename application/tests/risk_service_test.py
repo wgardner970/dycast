@@ -14,20 +14,32 @@ test_helper_functions.init_test_environment()
 
 class TestRiskServiceFunctions(unittest.TestCase):
 
-    def test_get_clusters_per_point(self):
+    def test_get_clusters_per_point_query(self):
 
-        dycast_parameters = test_helper_functions.get_dycast_parameters()
+        dycast_parameters = test_helper_functions.get_dycast_parameters(large_dataset=False)
         risk_service = risk_service_module.RiskService(dycast_parameters)
 
         session = database_service.get_sqlalchemy_session()
 
-        riskdate = datetime.date(int(2016), int(3), int(30))
+        riskdate = datetime.date(int(2016), int(3), int(25))
         gridpoints = geography_service.generate_grid(dycast_parameters)
 
-        clusters_per_point = risk_service.get_clusters_per_point(session, gridpoints, riskdate)
+        clusters_per_point = risk_service.get_clusters_per_point_query(session, gridpoints, riskdate).all()
 
+        daily_cases_query = risk_service.get_daily_cases_query(session, riskdate)
+        
         for cluster in clusters_per_point:
-            self.assertGreater(len(cluster), 0)
+            point = geography_service.get_shape_from_wkb(cluster.point)
+            point_wkt_element = geography_service.get_wktelement_from_wkt(point.to_wkt())
+
+            cases_in_cluster_query = risk_service.get_cases_in_cluster_query(daily_cases_query, point_wkt_element)       
+
+            vector_count_new = len(cluster.case_array)
+            vector_count_old = database_service.get_count_for_query(cases_in_cluster_query)
+
+            self.assertEqual(vector_count_new, vector_count_old)
+
+
 
     def test_get_daily_cases_query(self):
 

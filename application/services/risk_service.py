@@ -107,26 +107,34 @@ class RiskService(object):
             raise
 
 
-    def get_clusters_per_point(self, session, gridpoints, riskdate):
+    def get_clusters_per_point_query(self, session, gridpoints, riskdate):
         days_prev = self.dycast_parameters.temporal_domain
         enddate = riskdate
         startdate = riskdate - datetime.timedelta(days=(days_prev))
 
-        points_query = select([
+        points_query = self.get_points_query_from_grid(gridpoints)
+
+        return session.query(func.array_agg(
+                                func.json_build_object(
+                                    Case.id,
+                                    func.ST_AsText(Case.location)
+                                )).label('case_array'),
+                             points_query.c.point.geom.label('point')) \
+                        .join(points_query, literal(True)) \
+                        .filter(Case.report_date >= startdate,
+                                Case.report_date <= enddate,
+                                func.ST_DWithin(Case.location, points_query.c.point.geom,
+                                    self.dycast_parameters.spatial_domain)) \
+                        .group_by(points_query.c.point.geom)
+
+
+    def get_points_query_from_grid(self, gridpoints):
+        return select([
                 func.ST_DumpPoints(
                 func.ST_Collect(array(gridpoints))) \
             .label('point')]) \
             .alias('point_query')
 
-        return session.query(func.array_agg(Case.id).label('case_id_array'),
-                             points_query.c.point.geom.label('point')) \
-            .join(points_query, literal(True)) \
-            .filter(func.ST_DWithin(Case.location, points_query.c.point.geom,
-                                    self.dycast_parameters.spatial_domain),
-                    Case.report_date >= startdate,
-                    Case.report_date <= enddate) \
-            .group_by(points_query.c.point.geom) \
-            .all()
 
 
     def get_daily_cases_query(self, session, riskdate):
