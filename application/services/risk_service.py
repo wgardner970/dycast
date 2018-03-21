@@ -165,34 +165,6 @@ class RiskService(object):
             .alias('point_query')
 
 
-
-    def get_daily_cases_query(self, session, riskdate):
-        days_prev = self.dycast_parameters.temporal_domain
-        enddate = riskdate
-        startdate = riskdate - datetime.timedelta(days=(days_prev))
-
-        return session.query(Case).filter(
-            Case.report_date >= startdate,
-            Case.report_date <= enddate
-        )
-
-
-    def get_cases_in_cluster_query(self, daily_cases_query, point):
-        wkt_point = geography_service.get_point_from_lat_long(point.y, point.x, self.system_coordinate_system)
-
-        return daily_cases_query.filter(func.ST_DWithin(Case.location, wkt_point, self.dycast_parameters.spatial_domain))
-
-
-    def get_close_space_and_time(self, cases_in_cluster_query):
-        subquery = cases_in_cluster_query.subquery()
-        query = cases_in_cluster_query.join(subquery, literal(True)) \
-            .filter(func.ST_DWithin(Case.location, subquery.c.location, self.dycast_parameters.close_in_space),
-                    func.abs(Case.report_date - subquery.c.report_date) <= self.dycast_parameters.close_in_time,
-                    Case.id < subquery.c.id)
-
-        return database_service.get_count_for_query(query)
-
-
     def get_close_space_only(self, cluster_per_point):
         for cluster in cluster_per_point:
             cluster.close_in_space = 0
@@ -210,14 +182,6 @@ class RiskService(object):
             .filter(func.ST_DWithin(Case.location, subquery.c.location, self.dycast_parameters.close_in_space),
                     Case.id < subquery.c.id)
 
-        return database_service.get_count_for_query(query)
-
-
-    def get_close_time_only(self, cases_in_cluster_query):
-        subquery = cases_in_cluster_query.subquery()
-        query = cases_in_cluster_query.join(subquery, literal(True)) \
-            .filter(func.abs(Case.report_date - subquery.c.report_date) <= self.dycast_parameters.close_in_time,
-                    Case.id < subquery.c.id)
         return database_service.get_count_for_query(query)
 
 
