@@ -182,7 +182,7 @@ def validate_uri(url):
         return url
     except:
         # Fix for Windows paths receiving a scheme of 'c' from rfc3986.urlparse()
-        if url.scheme == 'c':
+        if url.scheme.lower() == 'c':
             try:
                 url = url.copy_with(scheme='file')
                 VALIDATOR.validate(url)
