@@ -38,45 +38,34 @@ class RiskService(object):
         delta = datetime.timedelta(days=1)
 
         while day <= self.dycast_parameters.enddate:
+            start_time = time.time()
+            logging.info("Starting daily_risk for %s", day)
+            points_above_threshold = 0
 
-            daily_cases_query = self.get_daily_cases_query(session, day)
-            daily_case_count = database_service.get_count_for_query(daily_cases_query)
+            clusters_per_point_query = self.get_clusters_per_point_query(session, gridpoints, day)
+            clusters_per_point = self.get_clusters_per_point_from_query(clusters_per_point_query)
 
-            if daily_case_count >= case_threshold:
-                start_time = time.time()
-                logging.info("Starting daily_risk for %s", day)
-                points_above_threshold = 0
 
-                for point in gridpoints:
-                    cases_in_cluster_query = self.get_cases_in_cluster_query(daily_cases_query, point)
-                    vector_count = database_service.get_count_for_query(cases_in_cluster_query)
-                    if vector_count >= case_threshold:
-                        points_above_threshold += 1
-                        risk = Risk(risk_date=day,
-                                    number_of_cases=vector_count,
-                                    lat=point.x,
-                                    long=point.y)
+            for cluster in clusters_per_point:
+                vector_count = len(cluster.cases)
+                if vector_count >= case_threshold:
+                    points_above_threshold += 1
+                    risk = Risk(risk_date=day,
+                                number_of_cases=vector_count,
+                                lat=cluster.point.y,
+                                long=cluster.point.x)
 
-                        risk.close_pairs = self.get_close_space_and_time(cases_in_cluster_query)
-                        risk.close_space = self.get_close_space_only(cases_in_cluster_query) - risk.close_pairs
-                        risk.close_time = self.get_close_time_only(cases_in_cluster_query) - risk.close_pairs
+                    self.insert_risk(session, risk)
 
-                        risk.cumulative_probability = self.get_cumulative_probability(session,
-                                                                                      risk.number_of_cases,
-                                                                                      risk.close_pairs,
-                                                                                      risk.close_space,
-                                                                                      risk.close_time)
-                        self.insert_risk(session, risk)
+            session.commit()
 
-                logging.info(
-                    "Finished daily_risk for %s: done %s points", day, len(gridpoints))
-                logging.info("Total points above threshold of %s: %s",
-                             case_threshold, points_above_threshold)
-                logging.info("Time elapsed: %.0f seconds",
-                             time.time() - start_time)
-            else:
-                logging.info("Amount of cases for %s lower than threshold %s: %s, skipping.",
-                             day, case_threshold, daily_case_count)
+
+            logging.info(
+                "Finished daily_risk for %s: done %s points", day, len(gridpoints))
+            logging.info("Total points above threshold of %s: %s",
+                            case_threshold, points_above_threshold)
+            logging.info("Time elapsed: %.0f seconds",
+                            time.time() - start_time)
 
             day += delta
 
@@ -172,14 +161,6 @@ class RiskService(object):
                                                                 nearby_case.location,
                                                                 self.dycast_parameters.close_in_space):
                             cluster.close_in_space += 1
-
-
-        subquery = cases_in_cluster_query.subquery()
-        query = cases_in_cluster_query.join(subquery, literal(True)) \
-            .filter(func.ST_DWithin(Case.location, subquery.c.location, self.dycast_parameters.close_in_space),
-                    Case.id < subquery.c.id)
-
-        return database_service.get_count_for_query(query)
 
 
     def get_cumulative_probability(self, session, number_of_cases, close_in_space_and_time, close_in_space, close_in_time):
