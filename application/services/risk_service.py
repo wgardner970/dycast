@@ -127,7 +127,7 @@ class RiskService(object):
                         .group_by(points_query.c.point.geom)
 
 
-    def get_cluster_per_point_from_query(self, cluster_per_point_query):
+    def get_clusters_per_point_from_query(self, cluster_per_point_query):
         """
         Because get_clusters_per_point_query() aggregates cases by point in a json format,
         here we create a proper collection of classes with it, in order to speed up further
