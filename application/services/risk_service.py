@@ -90,7 +90,6 @@ class RiskService(object):
         finally:
             session.close()
 
-
     def insert_risk(self, session, risk):
         try:
             session.add(risk)
@@ -104,7 +103,6 @@ class RiskService(object):
             logging.exception(e)
             session.rollback()
             raise
-
 
     def get_clusters_per_point_query(self, session, gridpoints, riskdate):
         days_prev = self.dycast_parameters.temporal_domain
@@ -122,8 +120,9 @@ class RiskService(object):
                         .join(points_query, literal(True)) \
                         .filter(Case.report_date >= startdate,
                                 Case.report_date <= enddate,
-                                func.ST_DWithin(Case.location, points_query.c.point.geom,
-                                    self.dycast_parameters.spatial_domain)) \
+                                func.ST_DWithin(Case.location,
+                                                points_query.c.point.geom,
+                                                self.dycast_parameters.spatial_domain)) \
                         .group_by(points_query.c.point.geom)
 
 
