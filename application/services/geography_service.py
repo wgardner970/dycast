@@ -11,10 +11,10 @@ from application.services import config_service
 
 CONFIG = config_service.get_config()
 
-
+ 
 
 def get_point_from_lat_long(lat, lon, projection):
-    return WKTElement("POINT({0} {1})".format(lat, lon), srid=projection)
+    return WKTElement("POINT({0} {1})".format(lon, lat), srid=projection)
 
 
 def get_shape_from_literal_wkt(wkt):
@@ -71,7 +71,7 @@ def generate_grid(dycast_parameters):
         y = start[1]
         while y > end[1]:
             new_x, new_y = pyproj.transform(projection_metric, projection_system_default, x, y)
-            point = get_point_from_lat_long(new_x, new_y, system_coordinate_system)
+            point = get_point_from_lat_long(new_y, new_x, system_coordinate_system)
             gridpoints.append(point)
             y -= stepsize
         x += stepsize
