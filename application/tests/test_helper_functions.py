@@ -132,3 +132,5 @@ def insert_test_cases():
 
     if case_count == 0:
         import_service.load_case_files(dycast_model)
+
+init_test_environment()

@@ -6,10 +6,6 @@ from application.tests import test_helper_functions
 from application.models.classes import dycast_parameters
 
 
-test_helper_functions.init_test_environment()
-
-
-
 class TestFileServiceFunctions(unittest.TestCase):
 
     def test_read_file(self):

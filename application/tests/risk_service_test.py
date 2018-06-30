@@ -10,7 +10,6 @@ from application.tests import test_helper_functions
 from application.models.models import Risk
 
 
-test_helper_functions.init_test_environment()
 
 
 class TestRiskServiceFunctions(unittest.TestCase):

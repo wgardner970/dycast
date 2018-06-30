@@ -5,10 +5,6 @@ from application.models.classes import dycast_parameters
 from application.tests import test_helper_functions
 
 
-test_helper_functions.init_test_environment()
-
-
-
 class TestGeographyServiceFunctions(unittest.TestCase):
 
     def test_generate_grid(self):

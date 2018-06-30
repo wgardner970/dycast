@@ -11,9 +11,6 @@ from application.models.classes import dycast_parameters
 from application.models.enums import enums
 
 
-test_helper_functions.init_test_environment()
-
-
 class TestImportServiceFunctions(unittest.TestCase):
 
     def test_load_cases(self):
