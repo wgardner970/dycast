@@ -10,6 +10,7 @@ from sqlalchemy.ext import baked
 from application.services import config_service
 from application.services import logging_service
 from application.services import database_service
+from application.services import geography_service
 
 from application.models.models import Case, DistributionMargin, Risk
 from application.models.classes.cluster import Cluster
