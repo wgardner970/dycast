@@ -76,7 +76,7 @@ class TestRiskServiceFunctions(unittest.TestCase):
 
     def test_generate_risk(self):
 
-        dycast_parameters = test_helper_functions.get_dycast_parameters()
+        dycast_parameters = test_helper_functions.get_dycast_parameters(large_dataset=False)
         risk_service = risk_service_module.RiskService(dycast_parameters)
 
         import_service = import_service_module.ImportService()
@@ -85,8 +85,7 @@ class TestRiskServiceFunctions(unittest.TestCase):
         risk_service.generate_risk()
 
         risk_count = test_helper_functions.get_count_from_table("risk")
-        self.assertGreater(risk_count, 0)
-
+        self.assertGreaterEqual(risk_count, 6)
 
     def test_insert_risk(self):
 
