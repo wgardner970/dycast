@@ -1,20 +1,18 @@
 import datetime
-import time
 import logging
+import time
 
 from sqlalchemy import func, select
+from sqlalchemy.dialects.postgresql import array
 from sqlalchemy.exc import SQLAlchemyError, IntegrityError
 from sqlalchemy.sql.expression import literal
-from sqlalchemy.dialects.postgresql import array
 
+from application.models.classes.cluster import Cluster
+from application.models.models import Case, DistributionMargin, Risk
 from application.services import config_service
-from application.services import logging_service
 from application.services import database_service
 from application.services import geography_service
-
-from application.models.models import Case, DistributionMargin, Risk
-from application.models.classes.cluster import Cluster
-
+from application.services import logging_service
 
 CONFIG = config_service.get_config()
 
