@@ -1,15 +1,13 @@
-import unittest
 import datetime
+import unittest
 
+from application.models.models import Case, Risk
+from application.services import database_service
+from application.services import geography_service
 from application.services import import_service as import_service_module
 from application.services import risk_service as risk_service_module
-from application.services import geography_service
-from application.services import database_service
 from application.tests import comparative_test_service as comparative_test_service_module
 from application.tests import test_helper_functions
-from application.models.models import Risk
-
-
 
 
 class TestRiskServiceFunctions(unittest.TestCase):
@@ -28,12 +26,13 @@ class TestRiskServiceFunctions(unittest.TestCase):
         clusters_per_point = risk_service.get_clusters_per_point_query(session, gridpoints, riskdate).all()
 
         daily_cases_query = comparative_test_service.get_daily_cases_query(session, riskdate)
-        
+
         for cluster in clusters_per_point:
             point = geography_service.get_shape_from_wkb(cluster.point)
             point_wkt_element = geography_service.get_wktelement_from_wkt(point.to_wkt())
 
-            cases_in_cluster_query = comparative_test_service.get_cases_in_cluster_query(daily_cases_query, point_wkt_element)       
+            cases_in_cluster_query = comparative_test_service.get_cases_in_cluster_query(daily_cases_query,
+                                                                                         point_wkt_element)
 
             vector_count_new = len(cluster.case_array)
             vector_count_old = database_service.get_count_for_query(cases_in_cluster_query)
@@ -56,7 +55,6 @@ class TestRiskServiceFunctions(unittest.TestCase):
 
         self.assertGreater(count, 0)
 
-
     def test_get_cases_in_cluster_query(self):
 
         dycast_parameters = test_helper_functions.get_dycast_parameters()
@@ -75,7 +73,6 @@ class TestRiskServiceFunctions(unittest.TestCase):
         vector_count = database_service.get_count_for_query(cases_in_cluster_query)
 
         self.assertGreater(vector_count, 0)
-
 
     def test_generate_risk(self):
 
@@ -117,8 +114,7 @@ class TestRiskServiceFunctions(unittest.TestCase):
         session.query(Risk.risk_date).filter(Risk.risk_date == risk.risk_date,
                                              Risk.lat == risk.lat,
                                              Risk.long == risk.long) \
-                                     .one()
-
+            .one()
 
     def test_get_close_space_and_time(self):
 
@@ -132,10 +128,10 @@ class TestRiskServiceFunctions(unittest.TestCase):
         point = gridpoints[0]
 
         daily_cases_query = comparative_test_service.get_daily_cases_query(session,
-                                                               riskdate)
+                                                                           riskdate)
 
         cases_in_cluster_query = comparative_test_service.get_cases_in_cluster_query(daily_cases_query,
-                                                                         point)
+                                                                                     point)
 
         self.assertGreater(count, 0)
         count = comparative_test_service.get_close_space_and_time(cases_in_cluster_query)
@@ -159,14 +155,13 @@ class TestRiskServiceFunctions(unittest.TestCase):
         point = gridpoints[0]
 
         daily_cases_query = comparative_test_service.get_daily_cases_query(session,
-                                                               riskdate)
+                                                                           riskdate)
 
         cases_in_cluster_query = comparative_test_service.get_cases_in_cluster_query(daily_cases_query,
-                                                                         point)
+                                                                                     point)
 
         count = comparative_test_service.get_close_space_only_old(cases_in_cluster_query)
         self.assertGreater(count, 0)
-
 
     def test_close_time_only(self):
 
@@ -180,14 +175,13 @@ class TestRiskServiceFunctions(unittest.TestCase):
         point = gridpoints[0]
 
         daily_cases_query = comparative_test_service.get_daily_cases_query(session,
-                                                               riskdate)
+                                                                           riskdate)
 
         cases_in_cluster_query = comparative_test_service.get_cases_in_cluster_query(daily_cases_query,
-                                                                         point)
+                                                                                     point)
 
         count = comparative_test_service.get_close_time_only(cases_in_cluster_query)
         self.assertGreater(count, 0)
-
 
     def test_get_exact_match_distribution_margin(self):
 
@@ -208,7 +202,6 @@ class TestRiskServiceFunctions(unittest.TestCase):
 
         self.assertGreater(cumulative_probability, 0)
 
-    
     def test_get_nearest_close_in_time_distribution_margin(self):
 
         dycast_parameters = test_helper_functions.get_dycast_parameters()
@@ -225,7 +218,6 @@ class TestRiskServiceFunctions(unittest.TestCase):
                                                                                            close_in_time)
 
         self.assertGreater(nearest_close_in_time, 0)
-
 
     def test_get_cumulative_probability_by_nearest_close_in_time(self):
 
@@ -245,7 +237,6 @@ class TestRiskServiceFunctions(unittest.TestCase):
                                                                                                   close_in_space)
 
         self.assertGreater(cumulative_probability, 0)
-
 
     def test_get_cumulative_probability(self):
 
