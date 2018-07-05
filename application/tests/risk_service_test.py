@@ -124,6 +124,11 @@ class TestRiskServiceFunctions(unittest.TestCase):
                     close_time=1,
                     cumulative_probability=0.032)
 
+        session.query(Risk.risk_date).filter(Risk.risk_date == risk.risk_date,
+                                             Risk.lat == risk.lat,
+                                             Risk.long == risk.long) \
+            .delete()
+
         risk_service.insert_risk(session, risk)
         session.commit()
 
