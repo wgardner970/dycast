@@ -98,7 +98,7 @@ class RiskService(object):
         enddate = riskdate
         startdate = riskdate - datetime.timedelta(days=(days_prev))
 
-        points_query = self.get_points_query_from_grid(gridpoints)
+        points_query = self.get_points_query_from_gridpoints(gridpoints)
 
         return session.query(func.array_agg(
                                 func.json_build_object(
@@ -143,7 +143,7 @@ class RiskService(object):
         return cluster_per_point
 
 
-    def get_points_query_from_grid(self, gridpoints):
+    def get_points_query_from_gridpoints(self, gridpoints):
         return select([
                 func.ST_DumpPoints(
                 func.ST_Collect(array(gridpoints))) \
