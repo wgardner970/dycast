@@ -157,16 +157,28 @@ class RiskService(object):
             .alias('point_query')
 
 
-    def get_close_space_only(self, cluster_per_point):
+    def get_close_space_and_time(self, cluster_per_point):
         for cluster in cluster_per_point:
+
             cluster.close_in_space = 0
+            cluster.close_in_time = 0
+            cluster.close_space_and_time = 0
+
             for case in cluster.cases:
                 for nearby_case in cluster.cases:
                     if case.id > nearby_case.id:
+                        is_close_in_time = False
+                        is_close_in_space = False
                         if geography_service.is_within_distance(case.location,
                                                                 nearby_case.location,
                                                                 self.dycast_parameters.close_in_space):
+                            is_close_in_space = True
                             cluster.close_in_space += 1
+                        if abs((case.report_date - nearby_case.report_date).days) <= self.dycast_parameters.close_in_time:
+                            is_close_in_time = True
+                            cluster.close_in_time += 1
+                        if is_close_in_space & is_close_in_time:
+                            cluster.close_space_and_time += 1
 
 
     def get_cumulative_probability(self, session, number_of_cases, close_in_space_and_time, close_in_space, close_in_time):
