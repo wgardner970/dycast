@@ -39,7 +39,26 @@ class TestRiskServiceFunctions(unittest.TestCase):
 
             self.assertEqual(vector_count_new, vector_count_old)
 
+    # def test_get_close_space_and_time_baked(self):
 
+    #     dycast_parameters = test_helper_functions.get_dycast_parameters()
+
+    #     dycast_parameters.extent_min_x = 1815450
+    #     dycast_parameters.extent_min_y = 2130640
+    #     dycast_parameters.extent_max_x = 1840000
+    #     dycast_parameters.extent_max_y = 2120008
+
+    #     risk_service = risk_service_module.RiskService(dycast_parameters)
+
+    #     session = database_service.get_sqlalchemy_session()
+
+    #     riskdate = datetime.date(int(2016), int(3), int(30))
+    #     gridpoints = geography_service.generate_grid(dycast_parameters)
+
+    #     clusters_per_point = risk_service.get_clusters_per_point(session, gridpoints, riskdate)
+    #     for cluster in clusters_per_point:
+    #         count = risk_service.get_close_space_and_time_baked(session, cluster)
+    #         logging.info(count)
 
     def test_get_daily_cases_query(self):
 
