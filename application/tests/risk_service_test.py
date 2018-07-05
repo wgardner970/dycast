@@ -208,6 +208,34 @@ class TestRiskServiceFunctions(unittest.TestCase):
     def test_close_time_only(self):
 
         dycast_parameters = test_helper_functions.get_dycast_parameters()
+        risk_service = risk_service_module.RiskService(dycast_parameters)
+
+        comparative_test_service = comparative_test_service_module.ComparativeTestService(dycast_parameters)
+        session = database_service.get_sqlalchemy_session()
+
+        riskdate = datetime.date(int(2016), int(3), int(25))
+        gridpoints = geography_service.generate_grid(dycast_parameters)
+
+        clusters_per_point_query = risk_service.get_clusters_per_point_query(session, gridpoints, riskdate)
+        clusters_per_point = risk_service.get_clusters_per_point_from_query(clusters_per_point_query)
+
+        risk_service.get_close_space_and_time(clusters_per_point)
+        # Compare to old query
+        daily_cases_query = comparative_test_service.get_daily_cases_query(session,
+                                                                           riskdate)
+        for point in gridpoints:
+            cases_in_cluster_query = comparative_test_service.get_cases_in_cluster_query(daily_cases_query,
+                                                                                         point)
+            count_old = comparative_test_service.get_close_time_only(cases_in_cluster_query)
+
+            for cluster in clusters_per_point:
+                if cluster.point.equals(geography_service.get_shape_from_sqlalch_element(point)):
+                    self.assertEquals(cluster.close_in_time, count_old)
+
+
+    def test_close_time_only_old(self):
+
+        dycast_parameters = test_helper_functions.get_dycast_parameters()
         comparative_test_service = comparative_test_service_module.ComparativeTestService(dycast_parameters)
         session = database_service.get_sqlalchemy_session()
 
