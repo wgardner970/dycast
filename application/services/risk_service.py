@@ -102,7 +102,11 @@ class RiskService(object):
 
         return session.query(func.array_agg(
                                 func.json_build_object(
+                                    "case_id",
                                     Case.id,
+                                    "report_date",
+                                    Case.report_date,
+                                    "location",
                                     func.ST_AsText(Case.location)
                                 )).label('case_array'),
                              points_query.c.point.geom.label('point')) \
@@ -132,11 +136,13 @@ class RiskService(object):
             cluster.cases = []
 
             for case_json in row.case_array:
-                for case_id, case_location in case_json.iteritems():
-                    case = Case()
-                    case.id = case_id
-                    case.location = geography_service.get_shape_from_literal_wkt(case_location)
-                    cluster.cases.append(case)
+                case = Case()
+
+                case.id = case_json['case_id']
+                case.report_date = datetime.datetime.strptime(case_json['report_date'], "%Y-%m-%d").date()
+                case.location = geography_service.get_shape_from_literal_wkt(case_json['location'])
+
+                cluster.cases.append(case)
 
             cluster_per_point.append(cluster)
 
