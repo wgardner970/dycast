@@ -24,7 +24,6 @@ class RiskService(object):
             "dycast", "system_coordinate_system")
         self.dycast_parameters = dycast_parameters
 
-
     def generate_risk(self):
 
         session = database_service.get_sqlalchemy_session()
@@ -45,15 +44,18 @@ class RiskService(object):
             clusters_per_point_query = self.get_clusters_per_point_query(session, gridpoints, day)
             clusters_per_point = self.get_clusters_per_point_from_query(clusters_per_point_query)
 
-
             for cluster in clusters_per_point:
                 vector_count = cluster.get_case_count()
                 if vector_count >= case_threshold:
                     points_above_threshold += 1
+                    self.get_close_space_and_time_for_cluster(cluster)
                     risk = Risk(risk_date=day,
                                 number_of_cases=vector_count,
                                 lat=cluster.point.y,
-                                long=cluster.point.x)
+                                long=cluster.point.x,
+                                close_pairs=cluster.close_space_and_time,
+                                close_space=cluster.close_in_space,
+                                close_time=cluster.close_in_time)
 
                     self.insert_risk(session, risk)
 
