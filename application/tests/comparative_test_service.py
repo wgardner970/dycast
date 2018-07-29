@@ -1,20 +1,12 @@
 import datetime
-import time
-import logging
 
-from sqlalchemy import bindparam, func, select
-from sqlalchemy.sql.expression import literal
-from sqlalchemy.exc import SQLAlchemyError, IntegrityError
+from sqlalchemy import bindparam, func
 from sqlalchemy.ext import baked
+from sqlalchemy.sql.expression import literal
 
+from application.models.models import Case, DistributionMargin
 from application.services import config_service
-from application.services import logging_service
 from application.services import database_service
-from application.services import geography_service
-
-from application.models.models import Case, DistributionMargin, Risk
-from application.models.classes.cluster import Cluster
-
 
 CONFIG = config_service.get_config()
 bakery = baked.bakery()
@@ -120,3 +112,75 @@ class ComparativeTestService(object):
             .filter(func.abs(Case.report_date - subquery.c.report_date) <= self.dycast_parameters.close_in_time,
                     Case.id < subquery.c.id)
         return database_service.get_count_for_query(query)
+
+
+
+    # Probability
+    def get_cumulative_probability(self, session, number_of_cases, close_in_space_and_time, close_in_space, close_in_time):
+        exact_match = self.get_exact_match_cumulative_probability(session,
+                                                                  number_of_cases,
+                                                                  close_in_space_and_time,
+                                                                  close_in_space,
+                                                                  close_in_time)
+
+        if exact_match:
+            return exact_match
+        else:
+            nearest_close_in_time = self.get_nearest_close_in_time_distribution_margin(session,
+                                                                                       number_of_cases,
+                                                                                       close_in_space_and_time,
+                                                                                       close_in_time)
+            if nearest_close_in_time:
+                cumulative_probability = self.get_cumulative_probability_by_nearest_close_in_time(session,
+                                                                                                  number_of_cases,
+                                                                                                  close_in_space_and_time,
+                                                                                                  nearest_close_in_time,
+                                                                                                  close_in_space)
+                return cumulative_probability or 0.001
+            else:
+                return 0.0001
+
+
+    def get_exact_match_cumulative_probability(self, session,
+                                               number_of_cases,
+                                               close_in_space_and_time,
+                                               close_in_space,
+                                               close_in_time):
+
+        return session.query(DistributionMargin.cumulative_probability) \
+            .filter(
+                DistributionMargin.number_of_cases == number_of_cases,
+                DistributionMargin.close_in_space_and_time == close_in_space_and_time,
+                DistributionMargin.close_space == close_in_space,
+                DistributionMargin.close_time == close_in_time) \
+            .scalar()
+
+
+    def get_nearest_close_in_time_distribution_margin(self, session,
+                                                      number_of_cases,
+                                                      close_in_space_and_time,
+                                                      close_in_time):
+
+        return session.query(DistributionMargin.close_time) \
+            .filter(
+                DistributionMargin.number_of_cases == number_of_cases,
+                DistributionMargin.close_in_space_and_time >= close_in_space_and_time,
+                DistributionMargin.close_time >= close_in_time) \
+            .order_by(DistributionMargin.close_time) \
+            .first()
+
+
+    def get_cumulative_probability_by_nearest_close_in_time(self, session,
+                                                            number_of_cases,
+                                                            close_in_space_and_time,
+                                                            nearest_close_in_time,
+                                                            close_in_space):
+
+        return session.query(DistributionMargin.cumulative_probability) \
+            .filter(
+                DistributionMargin.number_of_cases == number_of_cases,
+                DistributionMargin.close_in_space_and_time >= close_in_space_and_time,
+                DistributionMargin.close_time == nearest_close_in_time,
+                DistributionMargin.close_space >= close_in_space) \
+            .order_by(DistributionMargin.close_space) \
+            .first()
