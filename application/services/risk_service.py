@@ -181,3 +181,45 @@ class RiskService(object):
                         cluster.close_in_time += 1
                     if is_close_in_space & is_close_in_time:
                         cluster.close_space_and_time += 1
+
+    def get_distribution_margins_for_clusters(self, session, clusters_per_point):
+
+        for cluster in clusters_per_point:
+            exact_match_subquery = session.query(DistributionMargin.cumulative_probability) \
+                .filter(
+                DistributionMargin.number_of_cases == cluster.get_case_count(),
+                DistributionMargin.close_in_space_and_time == cluster.close_space_and_time,
+                DistributionMargin.close_space == cluster.close_in_space,
+                DistributionMargin.close_time == cluster.close_in_time) \
+                .as_scalar()
+
+            nearest_close_time_subquery = session.query(DistributionMargin.close_time) \
+                .filter(
+                DistributionMargin.number_of_cases == cluster.get_case_count(),
+                DistributionMargin.close_in_space_and_time >= cluster.close_space_and_time,
+                DistributionMargin.close_time >= cluster.close_in_time) \
+                .order_by(DistributionMargin.close_time) \
+                .limit(1)
+
+            res1 = nearest_close_time_subquery.first()
+
+            probability_by_nearest_close_time_subquery = session.query(DistributionMargin.cumulative_probability) \
+                .filter(
+                DistributionMargin.number_of_cases == cluster.get_case_count(),
+                DistributionMargin.close_in_space_and_time >= cluster.close_space_and_time,
+                DistributionMargin.close_space >= cluster.close_in_space,
+                DistributionMargin.close_time == nearest_close_time_subquery) \
+                .order_by(DistributionMargin.close_space) \
+                .limit(1)
+
+            res2 = probability_by_nearest_close_time_subquery.first()
+
+            result = session.query(exact_match_subquery.label('exact_match'),
+                                   sqlalchemy_case([(nearest_close_time_subquery is None, '0.0001'),
+                                                    (probability_by_nearest_close_time_subquery is None,
+                                                     '0.001')],
+                                                   else_=probability_by_nearest_close_time_subquery.first())
+                                   .label('by_nearest_close_time')) \
+                .all()
+
+            print result
