@@ -47,7 +47,7 @@ class RiskService(object):
 
 
             for cluster in clusters_per_point:
-                vector_count = len(cluster.cases)
+                vector_count = cluster.get_case_count()
                 if vector_count >= case_threshold:
                     points_above_threshold += 1
                     risk = Risk(risk_date=day,

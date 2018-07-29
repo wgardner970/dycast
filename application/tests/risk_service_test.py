@@ -34,7 +34,7 @@ class TestRiskServiceFunctions(unittest.TestCase):
             cases_in_cluster_query = comparative_test_service.get_cases_in_cluster_query(daily_cases_query,
                                                                                          point_wkt_element)
 
-            vector_count_new = len(cluster.cases)
+            vector_count_new = cluster.get_case_count()
             vector_count_old = database_service.get_count_for_query(cases_in_cluster_query)
 
             self.assertEqual(vector_count_new, vector_count_old)
