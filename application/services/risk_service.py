@@ -65,9 +65,9 @@ class RiskService(object):
             logging.info(
                 "Finished daily_risk for %s: done %s points", day, len(gridpoints))
             logging.info("Total points above threshold of %s: %s",
-                            case_threshold, points_above_threshold)
+                         case_threshold, points_above_threshold)
             logging.info("Time elapsed: %.0f seconds",
-                            time.time() - start_time)
+                         time.time() - start_time)
 
             day += delta
 
@@ -129,7 +129,7 @@ class RiskService(object):
         :return: array of Cluster objects
         """
         rows = cluster_per_point_query.all()
-        cluster_per_point = []
+        clusters_per_point = []
 
         for row in rows:
             cluster = Cluster()
@@ -145,10 +145,9 @@ class RiskService(object):
 
                 cluster.cases.append(case)
 
-            cluster_per_point.append(cluster)
+            clusters_per_point.append(cluster)
 
-        return cluster_per_point
-
+        return clusters_per_point
 
     def get_points_query_from_gridpoints(self, gridpoints):
         return select([
