@@ -101,23 +101,22 @@ class RiskService(object):
         points_query = self.get_points_query_from_gridpoints(gridpoints)
 
         return session.query(func.array_agg(
-                                func.json_build_object(
-                                    "case_id",
-                                    Case.id,
-                                    "report_date",
-                                    Case.report_date,
-                                    "location",
-                                    func.ST_AsText(Case.location)
-                                )).label('case_array'),
+            func.json_build_object(
+                "case_id",
+                Case.id,
+                "report_date",
+                Case.report_date,
+                "location",
+                func.ST_AsText(Case.location)
+            )).label('case_array'),
                              points_query.c.point.geom.label('point')) \
-                        .join(points_query, literal(True)) \
-                        .filter(Case.report_date >= startdate,
-                                Case.report_date <= enddate,
-                                func.ST_DWithin(Case.location,
-                                                points_query.c.point.geom,
-                                                self.dycast_parameters.spatial_domain)) \
-                        .group_by(points_query.c.point.geom)
-
+            .join(points_query, literal(True)) \
+            .filter(Case.report_date >= startdate,
+                    Case.report_date <= enddate,
+                    func.ST_DWithin(Case.location,
+                                    points_query.c.point.geom,
+                                    self.dycast_parameters.spatial_domain)) \
+            .group_by(points_query.c.point.geom)
 
     def get_clusters_per_point_from_query(self, cluster_per_point_query):
         """
@@ -151,9 +150,9 @@ class RiskService(object):
 
     def get_points_query_from_gridpoints(self, gridpoints):
         return select([
-                func.ST_DumpPoints(
-                func.ST_Collect(array(gridpoints))) \
-            .label('point')]) \
+            func.ST_DumpPoints(
+                func.ST_Collect(array(gridpoints)))
+                .label('point')]) \
             .alias('point_query')
 
 
