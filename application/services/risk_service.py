@@ -155,3 +155,28 @@ class RiskService(object):
                 .label('point')]) \
             .alias('point_query')
 
+    def enrich_clusters_per_point_with_close_space_and_time(self, clusters_per_point):
+        for cluster in clusters_per_point:
+            self.get_close_space_and_time_for_cluster(cluster)
+
+    def get_close_space_and_time_for_cluster(self, cluster):
+
+        cluster.close_in_space = 0
+        cluster.close_in_time = 0
+        cluster.close_space_and_time = 0
+
+        for case in cluster.cases:
+            for nearby_case in cluster.cases:
+                if case.id > nearby_case.id:
+                    is_close_in_time = False
+                    is_close_in_space = False
+                    if geography_service.is_within_distance(case.location,
+                                                            nearby_case.location,
+                                                            self.dycast_parameters.close_in_space):
+                        is_close_in_space = True
+                        cluster.close_in_space += 1
+                    if abs((case.report_date - nearby_case.report_date).days) <= self.dycast_parameters.close_in_time:
+                        is_close_in_time = True
+                        cluster.close_in_time += 1
+                    if is_close_in_space & is_close_in_time:
+                        cluster.close_space_and_time += 1

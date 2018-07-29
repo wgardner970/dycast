@@ -172,7 +172,7 @@ class TestRiskServiceFunctions(unittest.TestCase):
         clusters_per_point_query = risk_service.get_clusters_per_point_query(session, gridpoints, riskdate)
         clusters_per_point = risk_service.get_clusters_per_point_from_query(clusters_per_point_query)
 
-        risk_service.get_close_space_and_time(clusters_per_point)
+        risk_service.enrich_clusters_per_point_with_close_space_and_time(clusters_per_point)
 
         # Compare to old query
         daily_cases_query = comparative_test_service.get_daily_cases_query(session,
@@ -221,7 +221,8 @@ class TestRiskServiceFunctions(unittest.TestCase):
         clusters_per_point_query = risk_service.get_clusters_per_point_query(session, gridpoints, riskdate)
         clusters_per_point = risk_service.get_clusters_per_point_from_query(clusters_per_point_query)
 
-        risk_service.get_close_space_and_time(clusters_per_point)
+        risk_service.enrich_clusters_per_point_with_close_space_and_time(clusters_per_point)
+
         # Compare to old query
         daily_cases_query = comparative_test_service.get_daily_cases_query(session,
                                                                            riskdate)
