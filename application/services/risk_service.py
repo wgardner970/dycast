@@ -61,6 +61,26 @@ class RiskService(object):
 
             session.commit()
 
+            # for point in gridpoints:
+            #     cases_in_cluster_query = self.get_cases_in_cluster_query(daily_cases_query, point)
+            #     vector_count = database_service.get_count_for_query(cases_in_cluster_query)
+            #     if vector_count >= case_threshold:
+            #         points_above_threshold += 1
+            #         risk = Risk(risk_date=day,
+            #                     number_of_cases=vector_count,
+            #                     lat=point.x,
+            #                     long=point.y)
+
+            #         risk.close_pairs = self.get_close_space_and_time(cases_in_cluster_query)
+            #         risk.close_space = self.get_close_space_only_old(cases_in_cluster_query) - risk.close_pairs
+            #         risk.close_time = self.get_close_time_only(cases_in_cluster_query) - risk.close_pairs
+
+            #         risk.cumulative_probability = self.get_cumulative_probability(session,
+            #                                                                         risk.number_of_cases,
+            #                                                                         risk.close_pairs,
+            #                                                                         risk.close_space,
+            #                                                                         risk.close_time)
+            #         self.insert_risk(session, risk)
 
             logging.info(
                 "Finished daily_risk for %s: done %s points", day, len(gridpoints))
@@ -184,7 +204,7 @@ class RiskService(object):
                     if is_close_in_space & is_close_in_time:
                         cluster.close_space_and_time += 1
 
-    def get_distribution_margins_for_clusters(self, session, clusters_per_point):
+    def enrich_clusters_with_distribution_margins(self, session, clusters_per_point):
 
         for cluster in clusters_per_point:
             exact_match_subquery = session.query(DistributionMargin.cumulative_probability) \
@@ -203,8 +223,6 @@ class RiskService(object):
                 .order_by(DistributionMargin.close_time) \
                 .limit(1)
 
-            res1 = nearest_close_time_subquery.first()
-
             probability_by_nearest_close_time_subquery = session.query(DistributionMargin.cumulative_probability) \
                 .filter(
                 DistributionMargin.number_of_cases == cluster.case_count,
@@ -214,14 +232,18 @@ class RiskService(object):
                 .order_by(DistributionMargin.close_space) \
                 .limit(1)
 
-            res2 = probability_by_nearest_close_time_subquery.first()
-
             result = session.query(exact_match_subquery.label('exact_match'),
-                                   sqlalchemy_case([(nearest_close_time_subquery is None, '0.0001'),
-                                                    (probability_by_nearest_close_time_subquery is None,
-                                                     '0.001')],
-                                                   else_=probability_by_nearest_close_time_subquery.first())
-                                   .label('by_nearest_close_time')) \
-                .all()
+                                   nearest_close_time_subquery.label('nearest_close_time'),
+                                   probability_by_nearest_close_time_subquery.label('by_nearest_close_time')) \
+                .first()
 
-            print result
+            if result.exact_match is not None:
+                cluster.p_value = result.exact_match
+            else:
+                if result.nearest_close_time is None:
+                    cluster.p_value = 0.0001
+                else:
+                    if result.by_nearest_close_time is None:
+                        cluster.p_value = 0.001
+                    else:
+                        cluster.p_value = result.by_nearest_close_time

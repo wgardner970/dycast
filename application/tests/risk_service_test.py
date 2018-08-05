@@ -336,6 +336,34 @@ class TestRiskServiceFunctions(unittest.TestCase):
 
         self.assertGreater(cumulative_probability, 0)
 
+    def test_get_cumulative_probability(self):
+
+        dycast_parameters = test_helper_functions.get_dycast_parameters()
+        comparative_test_service = comparative_test_service_module.ComparativeTestService(dycast_parameters)
+        risk_service = risk_service_module.RiskService(dycast_parameters)
+        session = database_service.get_sqlalchemy_session()
+
+        riskdate = datetime.date(int(2016), int(3), int(25))
+        gridpoints = geography_service.generate_grid(dycast_parameters)
+
+        clusters_per_point_query = risk_service.get_clusters_per_point_query(session, gridpoints, riskdate)
+        clusters_per_point = risk_service.get_clusters_per_point_from_query(clusters_per_point_query)
+
+        risk_service.enrich_clusters_per_point_with_close_space_and_time(clusters_per_point)
+        risk_service.enrich_clusters_with_distribution_margins(session, clusters_per_point)
+
+        for cluster in clusters_per_point:
+            cumulative_probability_old = comparative_test_service \
+                .get_cumulative_probability(session,
+                                            cluster.case_count,
+                                            cluster.close_space_and_time,
+                                            cluster.close_in_space,
+                                            cluster.close_in_time)
+
+            self.assertEqual(cluster.p_value, cumulative_probability_old)
+
+
+
     def test_can_get_cases(self):
         session = database_service.get_sqlalchemy_session()
         cases = session.query(Case.id).all()
