@@ -49,13 +49,15 @@ class RiskService(object):
                 if vector_count >= case_threshold:
                     points_above_threshold += 1
                     self.get_close_space_and_time_for_cluster(cluster)
+                    self.get_distribution_margins_for_cluster(session, cluster)
                     risk = Risk(risk_date=day,
                                 number_of_cases=vector_count,
                                 lat=cluster.point.y,
                                 long=cluster.point.x,
                                 close_pairs=cluster.close_space_and_time,
                                 close_space=cluster.close_in_space,
-                                close_time=cluster.close_in_time)
+                                close_time=cluster.close_in_time,
+                                cumulative_probability=cluster.cumulative_probability)
 
                     self.insert_risk(session, risk)
 
@@ -205,45 +207,48 @@ class RiskService(object):
                         cluster.close_space_and_time += 1
 
     def enrich_clusters_with_distribution_margins(self, session, clusters_per_point):
-
         for cluster in clusters_per_point:
-            exact_match_subquery = session.query(DistributionMargin.cumulative_probability) \
-                .filter(
-                DistributionMargin.number_of_cases == cluster.case_count,
-                DistributionMargin.close_in_space_and_time == cluster.close_space_and_time,
-                DistributionMargin.close_space == cluster.close_in_space,
-                DistributionMargin.close_time == cluster.close_in_time) \
-                .as_scalar()
+            self.get_distribution_margins_for_cluster(session, cluster)
 
-            nearest_close_time_subquery = session.query(DistributionMargin.close_time) \
-                .filter(
-                DistributionMargin.number_of_cases == cluster.case_count,
-                DistributionMargin.close_in_space_and_time >= cluster.close_space_and_time,
-                DistributionMargin.close_time >= cluster.close_in_time) \
-                .order_by(DistributionMargin.close_time) \
-                .limit(1)
+    def get_distribution_margins_for_cluster(self, session, cluster):
 
-            probability_by_nearest_close_time_subquery = session.query(DistributionMargin.cumulative_probability) \
-                .filter(
-                DistributionMargin.number_of_cases == cluster.case_count,
-                DistributionMargin.close_in_space_and_time >= cluster.close_space_and_time,
-                DistributionMargin.close_space >= cluster.close_in_space,
-                DistributionMargin.close_time == nearest_close_time_subquery) \
-                .order_by(DistributionMargin.close_space) \
-                .limit(1)
+        exact_match_subquery = session.query(DistributionMargin.cumulative_probability) \
+            .filter(
+            DistributionMargin.number_of_cases == cluster.case_count,
+            DistributionMargin.close_in_space_and_time == cluster.close_space_and_time,
+            DistributionMargin.close_space == cluster.close_in_space,
+            DistributionMargin.close_time == cluster.close_in_time) \
+            .as_scalar()
 
-            result = session.query(exact_match_subquery.label('exact_match'),
-                                   nearest_close_time_subquery.label('nearest_close_time'),
-                                   probability_by_nearest_close_time_subquery.label('by_nearest_close_time')) \
-                .first()
+        nearest_close_time_subquery = session.query(DistributionMargin.close_time) \
+            .filter(
+            DistributionMargin.number_of_cases == cluster.case_count,
+            DistributionMargin.close_in_space_and_time >= cluster.close_space_and_time,
+            DistributionMargin.close_time >= cluster.close_in_time) \
+            .order_by(DistributionMargin.close_time) \
+            .limit(1)
 
-            if result.exact_match is not None:
-                cluster.p_value = result.exact_match
+        probability_by_nearest_close_time_subquery = session.query(DistributionMargin.cumulative_probability) \
+            .filter(
+            DistributionMargin.number_of_cases == cluster.case_count,
+            DistributionMargin.close_in_space_and_time >= cluster.close_space_and_time,
+            DistributionMargin.close_space >= cluster.close_in_space,
+            DistributionMargin.close_time == nearest_close_time_subquery) \
+            .order_by(DistributionMargin.close_space) \
+            .limit(1)
+
+        result = session.query(exact_match_subquery.label('exact_match'),
+                               nearest_close_time_subquery.label('nearest_close_time'),
+                               probability_by_nearest_close_time_subquery.label('by_nearest_close_time')) \
+            .first()
+
+        if result.exact_match is not None:
+            cluster.cumulative_probability = result.exact_match
+        else:
+            if result.nearest_close_time is None:
+                cluster.cumulative_probability = 0.0001
             else:
-                if result.nearest_close_time is None:
-                    cluster.p_value = 0.0001
+                if result.by_nearest_close_time is None:
+                    cluster.cumulative_probability = 0.001
                 else:
-                    if result.by_nearest_close_time is None:
-                        cluster.p_value = 0.001
-                    else:
-                        cluster.p_value = result.by_nearest_close_time
+                    cluster.cumulative_probability = result.by_nearest_close_time

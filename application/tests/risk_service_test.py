@@ -360,7 +360,7 @@ class TestRiskServiceFunctions(unittest.TestCase):
                                             cluster.close_in_space,
                                             cluster.close_in_time)
 
-            self.assertEqual(cluster.p_value, cumulative_probability_old)
+            self.assertEqual(cluster.cumulative_probability, cumulative_probability_old)
 
 
 
