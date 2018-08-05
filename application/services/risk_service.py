@@ -145,6 +145,8 @@ class RiskService(object):
 
                 cluster.cases.append(case)
 
+            cluster.case_count = cluster.get_case_count()
+
             clusters_per_point.append(cluster)
 
         return clusters_per_point
@@ -187,7 +189,7 @@ class RiskService(object):
         for cluster in clusters_per_point:
             exact_match_subquery = session.query(DistributionMargin.cumulative_probability) \
                 .filter(
-                DistributionMargin.number_of_cases == cluster.get_case_count(),
+                DistributionMargin.number_of_cases == cluster.case_count,
                 DistributionMargin.close_in_space_and_time == cluster.close_space_and_time,
                 DistributionMargin.close_space == cluster.close_in_space,
                 DistributionMargin.close_time == cluster.close_in_time) \
@@ -195,7 +197,7 @@ class RiskService(object):
 
             nearest_close_time_subquery = session.query(DistributionMargin.close_time) \
                 .filter(
-                DistributionMargin.number_of_cases == cluster.get_case_count(),
+                DistributionMargin.number_of_cases == cluster.case_count,
                 DistributionMargin.close_in_space_and_time >= cluster.close_space_and_time,
                 DistributionMargin.close_time >= cluster.close_in_time) \
                 .order_by(DistributionMargin.close_time) \
@@ -205,7 +207,7 @@ class RiskService(object):
 
             probability_by_nearest_close_time_subquery = session.query(DistributionMargin.cumulative_probability) \
                 .filter(
-                DistributionMargin.number_of_cases == cluster.get_case_count(),
+                DistributionMargin.number_of_cases == cluster.case_count,
                 DistributionMargin.close_in_space_and_time >= cluster.close_space_and_time,
                 DistributionMargin.close_space >= cluster.close_in_space,
                 DistributionMargin.close_time == nearest_close_time_subquery) \
