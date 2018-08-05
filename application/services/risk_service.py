@@ -49,7 +49,8 @@ class RiskService(object):
                 if vector_count >= case_threshold:
                     points_above_threshold += 1
                     self.get_close_space_and_time_for_cluster(cluster)
-                    self.get_distribution_margins_for_cluster(session, cluster)
+                    self.get_cumulative_probability_for_cluster(session, cluster)
+
                     risk = Risk(risk_date=day,
                                 number_of_cases=vector_count,
                                 lat=cluster.point.y,
@@ -62,27 +63,6 @@ class RiskService(object):
                     self.insert_risk(session, risk)
 
             session.commit()
-
-            # for point in gridpoints:
-            #     cases_in_cluster_query = self.get_cases_in_cluster_query(daily_cases_query, point)
-            #     vector_count = database_service.get_count_for_query(cases_in_cluster_query)
-            #     if vector_count >= case_threshold:
-            #         points_above_threshold += 1
-            #         risk = Risk(risk_date=day,
-            #                     number_of_cases=vector_count,
-            #                     lat=point.x,
-            #                     long=point.y)
-
-            #         risk.close_pairs = self.get_close_space_and_time(cases_in_cluster_query)
-            #         risk.close_space = self.get_close_space_only_old(cases_in_cluster_query) - risk.close_pairs
-            #         risk.close_time = self.get_close_time_only(cases_in_cluster_query) - risk.close_pairs
-
-            #         risk.cumulative_probability = self.get_cumulative_probability(session,
-            #                                                                         risk.number_of_cases,
-            #                                                                         risk.close_pairs,
-            #                                                                         risk.close_space,
-            #                                                                         risk.close_time)
-            #         self.insert_risk(session, risk)
 
             logging.info(
                 "Finished daily_risk for %s: done %s points", day, len(gridpoints))
@@ -206,49 +186,52 @@ class RiskService(object):
                     if is_close_in_space & is_close_in_time:
                         cluster.close_space_and_time += 1
 
-    def enrich_clusters_with_distribution_margins(self, session, clusters_per_point):
+    # Probability
+    def enrich_clusters_per_point_with_cumulative_probability(self, session, clusters_per_point):
         for cluster in clusters_per_point:
-            self.get_distribution_margins_for_cluster(session, cluster)
+            self.get_cumulative_probability_for_cluster(session, cluster)
 
-    def get_distribution_margins_for_cluster(self, session, cluster):
+    def get_cumulative_probability_for_cluster(self, session, cluster):
+        exact_match = self.get_exact_match_cumulative_probability(session, cluster)
 
-        exact_match_subquery = session.query(DistributionMargin.cumulative_probability) \
+        if exact_match:
+            cluster.cumulative_probability = exact_match
+        else:
+            nearest_close_in_time = self.get_nearest_close_in_time_distribution_margin(session, cluster)
+            if nearest_close_in_time:
+                cumulative_probability = self.get_cumulative_probability_by_nearest_close_in_time(session, cluster,
+                                                                                                  nearest_close_in_time)
+                cluster.cumulative_probability = cumulative_probability or 0.001
+            else:
+                cluster.cumulative_probability = 0.0001
+
+    def get_exact_match_cumulative_probability(self, session, cluster):
+
+        return session.query(DistributionMargin.cumulative_probability) \
             .filter(
             DistributionMargin.number_of_cases == cluster.case_count,
             DistributionMargin.close_in_space_and_time == cluster.close_space_and_time,
             DistributionMargin.close_space == cluster.close_in_space,
             DistributionMargin.close_time == cluster.close_in_time) \
-            .as_scalar()
+            .scalar()
 
-        nearest_close_time_subquery = session.query(DistributionMargin.close_time) \
+    def get_nearest_close_in_time_distribution_margin(self, session, cluster):
+
+        return session.query(DistributionMargin.close_time) \
             .filter(
             DistributionMargin.number_of_cases == cluster.case_count,
             DistributionMargin.close_in_space_and_time >= cluster.close_space_and_time,
             DistributionMargin.close_time >= cluster.close_in_time) \
             .order_by(DistributionMargin.close_time) \
-            .limit(1)
+            .first()
 
-        probability_by_nearest_close_time_subquery = session.query(DistributionMargin.cumulative_probability) \
+    def get_cumulative_probability_by_nearest_close_in_time(self, session, cluster, nearest_close_in_time):
+
+        return session.query(DistributionMargin.cumulative_probability) \
             .filter(
             DistributionMargin.number_of_cases == cluster.case_count,
             DistributionMargin.close_in_space_and_time >= cluster.close_space_and_time,
-            DistributionMargin.close_space >= cluster.close_in_space,
-            DistributionMargin.close_time == nearest_close_time_subquery) \
+            DistributionMargin.close_time == nearest_close_in_time,
+            DistributionMargin.close_space >= cluster.close_in_space) \
             .order_by(DistributionMargin.close_space) \
-            .limit(1)
-
-        result = session.query(exact_match_subquery.label('exact_match'),
-                               nearest_close_time_subquery.label('nearest_close_time'),
-                               probability_by_nearest_close_time_subquery.label('by_nearest_close_time')) \
             .first()
-
-        if result.exact_match is not None:
-            cluster.cumulative_probability = result.exact_match
-        else:
-            if result.nearest_close_time is None:
-                cluster.cumulative_probability = 0.0001
-            else:
-                if result.by_nearest_close_time is None:
-                    cluster.cumulative_probability = 0.001
-                else:
-                    cluster.cumulative_probability = result.by_nearest_close_time

@@ -1,6 +1,7 @@
 import datetime
 import unittest
 
+from application.models.classes.cluster import Cluster
 from application.models.models import Case, Risk
 from application.services import database_service
 from application.services import geography_service
@@ -235,7 +236,6 @@ class TestRiskServiceFunctions(unittest.TestCase):
                 if cluster.point.equals(geography_service.get_shape_from_sqlalch_element(point)):
                     self.assertEquals(cluster.close_in_time, count_old)
 
-
     def test_close_time_only_old(self):
 
         dycast_parameters = test_helper_functions.get_dycast_parameters()
@@ -256,87 +256,75 @@ class TestRiskServiceFunctions(unittest.TestCase):
         count = comparative_test_service.get_close_time_only(cases_in_cluster_query)
         self.assertGreater(count, 0)
 
-
-
     # Probability
-    def test_get_exact_match_distribution_margin_old(self):
+    def test_get_exact_match_distribution_margin(self):
 
         dycast_parameters = test_helper_functions.get_dycast_parameters()
-        comparative_test_service = comparative_test_service_module.ComparativeTestService(dycast_parameters)
+        risk_service = risk_service_module.RiskService(dycast_parameters)
         session = database_service.get_sqlalchemy_session()
 
-        number_of_cases = 2
-        close_in_space_and_time = 1
-        close_in_space = 1
-        close_in_time = 1
+        cluster = Cluster()
+        cluster.case_count = 2,
+        cluster.close_space_and_time = 1,
+        cluster.close_in_space = 1,
+        cluster.close_in_time = 1,
 
-        cumulative_probability = comparative_test_service.get_exact_match_cumulative_probability(session,
-                                                                                                 number_of_cases,
-                                                                                                 close_in_space_and_time,
-                                                                                                 close_in_space,
-                                                                                                 close_in_time)
+        cumulative_probability = risk_service.get_exact_match_cumulative_probability(session, cluster)
 
         self.assertGreater(cumulative_probability, 0)
 
-    def test_get_nearest_close_in_time_distribution_margin_old(self):
+    def test_get_nearest_close_in_time_distribution_margin(self):
 
         dycast_parameters = test_helper_functions.get_dycast_parameters()
-        comparative_test_service = comparative_test_service_module.ComparativeTestService(dycast_parameters)
+        risk_service = risk_service_module.RiskService(dycast_parameters)
         session = database_service.get_sqlalchemy_session()
 
-        number_of_cases = 2
-        close_in_space_and_time = 1
-        close_in_time = 1
+        cluster = Cluster()
+        cluster.case_count = 2,
+        cluster.close_space_and_time = 1,
+        cluster.close_in_space = 1,
+        cluster.close_in_time = 1,
 
-        nearest_close_in_time = comparative_test_service \
-            .get_nearest_close_in_time_distribution_margin(session,
-                                                           number_of_cases,
-                                                           close_in_space_and_time,
-                                                           close_in_time)
+        nearest_close_in_time = risk_service.get_nearest_close_in_time_distribution_margin(session, cluster)
 
         self.assertGreater(nearest_close_in_time, 0)
 
-    def test_get_cumulative_probability_by_nearest_close_in_time_old(self):
+    def test_get_cumulative_probability_by_nearest_close_in_time(self):
 
         dycast_parameters = test_helper_functions.get_dycast_parameters()
-        comparative_test_service = comparative_test_service_module.ComparativeTestService(dycast_parameters)
+        risk_service = risk_service_module.RiskService(dycast_parameters)
         session = database_service.get_sqlalchemy_session()
 
-        number_of_cases = 2
-        close_in_space_and_time = 1
-        close_in_space = 1
+        cluster = Cluster()
+        cluster.case_count = 2
+        cluster.close_space_and_time = 1
+        cluster.close_in_space = 1
+
         nearest_close_in_time = 1
 
-        cumulative_probability = comparative_test_service \
-            .get_cumulative_probability_by_nearest_close_in_time(session,
-                                                                 number_of_cases,
-                                                                 close_in_space_and_time,
-                                                                 nearest_close_in_time,
-                                                                 close_in_space)
-
-        self.assertGreater(cumulative_probability, 0)
-
-    def test_get_cumulative_probability_old(self):
-
-        dycast_parameters = test_helper_functions.get_dycast_parameters()
-        comparative_test_service = comparative_test_service_module.ComparativeTestService(dycast_parameters)
-        session = database_service.get_sqlalchemy_session()
-
-        number_of_cases = 2
-        close_in_space_and_time = 1
-        close_in_space = 1
-        close_in_time = 1
-
-        cumulative_probability = comparative_test_service \
-            .get_cumulative_probability(session,
-                                        number_of_cases,
-                                        close_in_space_and_time,
-                                        close_in_time,
-                                        close_in_space)
+        cumulative_probability = risk_service.get_cumulative_probability_by_nearest_close_in_time(session,
+                                                                                                  cluster,
+                                                                                                  nearest_close_in_time)
 
         self.assertGreater(cumulative_probability, 0)
 
     def test_get_cumulative_probability(self):
+
+        dycast_parameters = test_helper_functions.get_dycast_parameters()
+        risk_service = risk_service_module.RiskService(dycast_parameters)
+        session = database_service.get_sqlalchemy_session()
+
+        cluster = Cluster()
+        cluster.case_count = 2,
+        cluster.close_space_and_time = 1,
+        cluster.close_in_space = 1,
+        cluster.close_in_time = 1,
+
+        risk_service.get_cumulative_probability_for_cluster(session, cluster)
+
+        self.assertGreater(cluster.cumulative_probability, 0)
+
+    def compare_cumulative_probability_with_old(self):
 
         dycast_parameters = test_helper_functions.get_dycast_parameters()
         comparative_test_service = comparative_test_service_module.ComparativeTestService(dycast_parameters)
@@ -350,19 +338,12 @@ class TestRiskServiceFunctions(unittest.TestCase):
         clusters_per_point = risk_service.get_clusters_per_point_from_query(clusters_per_point_query)
 
         risk_service.enrich_clusters_per_point_with_close_space_and_time(clusters_per_point)
-        risk_service.enrich_clusters_with_distribution_margins(session, clusters_per_point)
+        risk_service.enrich_clusters_per_point_with_cumulative_probability(session, clusters_per_point)
 
         for cluster in clusters_per_point:
-            cumulative_probability_old = comparative_test_service \
-                .get_cumulative_probability(session,
-                                            cluster.case_count,
-                                            cluster.close_space_and_time,
-                                            cluster.close_in_space,
-                                            cluster.close_in_time)
+            comparative_test_service.get_cumulative_probability_for_cluster(session, cluster)
 
-            self.assertEqual(cluster.cumulative_probability, cumulative_probability_old)
-
-
+            self.assertEqual(cluster.cumulative_probability, cluster.old_cumulative_probability)
 
     def test_can_get_cases(self):
         session = database_service.get_sqlalchemy_session()
