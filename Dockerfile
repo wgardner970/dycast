@@ -10,6 +10,10 @@ RUN echo "deb http://apt.postgresql.org/pub/repos/apt/ trusty-pgdg main" >> /etc
 	apt-get update -y &&\
 	apt-get install -y postgresql-client-9.6 postgresql-9.6-postgis-2.2
 
+RUN add-apt-repository ppa:ubuntugis/ubuntugis-unstable &&\
+	apt-get update -y &&\
+	apt-get install -y postgis postgresql-9.6-postgis-2.3
+	
 ENV DYCAST_PATH=/dycast
 ENV DYCAST_APP_PATH=${DYCAST_PATH}/application
 ENV DYCAST_REQUIREMENTS_PATH=${DYCAST_APP_PATH}/init/requirements.txt
