@@ -9,9 +9,9 @@ RUN echo "deb http://apt.postgresql.org/pub/repos/apt/ trusty-pgdg main" >> /etc
 	wget --quiet -O - https://www.postgresql.org/media/keys/ACCC4CF8.asc | apt-key add - &&\
 	apt-get update -y &&\
 	apt-get install -y postgresql-client-9.6
-
+	
 RUN apt-get update -y &&\
-    apt-get install -y postgis
+    apt-get install -y libgdal1h libgeos-c1 liblwgeom-2.4-0 postgresql-10-postgis-2.4 postgis-doc postgis
 
 
 ENV DYCAST_PATH=/dycast
