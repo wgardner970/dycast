@@ -220,8 +220,7 @@ class RiskService(object):
         return session.query(DistributionMargin.close_time) \
             .filter(
             DistributionMargin.number_of_cases == cluster.case_count,
-            DistributionMargin.close_in_space_and_time == cluster.close_space_and_time,
-            DistributionMargin.close_time >= cluster.close_in_time) \
+            DistributionMargin.close_in_space_and_time == cluster.close_space_and_time) \
             .order_by(func.abs(DistributionMargin.close_time - cluster.close_in_time)) \
             .first()
 
