@@ -220,9 +220,9 @@ class RiskService(object):
         return session.query(DistributionMargin.close_time) \
             .filter(
             DistributionMargin.number_of_cases == cluster.case_count,
-            DistributionMargin.close_in_space_and_time >= cluster.close_space_and_time,
+            DistributionMargin.close_in_space_and_time == cluster.close_space_and_time,
             DistributionMargin.close_time >= cluster.close_in_time) \
-            .order_by(DistributionMargin.close_time) \
+            .order_by(func.abs(DistributionMargin.close_time - cluster.close_in_time)) \
             .first()
 
     def get_cumulative_probability_by_nearest_close_in_time(self, session, cluster, nearest_close_in_time):
