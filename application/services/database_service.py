@@ -5,6 +5,7 @@ import time
 import psycopg2
 from alembic import command
 from alembic.config import Config
+from alembic.util.exc import CommandError
 from sqlalchemy import create_engine, func
 from sqlalchemy.engine.url import URL
 from sqlalchemy.ext.declarative import declarative_base
@@ -120,7 +121,10 @@ def run_migrations(revision='head'):
     logging.info("Running database migrations...")
     alembic_config_path = config_service.get_alembic_config_path()
     alembic_config = Config(alembic_config_path)
-    command.upgrade(config=alembic_config, revision=revision)
+    try:
+        command.upgrade(config=alembic_config, revision=revision)
+    except CommandError, ex:
+        logging.error("Could not run migrations: [{0}]".format(ex))
 
 
 
