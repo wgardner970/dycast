@@ -1,8 +1,10 @@
 import logging
 import sys
 import time
-import psycopg2
 
+import psycopg2
+from alembic import command
+from alembic.config import Config
 from sqlalchemy import create_engine, func
 from sqlalchemy.engine.url import URL
 from sqlalchemy.ext.declarative import declarative_base
@@ -10,12 +12,9 @@ from sqlalchemy.orm import sessionmaker
 from sqlalchemy_utils import database_exists, create_database, drop_database
 
 from application.services import config_service
-from application.models import models
-
 
 CONFIG = config_service.get_config()
 DeclarativeBase = declarative_base()
-
 
 
 # Helper functions common
@@ -103,7 +102,6 @@ def create_postgis_extension(engine):
     sql_command = "CREATE EXTENSION postgis;"
     execute_sql_command(sql_command, engine)
 
-
 def import_monte_carlo(monte_carlo_file):
     logging.info("Importing Monte Carlo file: %s", monte_carlo_file)
     input_file = open(r'/dycast/application/init/{0}'.format(monte_carlo_file), 'r')
@@ -113,6 +111,16 @@ def import_monte_carlo(monte_carlo_file):
     input_file.close()
     conn.commit()
     conn.close()
+
+
+
+# Migrations
+
+def run_migrations():
+    logging.info("Running database migrations...")
+    alembic_config_path = config_service.get_alembic_config_path()
+    alembic_config = Config(alembic_config_path)
+    command.upgrade(config=alembic_config, revision='head')
 
 
 
@@ -133,11 +141,10 @@ def init_db(monte_carlo_file, force=False):
         logging.info("Creating database...")
         create_database(db_url)
         create_postgis_extension(engine)
-        models.create_tables(engine)
+        run_migrations()
         import_monte_carlo(monte_carlo_file)
     else:
         logging.info("Database already exists, skipping database initialization...")
-
 
 
 # Query helper functions
