@@ -77,7 +77,12 @@ def create_parser():
                                               argument_default=configargparse.SUPPRESS)
     setup_dycast_parser.set_defaults(func=setup_dycast)
 
-
+    # Run database migrations
+    run_migrations_parser = subparsers.add_parser('run_migrations',
+                                              parents=[common_parser],
+                                              help='Run database migrations',
+                                              argument_default=configargparse.SUPPRESS)
+    run_migrations_parser.set_defaults(func=run_migrations)
 
     ## Common arguments:
         # load_cases
@@ -182,7 +187,7 @@ def create_parser():
                       help='Default: same as start date. The end date to which to generate and/or export risk. Format: YYYY-MM-DD')
 
 
-    ## Init db argumentss:
+    ## Init db arguments:
     setup_dycast_parser.add('--force-db-init',
                        action='store_true',
                        help='If this flag is provided: drops existing database')
@@ -191,6 +196,11 @@ def create_parser():
                        required=True,
                        help='File name without folder. File must be in `application/init` folder')
 
+
+    ## Run migrations arguments:
+    run_migrations_parser.add('--revision',
+                              default='head',
+                              help='Default: head (run all migrations that are not already applied)')
 
 
     return main_parser
@@ -260,6 +270,10 @@ def setup_dycast(**kwargs):
     monte_carlo_file = kwargs.get('monte_carlo_file')
     database_service.init_db(monte_carlo_file, force)
 
+
+def run_migrations(**kwargs):
+    revision = kwargs.get('revision')
+    database_service.run_migrations(revision)
 
 
 def main():

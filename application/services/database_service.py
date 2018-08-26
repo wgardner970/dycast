@@ -116,11 +116,11 @@ def import_monte_carlo(monte_carlo_file):
 
 # Migrations
 
-def run_migrations():
+def run_migrations(revision='head'):
     logging.info("Running database migrations...")
     alembic_config_path = config_service.get_alembic_config_path()
     alembic_config = Config(alembic_config_path)
-    command.upgrade(config=alembic_config, revision='head')
+    command.upgrade(config=alembic_config, revision=revision)
 
 
 

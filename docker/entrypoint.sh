@@ -58,6 +58,7 @@ display_help() {
 check_init_db() {
 	if ! $(db_exists); then
 		echo "Dycast database is not initialized yet. Please run the 'setup_dycast' command"
+		exit 0
 	fi
 }
 
@@ -270,6 +271,21 @@ setup_dycast() {
 }
 
 
+run_migrations() {
+	local arguments="$@"
+	echo "Running database migrations using arguments: ${arguments}..."
+	python ${DYCAST_APP_PATH}/dycast.py run_migrations ${arguments}
+
+	exit_code=$?
+	if [[ ! "${exit_code}" == "0" ]]; then
+		echo "Command 'run_migrations' failed, exiting..."
+		exit ${exit_code}
+	else
+		echo "Done running database migrations"
+	fi
+}
+
+
 run_tests() {
 	local arguments="$@"
 	
@@ -342,6 +358,10 @@ case ${command} in
 		prepare_launch
 		setup_dycast ${arguments}
 	;;
+	run_migrations)
+	    prepare_launch
+	    run_migrations ${arguments}
+	;;
 	### From here list only commands that are specific for this Docker entrypoint
 	run_tests)
 		prepare_launch_test
@@ -351,6 +371,7 @@ case ${command} in
 		display_help
 	;;
 	*)
+	    echo "Running custom shell command: [$@]"
 		exec "$@"
 	;;
 esac
